@@ -10,7 +10,7 @@ void main() {
 }
 
 class PetConnectApp extends StatelessWidget {
-  const PetConnectApp({Key? key}) : super(key: key);
+  const PetConnectApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +27,8 @@ class PetConnectApp extends StatelessWidget {
 }
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }

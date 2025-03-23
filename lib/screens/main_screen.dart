@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -9,9 +11,9 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    Center(child: Text("Home Screen", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
-    Center(child: Text("Community Screen", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
-    Center(child: Text("Adoption Screen", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+    Center(child: Text("🏡 Home", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+    Center(child: Text("🌍 Community", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+    Center(child: Text("🐾 Adoption", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
   ];
 
   void _onItemTapped(int index) {
@@ -27,23 +29,27 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         backgroundColor: Color(0xFFFCF9DF),
         elevation: 0,
+        centerTitle: true,
+        title: Text(
+          "Pet Connect",
+          style: TextStyle(fontFamily: 'CaniculeDisplay', fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black),
+        ),
         leading: IconButton(
-          icon: Icon(Icons.person, color: Colors.black, size: 28), // Profile Icon
+          icon: Icon(Icons.person, color: Colors.black, size: 28), 
           onPressed: () {
-            // Navigate to Profile Screen
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ProfileScreen()),
-            );
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
           },
         ),
       ),
-      body: _screens[_selectedIndex],
+      body: AnimatedSwitcher(
+        duration: Duration(milliseconds: 300),
+        child: _screens[_selectedIndex],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         backgroundColor: Colors.white,
-        selectedItemColor: Colors.black, // Text & Icons in Black
+        selectedItemColor: Color(0xFF355C7D), // Themed Color
         unselectedItemColor: Colors.grey[600], 
         selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         unselectedLabelStyle: TextStyle(fontSize: 12),
@@ -51,15 +57,26 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 10,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.pets), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.forum), label: "Community"),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Adoption"),
+          BottomNavigationBarItem(icon: Icon(Icons.forum_rounded), label: "Community"),
+          BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism), label: "Adoption"),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // TODO: Add quick action (maybe add a new pet or open chat)
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Quick action tapped!")));
+        },
+        backgroundColor: Color(0xFF355C7D),
+        child: Icon(Icons.add, size: 28, color: Colors.white),
       ),
     );
   }
 }
 
+// Profile Screen
 class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,7 +87,7 @@ class ProfileScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
       ),
-      body: Center(child: Text("Profile Screen", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+      body: Center(child: Text("👤 Profile Screen", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
     );
   }
 }

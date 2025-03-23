@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect/screens/main_screen.dart';  // Ensure this import is correct
 
 class LaunchScreen extends StatefulWidget {
+  const LaunchScreen({super.key});
+
   @override
   _LaunchScreenState createState() => _LaunchScreenState();
 }

@@ -4,6 +4,8 @@ import 'signup_screen.dart';
 import 'main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -11,8 +13,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  void _login() async {
+  Future<void> _login() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? storedEmail = prefs.getString('email');
     String? storedPassword = prefs.getString('password');
@@ -21,55 +25,168 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setBool('isLoggedIn', true);
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Invalid email or password")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Invalid email or password!"),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: EdgeInsets.all(10),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFCF9DF),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/logo.png', width: 180, height: 120), // Small logo
-              SizedBox(height: 10),
-              Text("login 🐾", style: TextStyle(fontSize: 24, fontFamily: 'CaniculeDisplay')),
-              SizedBox(height: 20),
-              Container(
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Color(0xFFFCF9DF),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF76EAD7), Color(0xFFFFD166)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Profile Icon
+                CircleAvatar(
+                  radius: 55,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.pets, size: 60, color: Color(0xFF355C7D)),
                 ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _emailController,
-                      decoration: InputDecoration(labelText: "Email"),
-                    ),
-                    SizedBox(height: 10),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(labelText: "Password"),
-                    ),
-                  ],
+
+                SizedBox(height: 10),
+
+                // Login Title
+                Text(
+                  "Login",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontFamily: 'CaniculeDisplay',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(onPressed: _login, child: Text("Login")),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => SignupScreen()));
-                },
-                child: Text("Don't have an account? Sign up"),
-              ),
-            ],
+                SizedBox(height: 10),
+
+                Text(
+                  "Welcome back! 🐾",
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                ),
+                SizedBox(height: 20),
+
+                // Login Input Box
+                Container(
+                  width: 270,
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                  ),
+                  child: Column(
+                    children: [
+                      // Email Field
+                      TextField(
+                        controller: _emailController,
+                        style: TextStyle(fontSize: 16, color: Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: "Email",
+                          labelStyle: TextStyle(color: Colors.black54),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                          prefixIcon: Icon(Icons.email, color: Color(0xFF355C7D)),
+                        ),
+                      ),
+                      SizedBox(height: 15),
+
+                      // Password Field
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: TextStyle(fontSize: 16, color: Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: "Password",
+                          labelStyle: TextStyle(color: Colors.black54),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                          prefixIcon: Icon(Icons.lock, color: Color(0xFF355C7D)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 10),
+
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Forgot password feature coming soon!"),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Forgot Password?",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF355C7D),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Login Button
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF355C7D),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 80),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                      : Text("Login"),
+                ),
+
+                SizedBox(height: 30),
+
+                // Register Section
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SignupScreen()));
+                  },
+                  child: Text(
+                    "Don't have an account? Register",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

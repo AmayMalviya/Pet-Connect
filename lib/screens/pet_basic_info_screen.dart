@@ -4,7 +4,7 @@ import 'pet_breed_age_screen.dart';
 class PetBasicInfoScreen extends StatefulWidget {
   final int petCount;
 
-  PetBasicInfoScreen({required this.petCount});
+  const PetBasicInfoScreen({super.key, required this.petCount});
 
   @override
   _PetBasicInfoScreenState createState() => _PetBasicInfoScreenState();
@@ -30,7 +30,7 @@ class _PetBasicInfoScreenState extends State<PetBasicInfoScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter name and select pet type")),
+        SnackBar(content: Text("Please enter pet name and select pet type")),
       );
     }
   }
@@ -38,32 +38,93 @@ class _PetBasicInfoScreenState extends State<PetBasicInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFCF9DF),
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("Enter Pet Details", style: TextStyle(fontSize: 22, fontFamily: 'CaniculeDisplay')),
-              SizedBox(height: 15),
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: "Pet Name"),
-              ),
-              SizedBox(height: 10),
-              DropdownButtonFormField(
-                value: _selectedType,
-                items: animalTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
-                onChanged: (value) => setState(() => _selectedType = value as String?),
-                decoration: InputDecoration(labelText: "Animal Type"),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _nextScreen,
-                child: Text("Next"),
-              ),
-            ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF76EAD7), Color(0xFFFFD166)], // Playful gradient
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Enter Pet Details",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontFamily: 'CaniculeDisplay',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Pet Name Input Box
+                Container(
+                  width: 270,
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                  ),
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: "Pet Name",
+                      labelStyle: TextStyle(color: Colors.black54),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 15),
+
+                // Animal Type Dropdown
+                Container(
+                  width: 270,
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedType,
+                    items: animalTypes
+                        .map((type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type, style: TextStyle(fontSize: 16)),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setState(() => _selectedType = value),
+                    decoration: InputDecoration(
+                      labelText: "Animal Type",
+                      labelStyle: TextStyle(color: Colors.black54),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 20),
+
+                // Next Button
+                ElevatedButton(
+                  onPressed: _nextScreen,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF355C7D),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 80),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  child: Text("Next ➡️"),
+                ),
+              ],
+            ),
           ),
         ),
       ),
