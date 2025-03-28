@@ -24,32 +24,50 @@ class ReviewPetInfoScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF76EAD7), Color(0xFFFFD166)], // Playful gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Color(0xFF4A907F), // Matching HomeScreen Background
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.all(20.0),
+            padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   "Review Pet Details",
-                  style: TextStyle(fontSize: 26, fontFamily: 'CaniculeDisplay', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontFamily: 'CaniculeDisplay',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-                SizedBox(height: 15),
+                SizedBox(height: 20),
 
+                // Pet Details List
                 Expanded(
                   child: ListView.builder(
                     itemCount: petData.length,
                     itemBuilder: (context, index) {
                       var pet = petData[index];
                       return Card(
+                        color: Colors.white,
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        margin: EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
-                          title: Text("${pet["name"]} (${pet["type"]})"),
-                          subtitle: Text("Breed: ${pet["breed"]}, Age: ${pet["age"]}"),
+                          contentPadding: EdgeInsets.all(15),
+                          leading: CircleAvatar(
+                            backgroundColor: Color(0xFF355C7D),
+                            child: Icon(Icons.pets, color: Colors.white),
+                          ),
+                          title: Text(
+                            "${pet["name"]} (${pet["type"]})",
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                          ),
+                          subtitle: Text(
+                            "Breed: ${pet["breed"]}, Age: ${pet["age"]}",
+                            style: TextStyle(color: Colors.black54),
+                          ),
                         ),
                       );
                     },
@@ -58,8 +76,16 @@ class ReviewPetInfoScreen extends StatelessWidget {
 
                 SizedBox(height: 20),
 
+                // Finish Button
                 ElevatedButton(
                   onPressed: () => _finishSignup(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF355C7D),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   child: Text("Finish Setup 🎉"),
                 ),
               ],

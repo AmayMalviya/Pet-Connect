@@ -66,6 +66,14 @@ flutter:
   assets:
     - assets/fonts/CaniculeDisplayv0.3-Medium.Trial.otf
     - assets/images/logo.png
+    - assets/images/pet_care.png
+    - assets/images/products.png
+    - assets/images/grooming.png
+    - assets/images/meds.png
+    - assets/images/cat_sleep.png
+    - assets/images/dog_trick.png
+    - assets/images/profile_avatar.png
+
 
   fonts:
     - family: CaniculeDisplay

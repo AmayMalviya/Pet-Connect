@@ -21,7 +21,11 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please fill all fields")),
+        SnackBar(
+          content: Text("Please fill all fields"),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -44,11 +48,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF76EAD7), Color(0xFFFFD166)], // Playful gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Color(0xFF4A907F), // Matching HomeScreen Background
         ),
         child: SafeArea(
           child: Center(
@@ -61,7 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     fontSize: 28,
                     fontFamily: 'CaniculeDisplay',
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Colors.white,
                   ),
                 ),
                 SizedBox(height: 20),
@@ -140,7 +140,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.white,
                       decoration: TextDecoration.underline,
                     ),
                   ),

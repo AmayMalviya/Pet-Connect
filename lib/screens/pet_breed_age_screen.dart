@@ -44,7 +44,11 @@ class _PetBreedAgeScreenState extends State<PetBreedAgeScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select breed and age")),
+        SnackBar(
+          content: Text("Please select breed and age"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -52,15 +56,10 @@ class _PetBreedAgeScreenState extends State<PetBreedAgeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF76EAD7), Color(0xFFFFD166)], // Playful gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
+      backgroundColor: Color(0xFF4A907F), // Matches Main Screen
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -73,13 +72,13 @@ class _PetBreedAgeScreenState extends State<PetBreedAgeScreen> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 25),
 
                 // Breed Dropdown
                 Container(
-                  width: 270,
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
@@ -96,8 +95,8 @@ class _PetBreedAgeScreenState extends State<PetBreedAgeScreen> {
                     onChanged: (value) => setState(() => _selectedBreed = value),
                     decoration: InputDecoration(
                       labelText: "Breed",
-                      labelStyle: TextStyle(color: Colors.black54),
                       border: InputBorder.none,
+                      prefixIcon: Icon(Icons.pets, color: Color(0xFF355C7D)),
                     ),
                   ),
                 ),
@@ -106,8 +105,7 @@ class _PetBreedAgeScreenState extends State<PetBreedAgeScreen> {
 
                 // Age Dropdown
                 Container(
-                  width: 270,
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
@@ -124,13 +122,13 @@ class _PetBreedAgeScreenState extends State<PetBreedAgeScreen> {
                     onChanged: (value) => setState(() => _selectedAge = value),
                     decoration: InputDecoration(
                       labelText: "Age",
-                      labelStyle: TextStyle(color: Colors.black54),
                       border: InputBorder.none,
+                      prefixIcon: Icon(Icons.cake, color: Color(0xFF355C7D)),
                     ),
                   ),
                 ),
 
-                SizedBox(height: 20),
+                SizedBox(height: 30),
 
                 // Next Button
                 ElevatedButton(

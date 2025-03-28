@@ -14,7 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   Future<void> _login() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -22,16 +22,22 @@ class _LoginScreenState extends State<LoginScreen> {
     String? storedPassword = prefs.getString('password');
 
     if (_emailController.text == storedEmail && _passwordController.text == storedPassword) {
-      await prefs.setBool('isLoggedIn', true);
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+    await prefs.setBool('isLoggedIn', true); // ✅ Save login status
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => MainScreen()),
+    );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text("Invalid email or password!"),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: EdgeInsets.all(10),
-      ));
+      ),
+     );
     }
   }
 
@@ -40,11 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF76EAD7), Color(0xFFFFD166)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Color(0xFF4A907F), // Matching HomeScreen Background
         ),
         child: SafeArea(
           child: Center(
@@ -55,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 CircleAvatar(
                   radius: 55,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.pets, size: 60, color: Color(0xFF355C7D)),
+                  child: Icon(Icons.pets, size: 60, color: Color(0xFF355C7D)), // Deep blue accent
                 ),
 
                 SizedBox(height: 10),
@@ -67,14 +69,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontSize: 28,
                     fontFamily: 'CaniculeDisplay',
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Colors.white,
                   ),
                 ),
                 SizedBox(height: 10),
 
                 Text(
                   "Welcome back! 🐾",
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
                 ),
                 SizedBox(height: 20),
 
@@ -180,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.white,
                       decoration: TextDecoration.underline,
                     ),
                   ),

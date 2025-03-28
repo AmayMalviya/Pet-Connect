@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pet_connect/screens/main_screen.dart';  // Ensure this import is correct
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pet_connect/screens/main_screen.dart';
+import 'package:pet_connect/screens/login_screen.dart';
 
 class LaunchScreen extends StatefulWidget {
   const LaunchScreen({super.key});
@@ -12,25 +14,42 @@ class _LaunchScreenState extends State<LaunchScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 4), () {
+    _checkUserLoginStatus();
+  }
+
+  void _checkUserLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    await Future.delayed(Duration(seconds: 4));
+
+    if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainScreen()), // Redirect to MainScreen
+        MaterialPageRoute(
+          builder: (context) => isLoggedIn ? MainScreen() : LoginScreen(),
+        ),
       );
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFCF9DF), // Background color
-      body: Center(
-        child: Image.asset(
-          'assets/images/logo.png',
-          width: double.infinity,  // Makes image take full width
-          height: double.infinity, // Makes image take full height
-          fit: BoxFit.cover, // Ensures the image fills the screen
-        ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Image (Logo as Background)
+          Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.cover, // Covers the whole screen
+          ),
+
+          // Optional: Semi-transparent overlay to ensure text/icons are visible
+          Container(
+            color: Colors.black.withOpacity(0.1), // Adjust transparency if needed
+          ),
+        ],
       ),
     );
   }
