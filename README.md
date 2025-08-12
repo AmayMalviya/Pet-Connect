@@ -28,7 +28,7 @@ The **Pet-Connect App** is a Flutter-based mobile application designed to help p
 
 ## 🛠️ Tech Stack
 - **Flutter** (UI Development)
-- **Firebase** (Authentication, Firestore Database, Storage, Messaging), Java SPRING BOOT
+- **Firebase** (Authentication, Firestore Database, Storage, Messaging) and Java SPRING BOOT.
 - **Google Maps API** (Pet service locator)
 - **Cloud Functions** (Business logic & automation)
 - **VS Code** (Development Environment)
@@ -89,7 +89,7 @@ lib/
 
 ## 🚀 Roadmap
 - [x] Firebase Authentication (Email, Google Login)
-- [x] Firestore Integration (Pet Data Storage)
+- [x] MySql Database (Relational Data Storage)
 - [ ] Pet Service Locator (Google Maps API)
 - [ ] Pet Adoption Module
 - [ ] E-commerce Integration for Pet Products
