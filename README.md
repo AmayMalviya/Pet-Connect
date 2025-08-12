@@ -28,7 +28,7 @@ The **Pet-Connect App** is a Flutter-based mobile application designed to help p
 
 ## 🛠️ Tech Stack
 - **Flutter** (UI Development)
-- **Firebase** (Authentication, Firestore Database, Storage, Messaging)
+- **Firebase** (Authentication, Firestore Database, Storage, Messaging), Java SPRING BOOT
 - **Google Maps API** (Pet service locator)
 - **Cloud Functions** (Business logic & automation)
 - **VS Code** (Development Environment)
@@ -43,8 +43,8 @@ The **Pet-Connect App** is a Flutter-based mobile application designed to help p
 
 ### 2️⃣ Clone the Repository
 ```bash
-  git clone https://github.com/your-username/pet-care-app.git
-  cd pet-care-app
+  git clone https://github.com/AmayMalviya/Pet-Connect.git
+  cd Pet-Connect
 ```
 
 ### 3️⃣ Install Dependencies
