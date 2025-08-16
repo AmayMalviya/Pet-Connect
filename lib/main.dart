@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+import 'theme/app_theme.dart';
+import 'screens/auth_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/profile_screen.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const PetConnectApp());
+}
+
+class PetConnectApp extends StatelessWidget {
+  const PetConnectApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Pet Connect',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      routes: {
+        '/': (_) => const AuthScreen(),
+        LoginScreen.routeName: (_) => const LoginScreen(),
+        RegisterScreen.routeName: (_) => const RegisterScreen(),
+        ProfileScreen.routeName: (_) => const ProfileScreen(),
+      },
+    );
+  }
+}
+

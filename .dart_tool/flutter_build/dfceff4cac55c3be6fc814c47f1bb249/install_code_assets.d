@@ -1,0 +1,1 @@
+ C:\\Users\\adars\\AndroidStudioProjects\\Pet_connect_app\\.dart_tool\\flutter_build\\dfceff4cac55c3be6fc814c47f1bb249\\native_assets.json: 
