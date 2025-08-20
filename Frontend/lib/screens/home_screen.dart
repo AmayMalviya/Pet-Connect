@@ -1,6 +1,8 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/app_drawer.dart';
 import 'package:pet_connect_app/screens/profile_screen.dart';
@@ -19,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _hasPet = false; // In a real app, this would come from a state management solution
+
   final List<String> _vetNames = [
     'Dr. Aarav Sharma',
     'Dr. Vivaan Gupta',
@@ -26,6 +30,30 @@ class _HomeScreenState extends State<HomeScreen> {
     'Dr. Ishaan Patel',
     'Dr. Reyansh Kumar',
   ];
+
+  void _showAddPetDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: AlertDialog(
+            title: const Text('Add a Pet'),
+            content: const Text('Please add a pet to access this service.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushNamed(context, AddPetScreen.routeName);
+                },
+                child: const Text('Add Pet'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +71,31 @@ class _HomeScreenState extends State<HomeScreen> {
               'Good Morning, Amay!',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
+            if (!_hasPet)
+              const SizedBox(height: 20),
+            if (!_hasPet)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, AddPetScreen.routeName);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Add Pet 🐾',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 20),
             TextField(
               decoration: InputDecoration(
@@ -68,28 +121,44 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Grooming',
                     icon: Icons.cut,
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => GroomingScreen()));
+                      if (_hasPet) {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => GroomingScreen()));
+                      } else {
+                        _showAddPetDialog();
+                      }
                     },
                   ),
                   PetCareCard(
                     title: 'Training',
                     icon: Icons.school,
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => TrainingScreen()));
+                      if (_hasPet) {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => TrainingScreen()));
+                      } else {
+                        _showAddPetDialog();
+                      }
                     },
                   ),
                   PetCareCard(
                     title: 'Vet',
                     icon: Icons.medical_services,
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => VetScreen()));
+                      if (_hasPet) {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => VetScreen()));
+                      } else {
+                        _showAddPetDialog();
+                      }
                     },
                   ),
                   PetCareCard(
                     title: 'Adoption',
                     icon: Icons.favorite_border,
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => AdoptionScreen()));
+                      if (_hasPet) {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => AdoptionScreen()));
+                      } else {
+                        _showAddPetDialog();
+                      }
                     },
                   ),
                 ],
