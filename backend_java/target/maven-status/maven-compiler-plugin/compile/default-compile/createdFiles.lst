@@ -1,6 +1,9 @@
-com/example/petconnectbackend/model/Pet.class
-com/example/petconnectbackend/controller/PetController.class
-com/petconnect/PetConnect.class
-com/example/petconnectbackend/controller/PetController$1.class
-com/example/petconnectbackend/service/FirebaseService.class
-com/example/petconnectbackend/PetConnectBackendApplication.class
+com/petconnect/controller/UserController.class
+com/petconnect/PetConnectApplication.class
+com/petconnect/service/PetService.class
+com/petconnect/model/Pet.class
+com/petconnect/model/User.class
+com/petconnect/config/FirebaseConfig.class
+com/petconnect/controller/PetController.class
+com/petconnect/service/UserService.class
+com/petconnect/service/AuthService.class

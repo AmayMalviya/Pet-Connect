@@ -16,6 +16,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
   String _name = '';
   String? _selectedAnimal;
   String? _selectedBreed;
+  int _age = 0;
 
   final Map<String, List<String>> _breeds = {
     'Dog': ['Golden Retriever', 'Labrador', 'German Shepherd', 'Poodle'],
@@ -28,7 +29,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
       final newPet = Pet(
         name: _name,
         breed: '$_selectedAnimal - $_selectedBreed',
-        imageUrl: 'assets/images/logo.png', // Placeholder image
+        age: _age,
+        ownerUid: '', // This will be set in ProfileScreen
       );
       Navigator.of(context).pop(newPet);
     }
@@ -56,6 +58,25 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 },
                 onSaved: (value) {
                   _name = value!;
+                },
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Age'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter an age.';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Please enter a valid number.';
+                  }
+                  if (int.parse(value) <= 0) {
+                    return 'Age must be greater than 0.';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  _age = int.parse(value!);
                 },
               ),
               DropdownButtonFormField<String>(

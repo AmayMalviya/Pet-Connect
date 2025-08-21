@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pet_connect_app/theme/app_theme.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});

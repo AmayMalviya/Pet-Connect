@@ -62,6 +62,24 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "firebase_auth",
+      "rootUri": "file:///Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_auth-5.7.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_auth_platform_interface",
+      "rootUri": "file:///Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_auth_platform_interface-7.7.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_auth_web",
+      "rootUri": "file:///Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_auth_web-5.15.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "firebase_core",
       "rootUri": "file:///Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_core-3.15.2",
       "packageUri": "lib/",

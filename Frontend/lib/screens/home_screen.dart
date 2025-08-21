@@ -21,7 +21,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _hasPet = false; // In a real app, this would come from a state management solution
+  final bool _hasPet = false; // In a real app, this would come from a state management solution
 
   final List<String> _vetNames = [
     'Dr. Aarav Sharma',

@@ -3,6 +3,9 @@ import 'package:pet_connect_app/screens/main_screen.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/services/api_service.dart';
+import 'package:pet_connect_app/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -15,6 +18,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final email = TextEditingController();
   final password = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,11 +27,48 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    Navigator.pushReplacementNamed(
-      context,
-      MainScreen.routeName,
-    );
+  void _submit() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.text,
+        password: password.text,
+      );
+      String? idToken = await userCredential.user?.getIdToken();
+
+      if (idToken != null) {
+        await ApiService.loginUser(idToken);
+        Navigator.pushReplacementNamed(
+          context,
+          MainScreen.routeName,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to get ID token.')),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password provided for that user.';
+      } else {
+        message = e.message ?? 'An unknown error occurred.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   String _titleCase(String s) => s.isEmpty
@@ -67,7 +108,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   PetTextField(controller: password, hint: "Password", icon: Icons.lock_outline_rounded, obscure: true),
                   const SizedBox(height: 20),
-                  PrimaryButton(label: "Login", icon: Icons.login_rounded, onPressed: _submit),
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : PrimaryButton(label: "Login", icon: Icons.login_rounded, onPressed: _submit),
                   const SizedBox(height: 18),
                   Center(
                     child: Row(
@@ -79,6 +122,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(width: 10),
                         _SocialIcon(child: const Icon(Icons.apple)),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, RegisterScreen.routeName);
+                      },
+                      child: const Text('Don\'t have an account? Register'),
                     ),
                   ),
                 ],

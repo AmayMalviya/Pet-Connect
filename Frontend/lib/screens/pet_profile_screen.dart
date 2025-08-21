@@ -32,7 +32,7 @@ class PetProfileScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(radius: 80, backgroundImage: AssetImage(pet.imageUrl)),
+            CircleAvatar(radius: 80, backgroundImage: AssetImage('assets/images/logo.png')),
             const SizedBox(height: 20),
             Text(
               pet.name,

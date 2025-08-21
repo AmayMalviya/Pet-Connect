@@ -3,6 +3,10 @@ import 'package:pet_connect_app/screens/main_screen.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/services/api_service.dart';
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:pet_connect_app/screens/login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -16,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final name = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -25,8 +30,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    Navigator.pushReplacementNamed(context, MainScreen.routeName);
+  void _submit() async {
+    setState(() {
+      _isLoading = true;
+    });
+    print('Attempting to register user...');
+    try {
+      print('Attempting Firebase user creation...');
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.text,
+        password: password.text,
+      );
+      print('Firebase user creation successful.');
+
+      if (userCredential.user != null) {
+        print('User credential user is not null. UID: ${userCredential.user!.uid}');
+        // Update display name in Firebase Auth
+        await userCredential.user!.updateDisplayName(name.text);
+        print('Display name updated in Firebase Auth.');
+
+        // Register user in backend
+        pet_connect_user.User newUser = pet_connect_user.User(
+          uid: userCredential.user!.uid,
+          email: email.text,
+          displayName: name.text,
+        );
+        print('Calling backend ApiService.registerUser...');
+        await ApiService.registerUser(newUser);
+        print('Backend registration successful.');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thank you for signing up!')), 
+        );
+        print('Navigating to MainScreen...');
+        Navigator.pushReplacementNamed(context, MainScreen.routeName);
+      } else {
+        print('User credential user is null. Showing error snackbar.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to register user.')),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      print('FirebaseAuthException caught: ${e.code} - ${e.message}');
+      String message;
+      if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'The account already exists for that email.';
+      } else {
+        message = e.message ?? 'An unknown error occurred.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      print('Generic exception caught: ${e.toString()}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+    setState(() {
+      _isLoading = false;
+    });
+    print('Registration process finished. isLoading set to false.');
   }
 
   @override
@@ -34,7 +100,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final t = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+          },
+        ),
+      ),
       body: Stack(
         children: [
           const _WaveBands(),
@@ -92,10 +165,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscure: true,
                   ),
                   const SizedBox(height: 20),
-                  PrimaryButton(
-                    label: "Sign Up",
-                    icon: Icons.check_circle_rounded,
-                    onPressed: _submit,
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : PrimaryButton(
+                          label: "Sign Up",
+                          icon: Icons.check_circle_rounded,
+                          onPressed: _submit,
+                        ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+                      },
+                      child: const Text('Already have an account? Login'),
+                    ),
                   ),
                 ],
               ),
