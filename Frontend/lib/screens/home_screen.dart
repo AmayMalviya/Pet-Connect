@@ -6,10 +6,11 @@ import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/app_drawer.dart';
 import 'package:pet_connect_app/screens/profile_screen.dart';
-import 'package:pet_connect_app/screens/grooming_screen.dart';
-import 'package:pet_connect_app/screens/training_screen.dart';
-import 'package:pet_connect_app/screens/vet_screen.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/screens/services_screen.dart'; // Import ServicesScreen
+import 'package:pet_connect_app/screens/health_details_screen.dart';
+import 'package:pet_connect_app/screens/self_care_options_screen.dart'; // Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,35 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final bool _hasPet = false; // In a real app, this would come from a state management solution
+  String? _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  void _loadUserName() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _userName = user.displayName ?? 'User';
+      });
+    }
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else if (hour < 21) {
+      return 'Good Evening';
+    } else {
+      return 'Good Night';
+    }
+  }
 
   final List<String> _vetNames = [
     'Dr. Aarav Sharma',
@@ -67,8 +97,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Good Morning, Amay!',
+            Text(
+              '${_getGreeting()}, ${_userName ?? 'User'}!',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             if (!_hasPet)
@@ -122,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.cut,
                     onTap: () {
                       if (_hasPet) {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => GroomingScreen()));
+                        Navigator.pushNamed(context, ServicesScreen.routeName);
                       } else {
                         _showAddPetDialog();
                       }
@@ -133,9 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.school,
                     onTap: () {
                       if (_hasPet) {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => TrainingScreen()));
-                      } else {
-                        _showAddPetDialog();
+                        Navigator.pushNamed(context, ServicesScreen.routeName);
                       }
                     },
                   ),
@@ -144,9 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.medical_services,
                     onTap: () {
                       if (_hasPet) {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => VetScreen()));
-                      } else {
-                        _showAddPetDialog();
+                        Navigator.pushNamed(context, ServicesScreen.routeName);
                       }
                     },
                   ),

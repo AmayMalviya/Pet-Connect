@@ -6,6 +6,9 @@ import 'auth_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -20,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Pet> _pets = [];
   bool _isLoading = true;
   String? _error;
+  File? _profileImage;
 
   @override
   void initState() {
@@ -40,6 +44,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _user = fetchedUser;
           _pets = fetchedPets;
+          if (currentUser.photoURL != null) {
+            _profileImage = null; // Clear local image if Firebase has one
+          }
         });
       } else {
         setState(() {
@@ -57,7 +64,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        _profileImage = File(image.path);
+      });
+      await _uploadImage(_profileImage!);
+    }
+  }
+
+  Future<void> _uploadImage(File image) async {
+    try {
+      final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in to upload a profile picture.')),
+        );
+        return;
+      }
+
+      final storageRef = FirebaseStorage.instance.ref().child('profile_pictures').child('${currentUser.uid}.jpg');
+      await storageRef.putFile(image);
+      final imageUrl = await storageRef.getDownloadURL();
+
+      await currentUser.updatePhotoURL(imageUrl);
+      await currentUser.reload();
+      _fetchProfileData(); // Refresh profile data to show new image
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload profile picture: ${e.toString()}')),
+      );
+    }
+  }
+
   void _addPet(Pet pet) async {
+    if (!mounted) return;
     try {
       final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
@@ -106,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : ListView(
                   padding: const EdgeInsets.all(16.0),
                   children: [
-                    _buildProfileHeader(_user?.displayName ?? 'N/A', _user?.email ?? 'N/A'),
+                    _buildProfileHeader(_user?.displayName ?? 'N/A', _user?.email ?? 'N/A', _user?.photoUrl),
                     const SizedBox(height: 20),
                     _buildPetList(),
                   ],
@@ -123,12 +171,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(String name, String email) {
+  Widget _buildProfileHeader(String name, String email, String? photoUrl) {
+    bool isNetworkUrl = photoUrl != null && (photoUrl.startsWith('http://') || photoUrl.startsWith('https://'));
+
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 40,
-          backgroundImage: AssetImage('assets/images/profile_avatar.png'), // Use a default image or user's profile pic
+        GestureDetector(
+          onTap: _pickImage,
+          child: CircleAvatar(
+            radius: 40,
+            backgroundImage: _profileImage != null
+                ? FileImage(_profileImage!) as ImageProvider
+                : (isNetworkUrl
+                    ? NetworkImage(photoUrl!)
+                    : const AssetImage('assets/images/profile_avatar.png') as ImageProvider),
+            child: _profileImage == null && !isNetworkUrl
+                ? const Icon(Icons.camera_alt, size: 30, color: Colors.white70)
+                : null,
+          ),
         ),
         const SizedBox(width: 16),
         Column(
