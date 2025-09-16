@@ -20,6 +20,7 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Health Details'),
+        leading: const BackButton(), // Added back button
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

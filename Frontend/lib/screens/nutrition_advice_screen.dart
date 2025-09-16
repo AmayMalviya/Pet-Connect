@@ -10,6 +10,7 @@ class NutritionAdviceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nutrition Advice'),
+        leading: const BackButton(), // Added back button
       ),
       body: const Center(
         child: Text(

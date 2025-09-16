@@ -112,6 +112,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
       appBar: AppBar(
         title: const Text("Manage Profile"),
         centerTitle: true,
+        leading: const BackButton(), // Added back button
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

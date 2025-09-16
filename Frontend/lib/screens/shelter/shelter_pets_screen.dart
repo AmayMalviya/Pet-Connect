@@ -10,6 +10,7 @@ class ShelterPetsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pets in Shelter'),
+        leading: const BackButton(), // Added back button
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0), // Added padding

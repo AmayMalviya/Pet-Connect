@@ -10,6 +10,7 @@ class VetDetailsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vet Details'),
+        leading: const BackButton(), // Added back button
       ),
       body: const Center(
         child: Text(

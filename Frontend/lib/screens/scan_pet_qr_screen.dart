@@ -10,6 +10,7 @@ class ScanPetQrScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan Pet QR'),
+        leading: const BackButton(), // Added back button
       ),
       body: const Center(
         child: Text('Scan Pet QR Screen'),

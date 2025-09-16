@@ -10,6 +10,7 @@ class AdoptionRequestsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Adoption Requests'),
+        leading: const BackButton(), // Added back button
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0), // Added padding

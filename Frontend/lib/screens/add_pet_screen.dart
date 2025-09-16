@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/pet.dart';
 
@@ -61,6 +60,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add a New Pet'),
+        leading: const BackButton(), // Added back button
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

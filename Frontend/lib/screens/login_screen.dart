@@ -4,7 +4,7 @@ import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/services/api_service.dart';
-import 'package:pet_connect_app/screens/register_screen.dart';
+import 'package:pet_connect_app/screens/register_screen.dart'; // Added import
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -95,7 +95,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final t = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: const BackButton(), // Added back button
+      ),
       body: Stack(
         children: [
           const _WaveBands(),

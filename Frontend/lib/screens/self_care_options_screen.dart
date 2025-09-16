@@ -22,6 +22,7 @@ class _SelfCareOptionsScreenState extends State<SelfCareOptionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Self Care Options'),
+        leading: const BackButton(), // Added back button
       ),
       body: Row(
         children: [

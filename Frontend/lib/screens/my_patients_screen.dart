@@ -10,6 +10,7 @@ class MyPatientsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Patients'),
+        leading: const BackButton(), // Added back button
       ),
       body: const Center(
         child: Text('My Patients Screen'),

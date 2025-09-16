@@ -10,6 +10,7 @@ class TrainingDetailsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Training Details'),
+        leading: const BackButton(), // Added back button
       ),
       body: const Center(
         child: Text(

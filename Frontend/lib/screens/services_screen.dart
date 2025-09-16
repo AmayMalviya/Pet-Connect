@@ -15,6 +15,7 @@ class ServicesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pet Services'),
+        leading: const BackButton(), // Added back button
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

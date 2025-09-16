@@ -104,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+            Navigator.pop(context); // Changed to pop
           },
         ),
       ),

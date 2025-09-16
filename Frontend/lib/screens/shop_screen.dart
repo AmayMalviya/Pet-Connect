@@ -47,13 +47,13 @@ class _ShopScreenState extends State<ShopScreen> {
         name: 'Dog Food',
         price: ' 650 Rs',
         imageUrl: 'assets/images/DogFood.png', // Using a placeholder image
-        productUrl: 'https://www.google.com/search?q=dog+food&oq=dog+food&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIHCAEQABiABDIHCAIQABiABDIHCAMQABiABDIMCAQQABgUGIcCGIAEMgkIBRAAGAoYgAQyBwgGEAAYgAQyBwgHEAAYgAQyBggIEAAYgAQyBggJEC4YQNIBCDE3MDJqMGoxqAIIsAIB8QWtvuSWxlIJMQ&sourceid=chrome&ie=UTF-8#pvs=0:~:text=Dry%20Dog%20Food-,Meat,-%26%20Rice',
+        productUrl: 'https://www.google.com/search?q=dog+food&oq=dog+food&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIHCAEQABiABDIHCAIQABiABDIHCAMQABiABDIMCAQQABgUGIcCGIAEMgkIBRAAGAoYgAQyBwgGEAAYgAQyBwgHEAAYgAQyBggIEAAYgAQyBggJEC4YQNIBCDE3MDJqMGoxqAIIsAIB8QWtvuSWxlIJMQ&sourceid=chrome&ie=UTF8#pvs=0:~:text=Dry%20Dog%20Food-,Meat,-%26%20Rice',
       ),
       Product(
         name: 'Cat Food',
         price: ' 400 Rs',
         imageUrl: 'assets/images/CatFood.png', // Using a placeholder image
-        productUrl: 'https://www.google.com/search?q=cat+food&sca_esv=87473f56703eda8f&sxsrf=AE3TifOfMqlOal0kERoee_fBrHh3rxxZBA%3A1755752865660&ei=oammaPf-J8uy4-EP-ILdiAs&ved=0ahUKEwi30_uOkZuPAxVL2TgGHXhBF7EQ4dUDCBA&uact=5&oq=cat+food&gs_lp=Egxnd3Mtd2l6LXNlcnAiCGNhdCBmb29kMg0QLhiABBixAxhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBgUGIcCMgUQABiABDIFEAAYgAQyDRAAGIAEGLEDGEMYigUyBhAAGAcYHjIcEC4YgAQYsQMYQxiKBRiXBRjcBBjeBBjfBNgBAUjiElD0B1iQC3ACeAGQAQCYAdEBoAHBBKoBBTAuMi4xuAEDyAEA-AEBmAIEoAKfA8ICEBAuGLADGNEDGNYEGEcYxwHCAgoQABiwAxjWBBhHwgINEAAYgAQYsAMYQxiKBZgDAIgGAZAGCroGBggBEAEYFJIHBTIuMS4xoAfcF7IHBTAuMS4xuAeYA8IHBTAuMS4zyAcP&sclient=gws-wiz-serp#:~:text=Purepet-,Adult,-Cat%20Ocean%20Fish',
+        productUrl: 'https://www.google.com/search?q=cat+food&sca_esv=87473f56703eda8f&sxsrf=AE3TifOfMqlOal0kERoee_fBrHh3rxxZBA%3A1755752865660&ei=oammaPf-J8uy4-EP-ILdiAs&ved=0ahUKEwi30_uOkZuPAxVL2TgGHXhBF7EQ4dUDCBA&uact=5&oq=cat+food&gs_lp=Egxnd3Mtd2l6LXNlcnAiCGNhdCBmb29kMg0QLhiABBixAxhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBgUGIcCMgUQABiABDIFEAAYgAQyDRAAGIAEGLEDGEMYigUyBhAAGAcYHjIcEC4YgAQYsQMYQxiKBRiXBRjcBBjeBBjfBNgBAUjiElD0B1iQC3ACeAGQAQCYAdEBoAHBBKoBBTAuMi4xuAEDyAEA-AEBmAIEoAKfA8ICEBAuGLADGNEDGNYEGEcYxwHCAgoQABiwAxjWBBhHwgINEAAYgAQYsAMYQxiKBZgDAIgGAZAGCroGBggBEAEYFJIHBTIuMS4xoAfcF7IHBTAuMS4zyAcP&sclient=gws-wiz-serp#:~:text=Purepet-,Adult,-Cat%20Ocean%20Fish',
       ),
       Product(
         name: 'Chew Toy',
@@ -78,11 +78,39 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: _filteredProducts.length,
-      itemBuilder: (context, index) {
-        return ProductCard(product: _filteredProducts[index]);
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Shop'),
+        leading: const BackButton(), // Added back button
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search products...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[200],
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _filteredProducts.length,
+              itemBuilder: (context, index) {
+                return ProductCard(product: _filteredProducts[index]);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

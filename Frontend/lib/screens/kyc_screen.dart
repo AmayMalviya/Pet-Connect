@@ -44,6 +44,7 @@ class _KycScreenState extends State<KycScreen> {
       appBar: AppBar(
         title: const Text('KYC Verification'),
         centerTitle: true,
+        leading: const BackButton(), // Added back button
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

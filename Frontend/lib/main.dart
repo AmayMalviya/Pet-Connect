@@ -16,6 +16,17 @@ import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/vet_details_screen.dart';
 import 'package:pet_connect_app/screens/nutrition_advice_screen.dart';
+import 'package:pet_connect_app/screens/role_selection_screen.dart';
+import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/vet_home_screen.dart';
+import 'package:pet_connect_app/screens/shelter_home_screen.dart';
+import 'package:pet_connect_app/screens/appointments_screen.dart';
+import 'package:pet_connect_app/screens/my_patients_screen.dart';
+import 'package:pet_connect_app/screens/scan_pet_qr_screen.dart';
+import 'package:pet_connect_app/screens/vet_profile_screen.dart';
+import 'package:pet_connect_app/screens/shelter/shelter_pets_screen.dart';
+import 'package:pet_connect_app/screens/shelter/adoption_requests_screen.dart';
+import 'package:pet_connect_app/screens/shelter/shelter_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,29 +50,39 @@ class PetConnectApp extends StatelessWidget {
             return const CircularProgressIndicator();
           }
           if (snapshot.hasData) {
-            return const MainScreen();
+            return const RoleSelectionScreen();
           } else {
             return const AuthScreen();
           }
         },
       ),
       routes: {
-        AuthScreen.routeName: (_) => const AuthScreen(),
-        LoginScreen.routeName: (_) => const LoginScreen(),
-        RegisterScreen.routeName: (_) => const RegisterScreen(),
-        ProfileScreen.routeName: (_) => const ProfileScreen(),
-        MainScreen.routeName: (_) => const MainScreen(),
-        AddPetScreen.routeName: (_) => const AddPetScreen(),
-        SelfCareOptionsScreen.routeName: (_) => SelfCareOptionsScreen(),
-        HealthDetailsScreen.routeName: (_) => HealthDetailsScreen(),
-        ServicesScreen.routeName: (_) => ServicesScreen(),
-        ShopScreen.routeName: (_) => ShopScreen(),
-        GroomingDetailsScreen.routeName: (_) => GroomingDetailsScreen(),
-        TrainingDetailsScreen.routeName: (_) => TrainingDetailsScreen(),
-        VetDetailsScreen.routeName: (_) => VetDetailsScreen(),
-        NutritionAdviceScreen.routeName: (_) => NutritionAdviceScreen(),
+        AuthScreen.routeName: (context) => const AuthScreen(),
+        LoginScreen.routeName: (context) => const LoginScreen(),
+        RegisterScreen.routeName: (context) => const RegisterScreen(),
+        ProfileScreen.routeName: (context) => const ProfileScreen(),
+        MainScreen.routeName: (context) => const MainScreen(),
+        AddPetScreen.routeName: (context) => const AddPetScreen(),
+        SelfCareOptionsScreen.routeName: (context) => const SelfCareOptionsScreen(),
+        HealthDetailsScreen.routeName: (context) => const HealthDetailsScreen(),
+        ServicesScreen.routeName: (context) => const ServicesScreen(),
+        ShopScreen.routeName: (context) => const ShopScreen(),
+        GroomingDetailsScreen.routeName: (context) => const GroomingDetailsScreen(),
+        TrainingDetailsScreen.routeName: (context) => const TrainingDetailsScreen(),
+        VetDetailsScreen.routeName: (context) => const VetDetailsScreen(),
+        NutritionAdviceScreen.routeName: (context) => const NutritionAdviceScreen(),
+        RoleSelectionScreen.routeName: (context) => const RoleSelectionScreen(),
+        KycScreen.routeName: (context) => const KycScreen(),
+        VetHomeScreen.routeName: (context) => const VetHomeScreen(),
+        ShelterHomeScreen.routeName: (context) => const ShelterHomeScreen(),
+        AppointmentsScreen.routeName: (context) => const AppointmentsScreen(),
+        MyPatientsScreen.routeName: (context) => const MyPatientsScreen(),
+        ScanPetQrScreen.routeName: (context) => const ScanPetQrScreen(),
+        VetProfileScreen.routeName: (context) => const VetProfileScreen(),
+        ShelterPetsScreen.routeName: (context) => const ShelterPetsScreen(),
+        AdoptionRequestsScreen.routeName: (context) => const AdoptionRequestsScreen(),
+        ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
       },
     );
   }
 }
-

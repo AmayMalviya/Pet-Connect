@@ -10,6 +10,7 @@ class GroomingDetailsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Grooming Details'),
+        leading: const BackButton(), // Added back button
       ),
       body: const Center(
         child: Text(

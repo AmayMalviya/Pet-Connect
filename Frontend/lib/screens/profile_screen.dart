@@ -132,6 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your Profile"),
+        leading: const BackButton(), // Added back button
         actions: [
           IconButton(
             tooltip: "Logout",
