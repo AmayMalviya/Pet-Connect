@@ -1,10 +1,13 @@
 package com.petconnect.config;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,15 +23,9 @@ public class FirebaseConfig {
             FileInputStream serviceAccount =
                     new FileInputStream("/Users/amaymalviya/Documents/Development/Key/pet-connect-7c145-firebase-adminsdk-fbsvc-b175bbff2e.json");
 
-            HttpTransport httpTransport = new NetHttpTransport.Builder()
-                    .setConnectTimeout(60000) // 60 seconds
-                    .setReadTimeout(60000)    // 60 seconds
-                    .build();
-
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .setDatabaseUrl("https://pet-connect-7c145-default-rtdb.firebaseio.com")
-                    .setHttpTransport(httpTransport)
                     .build();
 
             return FirebaseApp.initializeApp(options);

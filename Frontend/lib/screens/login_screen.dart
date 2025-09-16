@@ -6,6 +6,9 @@ import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/register_screen.dart';
+import 'package:pet_connect_app/screens/role_selection_screen.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -42,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await ApiService.loginUser(idToken);
         Navigator.pushReplacementNamed(
           context,
-          MainScreen.routeName,
+          RoleSelectionScreen.routeName,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,9 +74,82 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  String _titleCase(String s) => s.isEmpty
-      ? s
-      : s.split(' ').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+  void _resetPassword() async {
+    if (email.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email to reset password.')),
+      );
+      return;
+    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.text);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent.')),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'An unknown error occurred.')),
+      );
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // The user canceled the sign-in
+        return;
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      
+      if (userCredential.user != null) {
+        final String? idToken = await userCredential.user?.getIdToken();
+        if (idToken != null) {
+          await ApiService.loginUser(idToken);
+          Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing in with Google: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    try {
+      final AuthorizationCredentialAppleID appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final OAuthCredential credential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        final String? idToken = await userCredential.user?.getIdToken();
+        if (idToken != null) {
+          await ApiService.loginUser(idToken);
+          Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing in with Apple: ${e.toString()}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +183,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   PetTextField(controller: email, hint: "Email", icon: Icons.alternate_email_rounded),
                   const SizedBox(height: 12),
                   PetTextField(controller: password, hint: "Password", icon: Icons.lock_outline_rounded, obscure: true),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _resetPassword,
+                      child: const Text('Forgot Password?'),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
@@ -116,11 +199,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _SocialIcon(child: const Icon(Icons.g_mobiledata)),  // placeholder
+                        _SocialIcon(
+                          onTap: _signInWithGoogle,
+                          child: const Icon(Icons.g_mobiledata),
+                        ),
                         const SizedBox(width: 10),
-                        _SocialIcon(child: const Icon(Icons.facebook)),
-                        const SizedBox(width: 10),
-                        _SocialIcon(child: const Icon(Icons.apple)),
+                        _SocialIcon(
+                          onTap: _signInWithApple,
+                          child: const Icon(Icons.apple, color: Colors.black),
+                        ),
                       ],
                     ),
                   ),
@@ -145,18 +232,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class _SocialIcon extends StatelessWidget {
   final Widget child;
-  const _SocialIcon({required this.child});
+  final VoidCallback onTap;
+  const _SocialIcon({required this.child, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44, width: 44,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        width: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12),
+        ),
+        child: Center(child: child),
       ),
-      child: Center(child: child),
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pet_connect_app/screens/main_screen.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
@@ -7,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/screens/login_screen.dart';
+import 'package:pet_connect_app/screens/role_selection_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -63,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SnackBar(content: Text('Thank you for signing up!')), 
         );
         print('Navigating to MainScreen...');
-        Navigator.pushReplacementNamed(context, MainScreen.routeName);
+        Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
       } else {
         print('User credential user is null. Showing error snackbar.');
         ScaffoldMessenger.of(context).showSnackBar(
