@@ -32,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileData() async {
-    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -42,7 +41,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (currentUser != null) {
         final fetchedUser = await ApiService.getUserDetails(currentUser.uid);
         final fetchedPets = await ApiService.getPetsByOwnerUid(currentUser.uid);
-        if (!mounted) return;
         setState(() {
           _user = fetchedUser;
           _pets = fetchedPets;
@@ -51,18 +49,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         });
       } else {
-        if (!mounted) return;
         setState(() {
           _error = 'User not logged in.';
         });
       }
     } catch (e) {
-      if (!mounted) return;
       setState(() {
         _error = 'Failed to load profile data: ${e.toString()}';
       });
     } finally {
-      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -74,7 +69,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      if (!mounted) return;
       setState(() {
         _profileImage = File(image.path);
       });
@@ -189,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundImage: _profileImage != null
                 ? FileImage(_profileImage!) as ImageProvider
                 : (isNetworkUrl
-                    ? NetworkImage(photoUrl!)
+                    ? NetworkImage(photoUrl)
                     : const AssetImage('assets/images/profile_avatar.png') as ImageProvider),
             child: _profileImage == null && !isNetworkUrl
                 ? const Icon(Icons.camera_alt, size: 30, color: Colors.white70)

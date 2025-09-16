@@ -3,7 +3,7 @@ import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:pet_connect_app/screens/self_care_options_screen.dart';
-import 'package:pet_connect_app/theme/app_theme.dart'; // Import AppTheme for colors
+// Import AppTheme for colors
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});

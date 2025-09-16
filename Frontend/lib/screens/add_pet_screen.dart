@@ -93,7 +93,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                value: _selectedAnimal,
+                initialValue: _selectedAnimal,
                 hint: const Text('Select Animal'),
                 items: _breeds.keys.map((String animal) {
                   return DropdownMenuItem<String>(
@@ -119,7 +119,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  value: _selectedBreed,
+                  initialValue: _selectedBreed,
                   hint: const Text('Select Breed'),
                   items: _breeds[_selectedAnimal!]!.map((String breed) {
                     return DropdownMenuItem<String>(
@@ -142,7 +142,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                value: _selectedAgeRange,
+                initialValue: _selectedAgeRange,
                 hint: const Text('Select Age Range'),
                 items: _ageRanges.map((String age) {
                   return DropdownMenuItem<String>(

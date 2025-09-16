@@ -4,13 +4,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
-import 'package:pet_connect_app/widgets/app_drawer.dart';
-import 'package:pet_connect_app/screens/profile_screen.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/screens/services_screen.dart'; // Import ServicesScreen
-import 'package:pet_connect_app/screens/health_details_screen.dart';
-import 'package:pet_connect_app/screens/self_care_options_screen.dart'; // Import SelfCareOptionsScreen
+// Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
