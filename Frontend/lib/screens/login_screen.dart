@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
@@ -6,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/register_screen.dart'; // Added import
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -90,72 +92,131 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _googleSignIn() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // The user canceled the sign-in
+        return;
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      String? idToken = await userCredential.user?.getIdToken();
+      if (idToken != null) {
+        await ApiService.loginUser(idToken);
+        Navigator.pushReplacementNamed(
+          context,
+          RoleSelectionScreen.routeName,
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(), // Added back button
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           const _WaveBands(),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.pets_rounded, size: 40, color: AppColors.primary),
-                        const SizedBox(height: 6),
-                        Text("Pet Connect", style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                      ],
+                  const SizedBox(height: 120),
+                  Text(
+                    "Welcome back 👋",
+                    style: GoogleFonts.poppins(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
                     ),
                   ),
-                  const SizedBox(height: 22),
-                  Text("Welcome back 👋", style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Text("Login to continue", style: t.bodyMedium?.copyWith(color: Colors.black54)),
-                  const SizedBox(height: 18),
-                  PetTextField(controller: email, hint: "Email", icon: Icons.alternate_email_rounded),
-                  const SizedBox(height: 12),
-                  PetTextField(controller: password, hint: "Password", icon: Icons.lock_outline_rounded, obscure: true),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Login to continue",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  PetTextField(
+                    controller: email,
+                    hint: "Email",
+                    icon: Icons.alternate_email_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  PetTextField(
+                    controller: password,
+                    hint: "Password",
+                    icon: Icons.lock_outline_rounded,
+                    obscure: true,
+                  ),
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: _resetPassword,
-                      child: const Text('Forgot Password?'),
+                      child: Text(
+                        'Forgot Password?',
+                        style: GoogleFonts.poppins(),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : PrimaryButton(label: "Login", icon: Icons.login_rounded, onPressed: _submit),
-                  const SizedBox(height: 18),
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _SocialIcon(child: const Icon(Icons.g_mobiledata)),  // placeholder
-                        const SizedBox(width: 10),
-                        _SocialIcon(child: const Icon(Icons.facebook)),
-                        const SizedBox(width: 10),
-                        _SocialIcon(child: const Icon(Icons.apple)),
-                      ],
-                    ),
+                      : PrimaryButton(
+                          label: "Login",
+                          icon: Icons.login_rounded,
+                          onPressed: _submit,
+                        ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account?",
+                        style: GoogleFonts.poppins(),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, RegisterScreen.routeName);
+                        },
+                        child: Text(
+                          'Register',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pushReplacementNamed(context, RegisterScreen.routeName);
-                      },
-                      child: const Text('Don\'t have an account? Register'),
-                    ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),  // placeholder
+                      const SizedBox(width: 10),
+                      _SocialIcon(child: const Icon(Icons.facebook)),
+                      const SizedBox(width: 10),
+                      _SocialIcon(child: const Icon(Icons.apple)),
+                    ],
                   ),
                 ],
               ),
@@ -169,18 +230,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class _SocialIcon extends StatelessWidget {
   final Widget child;
-  const _SocialIcon({required this.child});
+  final VoidCallback? onTap;
+  const _SocialIcon({required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44, width: 44,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 44, width: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12),
+        ),
+        child: Center(child: child),
       ),
-      child: Center(child: child),
     );
   }
 }

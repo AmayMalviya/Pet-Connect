@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/community_screen.dart';
 import 'package:pet_connect_app/screens/home_screen.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
@@ -42,8 +43,10 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_appBarTitles[_selectedIndex]),
-        backgroundColor: AppColors.primary, // Consistent AppBar color
+        title: Text(_appBarTitles[_selectedIndex], style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none),
@@ -78,6 +81,9 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: AppColors.textDark.withOpacity(0.5),
         onTap: _onItemTapped,
+        showUnselectedLabels: true,
+        selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: GoogleFonts.poppins(),
       ),
     );
   }

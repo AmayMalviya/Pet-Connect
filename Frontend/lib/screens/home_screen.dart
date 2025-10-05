@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
@@ -96,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               '${_getGreeting()}, ${_userName ?? 'User'}!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             if (!_hasPet)
               const SizedBox(height: 20),
@@ -106,20 +107,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.pushNamed(context, AddPetScreen.routeName);
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(color: AppColors.primary, width: 1.5)
                   ),
-                  child: const Center(
-                    child: Text(
-                      'Add Pet 🐾',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_circle_outline, color: AppColors.primary, size: 28),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Add Your Pet',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -133,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Colors.grey[200],
               ),
             ),
             const SizedBox(height: 20),
@@ -213,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
 }
@@ -241,7 +248,7 @@ class PetCareCard extends StatelessWidget {
             children: [
               Icon(icon, size: 40, color: Theme.of(context).primaryColor),
               const SizedBox(height: 10),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -285,13 +292,13 @@ class VetCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(address, style: TextStyle(color: AppColors.textDark)),
+                  Text(address, style: GoogleFonts.poppins(color: AppColors.textDark)),
                 ],
               ),
             ),
@@ -300,7 +307,7 @@ class VetCard extends StatelessWidget {
                 const Icon(Icons.star, color: AppColors.primary),
                 Text(
                   rating.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                 ),
               ],
             ),

@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   static const routeName = '/role-selection';
 
   const RoleSelectionScreen({super.key});
+
+  Future<void> _selectRole(BuildContext context, String role) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({'role': role});
+      if (role == 'Pet Owner') {
+        Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
+      } else {
+        Navigator.of(context).pushReplacementNamed(KycScreen.routeName, arguments: role);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,27 +38,21 @@ class RoleSelectionScreen extends StatelessWidget {
               context,
               title: 'Pet Owner',
               icon: Icons.person,
-              onTap: () {
-                Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
-              },
+              onTap: () => _selectRole(context, 'Pet Owner'),
             ),
             const SizedBox(height: 24), // Adjusted spacing
             _buildRoleCard(
               context,
               title: 'Shelter Owner',
               icon: Icons.home,
-              onTap: () {
-                Navigator.of(context).pushReplacementNamed(KycScreen.routeName, arguments: 'Shelter Owner');
-              },
+              onTap: () => _selectRole(context, 'Shelter Owner'),
             ),
             const SizedBox(height: 24), // Adjusted spacing
             _buildRoleCard(
               context,
               title: 'Vet',
               icon: Icons.medical_services,
-              onTap: () {
-                Navigator.of(context).pushReplacementNamed(KycScreen.routeName, arguments: 'Vet');
-              },
+              onTap: () => _selectRole(context, 'Vet'),
             ),
           ],
         ),

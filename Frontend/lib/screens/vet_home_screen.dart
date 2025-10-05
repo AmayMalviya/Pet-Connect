@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/my_patients_screen.dart';
 import 'package:pet_connect_app/screens/scan_pet_qr_screen.dart';
@@ -13,8 +14,11 @@ class VetHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vet Dashboard'),
+        title: Text('Vet Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -22,44 +26,50 @@ class VetHomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Welcome, Doctor!', // Added welcome message
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              'Welcome, Doctor!',
+              style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            _buildDashboardCard(
-              context,
-              title: 'Appointments',
-              icon: Icons.calendar_today,
-              onTap: () {
-                Navigator.pushNamed(context, AppointmentsScreen.routeName);
-              },
-            ),
-            const SizedBox(height: 20), // Adjusted spacing
-            _buildDashboardCard(
-              context,
-              title: 'My Patients',
-              icon: Icons.pets,
-              onTap: () {
-                Navigator.pushNamed(context, MyPatientsScreen.routeName);
-              },
-            ),
-            const SizedBox(height: 20), // Adjusted spacing
-            _buildDashboardCard(
-              context,
-              title: 'Scan Pet QR',
-              icon: Icons.qr_code_scanner,
-              onTap: () {
-                Navigator.pushNamed(context, ScanPetQrScreen.routeName);
-              },
-            ),
-            const SizedBox(height: 20), // Adjusted spacing
-            _buildDashboardCard(
-              context,
-              title: 'Manage Profile',
-              icon: Icons.person,
-              onTap: () {
-                Navigator.pushNamed(context, VetProfileScreen.routeName);
-              },
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                children: [
+                  _buildDashboardCard(
+                    context,
+                    title: 'Appointments',
+                    icon: Icons.calendar_today,
+                    onTap: () {
+                      Navigator.pushNamed(context, AppointmentsScreen.routeName);
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'My Patients',
+                    icon: Icons.pets,
+                    onTap: () {
+                      Navigator.pushNamed(context, MyPatientsScreen.routeName);
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Scan Pet QR',
+                    icon: Icons.qr_code_scanner,
+                    onTap: () {
+                      Navigator.pushNamed(context, ScanPetQrScreen.routeName);
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Manage Profile',
+                    icon: Icons.person,
+                    onTap: () {
+                      Navigator.pushNamed(context, VetProfileScreen.routeName);
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -76,21 +86,20 @@ class VetHomeScreen extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              Icon(icon, size: 40, color: Theme.of(context).primaryColor),
-              const SizedBox(width: 20),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: Theme.of(context).primaryColor),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

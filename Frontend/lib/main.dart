@@ -27,6 +27,7 @@ import 'package:pet_connect_app/screens/vet_profile_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_pets_screen.dart';
 import 'package:pet_connect_app/screens/shelter/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_profile_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +51,25 @@ class PetConnectApp extends StatelessWidget {
             return const CircularProgressIndicator();
           }
           if (snapshot.hasData) {
-            return const RoleSelectionScreen();
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('users').doc(snapshot.data!.uid).get(),
+              builder: (context, userSnapshot) {
+                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+                if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                  final userRole = userSnapshot.data!.get('role');
+                  if (userRole == 'Pet Owner') {
+                    return const MainScreen();
+                  } else if (userRole == 'Vet') {
+                    return const VetHomeScreen();
+                  } else if (userRole == 'Shelter Owner') {
+                    return const ShelterHomeScreen();
+                  }
+                }
+                return const RoleSelectionScreen();
+              },
+            );
           } else {
             return const AuthScreen();
           }

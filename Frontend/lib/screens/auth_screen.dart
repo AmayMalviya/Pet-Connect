@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
@@ -28,44 +29,57 @@ class AuthScreen extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.pets_rounded,
-                        size: 48,
+                        size: 64,
                         color: AppColors.primary,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       Text(
                         "Pet Connect",
-                        style: textTheme.headlineSmall?.copyWith(
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
                           fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
                         ),
                       ),
                       Text(
                         "Find care • meet pet lovers",
-                        style: textTheme.bodyMedium,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: Colors.black54,
+                        ),
                       ),
                     ],
                   ),
                   const Spacer(),
                   // Welcome card
                   Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
                             "Welcome!",
-                            style: textTheme.titleLarge?.copyWith(
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 24,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
                             "Tap Login or Sign Up to continue.",
-                            style: textTheme.bodyMedium?.copyWith(
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
                               color: Colors.black54,
                             ),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 24),
                           PrimaryButton(
                             label: "Login",
                             icon: Icons.login_rounded,
@@ -74,7 +88,7 @@ class AuthScreen extends StatelessWidget {
                               LoginScreen.routeName,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: () => Navigator.pushReplacementNamed(
                               context,
@@ -82,6 +96,13 @@ class AuthScreen extends StatelessWidget {
                             ),
                             icon: const Icon(Icons.person_add_alt_1_rounded),
                             label: const Text("Create an account"),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ],
                       ),
