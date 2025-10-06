@@ -24,9 +24,9 @@ import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/my_patients_screen.dart';
 import 'package:pet_connect_app/screens/scan_pet_qr_screen.dart';
 import 'package:pet_connect_app/screens/vet_profile_screen.dart';
-import 'package:pet_connect_app/screens/shelter/shelter_pets_screen.dart';
-import 'package:pet_connect_app/screens/shelter/adoption_requests_screen.dart';
-import 'package:pet_connect_app/screens/shelter/shelter_profile_screen.dart';
+import 'package:pet_connect_app/screens/manage_pets_screen.dart';
+import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
+import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
@@ -98,7 +98,7 @@ class PetConnectApp extends StatelessWidget {
         MyPatientsScreen.routeName: (context) => const MyPatientsScreen(),
         ScanPetQrScreen.routeName: (context) => const ScanPetQrScreen(),
         VetProfileScreen.routeName: (context) => const VetProfileScreen(),
-        ShelterPetsScreen.routeName: (context) => const ShelterPetsScreen(),
+        ManagePetsScreen.routeName: (context) => const ManagePetsScreen(),
         AdoptionRequestsScreen.routeName: (context) => const AdoptionRequestsScreen(),
         ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
       },

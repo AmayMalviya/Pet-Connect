@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pet_connect_app/screens/shelter/shelter_pets_screen.dart';
-import 'package:pet_connect_app/screens/shelter/adoption_requests_screen.dart';
-import 'package:pet_connect_app/screens/add_pet_screen.dart'; // Reusing existing screen
-import 'package:pet_connect_app/screens/shelter/shelter_profile_screen.dart';
+import 'package:pet_connect_app/screens/manage_pets_screen.dart';
+import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
+import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
   static const routeName = '/shelter-home';
@@ -15,14 +14,7 @@ class ShelterHomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Shelter Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              // TODO: Implement logout
-            },
-          ),
-        ],
+        centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -45,10 +37,10 @@ class ShelterHomeScreen extends StatelessWidget {
                 children: [
                   _buildDashboardCard(
                     context,
-                    title: 'Pets in Shelter',
+                    title: 'Manage Pets',
                     icon: Icons.pets,
                     onTap: () {
-                      Navigator.pushNamed(context, ShelterPetsScreen.routeName);
+                      Navigator.pushNamed(context, ManagePetsScreen.routeName);
                     },
                   ),
                   _buildDashboardCard(
@@ -61,16 +53,8 @@ class ShelterHomeScreen extends StatelessWidget {
                   ),
                   _buildDashboardCard(
                     context,
-                    title: 'Add New Pet',
-                    icon: Icons.add,
-                    onTap: () {
-                      Navigator.pushNamed(context, AddPetScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
                     title: 'Manage Profile',
-                    icon: Icons.store,
+                    icon: Icons.person,
                     onTap: () {
                       Navigator.pushNamed(context, ShelterProfileScreen.routeName);
                     },
