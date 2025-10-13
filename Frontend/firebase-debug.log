@@ -1,0 +1,88 @@
+[debug] [2025-08-20T17:08:10.954Z] ----------------------------------------------------------------------
+[debug] [2025-08-20T17:08:10.955Z] Command:       /Users/amaymalviya/.nvm/versions/node/v20.17.0/bin/node /Users/amaymalviya/.nvm/versions/node/v20.17.0/bin/firebase projects:list --json
+[debug] [2025-08-20T17:08:10.955Z] CLI Version:   14.12.1
+[debug] [2025-08-20T17:08:10.955Z] Platform:      darwin
+[debug] [2025-08-20T17:08:10.955Z] Node Version:  v20.17.0
+[debug] [2025-08-20T17:08:10.956Z] Time:          Wed Aug 20 2025 22:38:10 GMT+0530 (India Standard Time)
+[debug] [2025-08-20T17:08:10.956Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-20T17:08:10.957Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-08-20T17:08:10.983Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-20T17:08:10.983Z] > authorizing via signed-in user (amaymalviya2@gmail.com)
+[debug] [2025-08-20T17:08:10.985Z] Checked if tokens are valid: false, expires at: 1742222777650
+[debug] [2025-08-20T17:08:10.985Z] Checked if tokens are valid: false, expires at: 1742222777650
+[debug] [2025-08-20T17:08:10.985Z] > refreshing access token with scopes: []
+[debug] [2025-08-20T17:08:10.986Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-20T17:08:10.986Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-20T17:08:11.302Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-08-20T17:08:11.302Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-20T17:08:11.315Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-08-20T17:08:11.748Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-08-20T17:08:11.748Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2025-08-20T17:08:12.108Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-20T17:08:12.108Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] ┌──────────────────────┬───────────────────┬────────────────┬──────────────────────┐
+│ Project Display Name │ Project ID        │ Project Number │ Resource Location ID │
+├──────────────────────┼───────────────────┼────────────────┼──────────────────────┤
+│ Chatify              │ chatify-c9821     │ 1092361400897  │ [Not specified]      │
+├──────────────────────┼───────────────────┼────────────────┼──────────────────────┤
+│ Pet-connect          │ pet-connect-7c145 │ 543358006471   │ [Not specified]      │
+└──────────────────────┴───────────────────┴────────────────┴──────────────────────┘
+[info] 
+[info] 2 project(s) total.
+[debug] [2025-08-20T18:44:28.157Z] ----------------------------------------------------------------------
+[debug] [2025-08-20T18:44:28.159Z] Command:       /Users/amaymalviya/.nvm/versions/node/v20.17.0/bin/node /Users/amaymalviya/.nvm/versions/node/v20.17.0/bin/firebase projects:list --json
+[debug] [2025-08-20T18:44:28.159Z] CLI Version:   14.12.1
+[debug] [2025-08-20T18:44:28.159Z] Platform:      darwin
+[debug] [2025-08-20T18:44:28.159Z] Node Version:  v20.17.0
+[debug] [2025-08-20T18:44:28.159Z] Time:          Thu Aug 21 2025 00:14:28 GMT+0530 (India Standard Time)
+[debug] [2025-08-20T18:44:28.159Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-20T18:44:28.161Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-20T18:44:28.162Z] > authorizing via signed-in user (amaymalviya2@gmail.com)
+[debug] [2025-08-20T18:44:28.163Z] Checked if tokens are valid: false, expires at: 1755713290302
+[debug] [2025-08-20T18:44:28.163Z] Checked if tokens are valid: false, expires at: 1755713290302
+[debug] [2025-08-20T18:44:28.163Z] > refreshing access token with scopes: []
+[debug] [2025-08-20T18:44:28.165Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-20T18:44:28.165Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-20T18:44:28.432Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-08-20T18:44:28.432Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-20T18:44:28.443Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-08-20T18:44:29.418Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-20T18:44:29.418Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] ┌──────────────────────┬───────────────────┬────────────────┬──────────────────────┐
+│ Project Display Name │ Project ID        │ Project Number │ Resource Location ID │
+├──────────────────────┼───────────────────┼────────────────┼──────────────────────┤
+│ Chatify              │ chatify-c9821     │ 1092361400897  │ [Not specified]      │
+├──────────────────────┼───────────────────┼────────────────┼──────────────────────┤
+│ Pet-connect          │ pet-connect-7c145 │ 543358006471   │ [Not specified]      │
+└──────────────────────┴───────────────────┴────────────────┴──────────────────────┘
+[info] 
+[info] 2 project(s) total.
+[debug] [2025-10-05T07:02:46.802Z] ----------------------------------------------------------------------
+[debug] [2025-10-05T07:02:46.804Z] Command:       /Users/amaymalviya/.nvm/versions/node/v20.17.0/bin/node /Users/amaymalviya/.nvm/versions/node/v20.17.0/bin/firebase projects:list --json
+[debug] [2025-10-05T07:02:46.804Z] CLI Version:   14.18.0
+[debug] [2025-10-05T07:02:46.804Z] Platform:      darwin
+[debug] [2025-10-05T07:02:46.804Z] Node Version:  v20.17.0
+[debug] [2025-10-05T07:02:46.804Z] Time:          Sun Oct 05 2025 12:32:46 GMT+0530 (India Standard Time)
+[debug] [2025-10-05T07:02:46.805Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-05T07:02:46.806Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-10-05T07:02:46.930Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-05T07:02:46.930Z] > authorizing via signed-in user (amaymalviya2@gmail.com)
+[debug] [2025-10-05T07:02:46.932Z] Checked if tokens are valid: true, expires at: 1759648846653
+[debug] [2025-10-05T07:02:46.932Z] Checked if tokens are valid: true, expires at: 1759648846653
+[debug] [2025-10-05T07:02:46.932Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-10-05T07:02:47.620Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-10-05T07:02:47.621Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2025-10-05T07:02:47.697Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-10-05T07:02:47.698Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] ┌──────────────────────┬─────────────────────────────┬────────────────┬──────────────────────┐
+│ Project Display Name │ Project ID                  │ Project Number │ Resource Location ID │
+├──────────────────────┼─────────────────────────────┼────────────────┼──────────────────────┤
+│ Chatify              │ chatify-c9821               │ 1092361400897  │ [Not specified]      │
+├──────────────────────┼─────────────────────────────┼────────────────┼──────────────────────┤
+│ Pet-connect          │ pet-connect-7c145 (current) │ 543358006471   │ [Not specified]      │
+└──────────────────────┴─────────────────────────────┴────────────────┴──────────────────────┘
+[info] 
+[info] 2 project(s) total.
