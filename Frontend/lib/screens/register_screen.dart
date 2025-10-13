@@ -99,13 +99,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _googleSignIn() async {
     try {
-      final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+      final GoogleSignIn _googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         // The user canceled the sign-in
         return;
       }
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -142,14 +142,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          const _WaveBands(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: const _WaveBands(),
+          ),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 120),
+                  const SizedBox(height: 60), // Adjusted spacing
                   Text(
                     "Create your account",
                     style: GoogleFonts.poppins(
@@ -225,6 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       _SocialIcon(child: const Icon(Icons.apple)),
                     ],
                   ),
+                  const SizedBox(height: 200), // Added space to avoid overlap with wave
                 ],
               ),
             ),

@@ -93,33 +93,48 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleSignIn() async {
-    try {
-      final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-      if (googleUser == null) {
-        // The user canceled the sign-in
-        return;
-      }
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+  try {
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      scopes: ['email'], // optional, you can add more scopes if needed
+    );
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+    if (googleUser == null) {
+      // User canceled the sign-in
+      return;
+    }
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    // ✅ accessToken is no longer needed or available
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    final UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    final String? idToken = await userCredential.user?.getIdToken();
+
+    if (idToken != null) {
+      await ApiService.loginUser(idToken);
+      Navigator.pushReplacementNamed(
+        context,
+        RoleSelectionScreen.routeName,
       );
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      String? idToken = await userCredential.user?.getIdToken();
-      if (idToken != null) {
-        await ApiService.loginUser(idToken);
-        Navigator.pushReplacementNamed(
-          context,
-          RoleSelectionScreen.routeName,
-        );
-      }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        const SnackBar(content: Text('Failed to get ID token.')),
       );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -132,14 +147,17 @@ class _LoginScreenState extends State<LoginScreen> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          const _WaveBands(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: const _WaveBands(),
+          ),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 120),
+                  const SizedBox(height: 60), // Adjusted spacing
                   Text(
                     "Welcome back 👋",
                     style: GoogleFonts.poppins(
@@ -219,6 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _SocialIcon(child: const Icon(Icons.apple)),
                     ],
                   ),
+                  const SizedBox(height: 200), // Added space to avoid overlap with wave
                 ],
               ),
             ),
