@@ -1,52 +1,38 @@
 package com.petconnect.controller;
 
-import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
-import com.google.firebase.auth.UserRecord;
 import com.petconnect.model.User;
-import com.petconnect.service.AuthService;
 import com.petconnect.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
-    private AuthService authService;
+    private final UserService userService;
 
-    @Autowired
-    private UserService userService;
-
-    @PostMapping("/register")
-    public Map<String, String> registerUser(@RequestBody User user) throws FirebaseAuthException, ExecutionException, InterruptedException {
-        System.out.println("Received UID: " + user.getUid());
-        System.out.println("Received Email: " + user.getEmail());
-        System.out.println("Received DisplayName: " + user.getDisplayName());
-
-        String uid = authService.registerUser(user);
-        return Collections.singletonMap("uid", uid);
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
-    @PostMapping("/login")
-    public Map<String, Object> loginUser(@RequestBody Map<String, String> requestBody) throws FirebaseAuthException {
-        String idToken = requestBody.get("idToken");
-        FirebaseToken decodedToken = authService.verifyIdToken(idToken);
-        return Collections.singletonMap("uid", decodedToken.getUid());
+    @PostMapping("/sync")
+    public ResponseEntity<User> synchronizeUser(@AuthenticationPrincipal FirebaseToken decodedToken) {
+        User synchronizedUser = userService.synchronizeUser(decodedToken);
+        return ResponseEntity.ok(synchronizedUser);
     }
 
-    @GetMapping("/details/{uid}")
-    public UserRecord getUserDetails(@PathVariable String uid) throws FirebaseAuthException {
-        return userService.getUserDetails(uid);
+    @GetMapping("/me")
+    public ResponseEntity<User> getUserProfile(@AuthenticationPrincipal FirebaseToken decodedToken) {
+        Optional<User> userOptional = userService.getUser(decodedToken.getUid());
+        return userOptional
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

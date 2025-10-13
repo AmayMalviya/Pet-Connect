@@ -1,59 +1,70 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8089/api';
+  static const String _baseUrl = 'http://localhost:8080'; // Your backend URL
 
-  static Future<Map<String, dynamic>> registerUser(pet_connect_user.User user) async {
-    print('Sending registration request with body: ${jsonEncode(user.toJson())}');
+  static Future<void> synchronizeUser() async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // This should not happen if the user is logged in
+      return;
+    }
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/users/register'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(user.toJson()),
-    );
+    try {
+      final idToken = await user.getIdToken();
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/users/sync'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to register user: ${response.body}');
+      if (response.statusCode != 200) {
+        // Handle non-200 responses
+        print('Failed to synchronize user. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to synchronize user');
+      }
+    } catch (e) {
+      print('An error occurred during user synchronization: $e');
+      throw Exception('Failed to synchronize user');
     }
   }
 
-  static Future<Map<String, dynamic>> loginUser(String idToken) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/users/login'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'idToken': idToken,
-      }),
-    );
+  static Future<pet_connect_user.User> getUserDetails() async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('No user logged in');
+    }
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to login user: ${response.body}');
+    try {
+      final idToken = await user.getIdToken();
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/users/me'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return pet_connect_user.User.fromJson(jsonDecode(response.body));
+      } else {
+        print('Failed to get user details. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to get user details from backend');
+      }
+    } catch (e) {
+      print('An error occurred while getting user details: $e');
+      throw Exception('Failed to get user details from backend');
     }
   }
 
-  static Future<pet_connect_user.User> getUserDetails(String uid) async {
-    final supabase = Supabase.instance.client;
-    final response = await supabase
-        .from('profiles')
-        .select()
-        .eq('id', uid)
-        .single();
-
-    return pet_connect_user.User.fromJson(response);
-  }
-
+  // TODO: Implement Pet endpoints in the Java backend and uncomment this section
+  /*
   static Future<String> addPet(Pet pet) async {
     final supabase = Supabase.instance.client;
     final response = await supabase.from('pets').insert(pet.toJson()).select();
@@ -69,4 +80,5 @@ class ApiService {
 
     return (response as List).map((pet) => Pet.fromJson(pet)).toList();
   }
+  */
 }

@@ -4,7 +4,6 @@ import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/register_screen.dart'; // Added import
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -34,23 +33,15 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email.text,
         password: password.text,
       );
-      String? idToken = await userCredential.user?.getIdToken();
-
-      if (idToken != null) {
-        await ApiService.loginUser(idToken);
-        Navigator.pushReplacementNamed(
-          context,
-          RoleSelectionScreen.routeName,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get ID token.')),
-        );
-      }
+      await ApiService.synchronizeUser(); // Sync user with backend
+      Navigator.pushReplacementNamed(
+        context,
+        RoleSelectionScreen.routeName,
+      );
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'user-not-found') {
@@ -93,47 +84,39 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleSignIn() async {
-  try {
-    final GoogleSignIn googleSignIn = GoogleSignIn(
-      scopes: ['email'], // optional, you can add more scopes if needed
-    );
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email'], // optional, you can add more scopes if needed
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-    if (googleUser == null) {
-      // User canceled the sign-in
-      return;
-    }
+      if (googleUser == null) {
+        // User canceled the sign-in
+        return;
+      }
 
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-    // ✅ accessToken is no longer needed or available
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-    );
+      // ✅ accessToken is no longer needed or available
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
 
-    final UserCredential userCredential =
-        await FirebaseAuth.instance.signInWithCredential(credential);
+      await FirebaseAuth.instance.signInWithCredential(credential);
 
-    final String? idToken = await userCredential.user?.getIdToken();
+      await ApiService.synchronizeUser(); // Sync user with backend
 
-    if (idToken != null) {
-      await ApiService.loginUser(idToken);
       Navigator.pushReplacementNamed(
         context,
         RoleSelectionScreen.routeName,
       );
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to get ID token.')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.toString()}')),
-    );
   }
-}
 
 
   @override

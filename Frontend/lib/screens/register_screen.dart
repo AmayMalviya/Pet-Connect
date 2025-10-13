@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pet_connect_app/services/api_service.dart';
-import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,44 +35,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _isLoading = true;
     });
-    print('Attempting to register user...');
     try {
-      print('Attempting Firebase user creation...');
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email.text,
         password: password.text,
       );
-      print('Firebase user creation successful.');
 
       if (userCredential.user != null) {
-        print('User credential user is not null. UID: ${userCredential.user!.uid}');
-        // Update display name in Firebase Auth
         await userCredential.user!.updateDisplayName(name.text);
-        print('Display name updated in Firebase Auth.');
 
-        // Register user in backend
-        pet_connect_user.User newUser = pet_connect_user.User(
-          uid: userCredential.user!.uid,
-          email: email.text,
-          displayName: name.text,
-        );
-        print('Calling backend ApiService.registerUser...');
-        await ApiService.registerUser(newUser);
-        print('Backend registration successful.');
+        // Sync user with backend
+        await ApiService.synchronizeUser();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thank you for signing up!')), 
+          const SnackBar(content: Text('Thank you for signing up!')),
         );
-        print('Navigating to MainScreen...');
         Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
       } else {
-        print('User credential user is null. Showing error snackbar.');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to register user.')),
         );
       }
     } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException caught: ${e.code} - ${e.message}');
       String message;
       if (e.code == 'weak-password') {
         message = 'The password provided is too weak.';
@@ -86,7 +69,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         SnackBar(content: Text(message)),
       );
     } catch (e) {
-      print('Generic exception caught: ${e.toString()}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
@@ -94,7 +76,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _isLoading = false;
     });
-    print('Registration process finished. isLoading set to false.');
   }
 
   Future<void> _googleSignIn() async {
@@ -107,13 +88,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: googleAuth.idToken,
         idToken: googleAuth.idToken,
       );
       UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      String? idToken = await userCredential.user?.getIdToken();
-      if (idToken != null) {
-        await ApiService.loginUser(idToken);
+      
+      if (userCredential.user != null) {
+        // Sync user with backend
+        await ApiService.synchronizeUser();
+
         Navigator.pushReplacementNamed(
           context,
           RoleSelectionScreen.routeName,

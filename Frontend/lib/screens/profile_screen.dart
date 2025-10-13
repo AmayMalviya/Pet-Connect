@@ -39,8 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        final fetchedUser = await ApiService.getUserDetails(currentUser.uid);
-        final fetchedPets = await ApiService.getPetsByOwnerUid(currentUser.uid);
+        final fetchedUser = await ApiService.getUserDetails();
+        // TODO: Implement getPetsByOwnerUid in the backend and uncomment the following line.
+        final List<Pet> fetchedPets = []; // await ApiService.getPetsByOwnerUid(currentUser.uid);
         setState(() {
           _user = fetchedUser;
           _pets = fetchedPets;

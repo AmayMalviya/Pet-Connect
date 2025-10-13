@@ -1,12 +1,21 @@
 package com.petconnect.model;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "users")
 public class User {
+
+    @Id
     private String uid;
+
     private String email;
     private String displayName;
 
     public User() {
-        // No-argument constructor for Spring Boot JSON deserialization
+        // No-argument constructor for JPA
     }
 
     public String getUid() {

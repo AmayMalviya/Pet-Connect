@@ -1,9 +1,11 @@
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/model/Pet.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/service/PetService.java
-/Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/service/AuthService.java
+/Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/config/SecurityConfig.java
+/Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/repository/UserRepository.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/service/UserService.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/config/FirebaseConfig.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/controller/UserController.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/PetConnectApplication.java
+/Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/security/FirebaseTokenFilter.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/model/User.java
 /Users/amaymalviya/Documents/Development/MajorPP/pet_connect/backend_java/src/main/java/com/petconnect/controller/PetController.java
