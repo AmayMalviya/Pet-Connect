@@ -78,6 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _uploadImage(File image) async {
+    // TODO: Implement profile image upload endpoint in the backend.
+    /*
     try {
       final user = firebase_auth.FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -111,6 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text('Failed to upload profile picture: ${e.toString()}')),
       );
     }
+    */
   }
 
   void _addPet(Pet pet) async {
@@ -187,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       children: [
         GestureDetector(
-          onTap: _pickImage,
+          // onTap: _pickImage, // TODO: Re-enable when backend for image upload is ready.
           child: CircleAvatar(
             radius: 40,
             backgroundImage: _profileImage != null
