@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 
@@ -17,7 +16,7 @@ class ManagePetsScreen extends StatefulWidget {
 
 class _ManagePetsScreenState extends State<ManagePetsScreen> {
   bool _isLoading = true;
-  List<DocumentSnapshot> _pets = [];
+  List<Map<String, dynamic>> _pets = [];
 
   @override
   void initState() {
@@ -32,13 +31,14 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('pets')
-            .get();
+        final supabase = Supabase.instance.client;
+        final response = await supabase
+            .from('pets')
+            .select()
+            .eq('owner_id', user.uid);
+
         setState(() {
-          _pets = snapshot.docs;
+          _pets = response as List<Map<String, dynamic>>;
         });
       }
     } catch (e) {
@@ -54,19 +54,12 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
 
   Future<void> _deletePet(String petId) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('pets')
-            .doc(petId)
-            .delete();
-        _fetchPets(); // Refresh the list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pet deleted successfully!')),
-        );
-      }
+      final supabase = Supabase.instance.client;
+      await supabase.from('pets').delete().eq('id', petId);
+      _fetchPets(); // Refresh the list
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pet deleted successfully!')),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to delete pet: $e')),
@@ -124,8 +117,7 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
           : ListView.builder(
               itemCount: _pets.length,
               itemBuilder: (context, index) {
-                final petSnapshot = _pets[index];
-                final pet = petSnapshot.data() as Map<String, dynamic>;
+                final pet = _pets[index];
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                   elevation: 3,
@@ -154,14 +146,14 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
                           icon: const Icon(Icons.edit, color: Colors.blue),
                           onPressed: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => AddEditPetScreen(pet: petSnapshot)),
+                              MaterialPageRoute(builder: (context) => AddEditPetScreen(pet: pet)),
                             ).then((_) => _fetchPets());
                           },
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () {
-                            _showDeleteConfirmationDialog(petSnapshot.id);
+                            _showDeleteConfirmationDialog(pet['id'].toString());
                           },
                         ),
                       ],

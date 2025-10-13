@@ -1,7 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AppointmentsScreen extends StatefulWidget {
@@ -24,57 +23,62 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   Future<void> _fetchAppointments() async {
+    // TODO: Implement Supabase
+    // setState(() {
+    //   _isLoading = true;
+    // });
+    // try {
+    //   final user = FirebaseAuth.instance.currentUser;
+    //   if (user != null) {
+    //     final snapshot = await FirebaseFirestore.instance
+    //         .collection('appointments')
+    //         .where('vetId', isEqualTo: user.uid)
+    //         .get();
+
+    //     final List<Map<String, dynamic>> loadedAppointments = [];
+    //     for (var doc in snapshot.docs) {
+    //       final appointmentData = doc.data();
+    //       final patientDoc = await FirebaseFirestore.instance.collection('users').doc(appointmentData['ownerId']).collection('pets').doc(appointmentData['petId']).get();
+    //       final ownerDoc = await FirebaseFirestore.instance.collection('users').doc(appointmentData['ownerId']).get();
+
+    //       if (patientDoc.exists && ownerDoc.exists) {
+    //         loadedAppointments.add({
+    //           'id': doc.id,
+    //           'petName': patientDoc.data()!['name'],
+    //           'ownerName': ownerDoc.data()!['name'],
+    //           'time': (appointmentData['time'] as Timestamp).toDate().toString(), // Example: Convert timestamp to string
+    //           'status': appointmentData['status'],
+    //         });
+    //       }
+    //     }
+    //     setState(() {
+    //       _appointments = loadedAppointments;
+    //     });
+    //   }
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Failed to load appointments: $e')),
+    //   );
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
     setState(() {
-      _isLoading = true;
+      _isLoading = false;
     });
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('appointments')
-            .where('vetId', isEqualTo: user.uid)
-            .get();
-
-        final List<Map<String, dynamic>> loadedAppointments = [];
-        for (var doc in snapshot.docs) {
-          final appointmentData = doc.data();
-          final patientDoc = await FirebaseFirestore.instance.collection('users').doc(appointmentData['ownerId']).collection('pets').doc(appointmentData['petId']).get();
-          final ownerDoc = await FirebaseFirestore.instance.collection('users').doc(appointmentData['ownerId']).get();
-
-          if (patientDoc.exists && ownerDoc.exists) {
-            loadedAppointments.add({
-              'id': doc.id,
-              'petName': patientDoc.data()!['name'],
-              'ownerName': ownerDoc.data()!['name'],
-              'time': (appointmentData['time'] as Timestamp).toDate().toString(), // Example: Convert timestamp to string
-              'status': appointmentData['status'],
-            });
-          }
-        }
-        setState(() {
-          _appointments = loadedAppointments;
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load appointments: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _updateAppointmentStatus(String appointmentId, String status) async {
-    try {
-      await FirebaseFirestore.instance.collection('appointments').doc(appointmentId).update({'status': status});
-      _fetchAppointments(); // Refresh the list
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update status: $e')),
-      );
-    }
+    // TODO: Implement Supabase
+    // try {
+    //   await FirebaseFirestore.instance.collection('appointments').doc(appointmentId).update({'status': status});
+    //   _fetchAppointments(); // Refresh the list
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Failed to update status: $e')),
+    //   );
+    // }
   }
 
   @override

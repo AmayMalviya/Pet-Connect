@@ -1,12 +1,11 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddEditPetScreen extends StatefulWidget {
   static const routeName = '/add-edit-pet';
-  final DocumentSnapshot? pet;
+  final Map<String, dynamic>? pet;
 
   const AddEditPetScreen({super.key, this.pet});
 
@@ -27,7 +26,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.pet?['name']);
     _breedController = TextEditingController(text: widget.pet?['breed']);
-    _ageController = TextEditingController(text: widget.pet?['age'].toString());
+    _ageController = TextEditingController(text: widget.pet?['age']?.toString());
     _descriptionController = TextEditingController(text: widget.pet?['description']);
     if (widget.pet != null) {
       _status = widget.pet!['status'];
@@ -54,18 +53,17 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
             'age': int.parse(_ageController.text),
             'description': _descriptionController.text,
             'status': _status,
+            'owner_id': user.uid,
           };
+
+          final supabase = Supabase.instance.client;
 
           if (widget.pet == null) {
             // Add new pet
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .collection('pets')
-                .add(petData);
+            await supabase.from('pets').insert(petData);
           } else {
             // Update existing pet
-            await widget.pet!.reference.update(petData);
+            await supabase.from('pets').update(petData).eq('id', widget.pet!['id']);
           }
 
           ScaffoldMessenger.of(context).showSnackBar(

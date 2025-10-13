@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   static const routeName = '/role-selection';
@@ -30,33 +30,27 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     });
 
     try {
-      User? user = FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        // If user is null, wait for the auth state to change.
-        // This can happen if the user has just registered and the user object is not yet available.
-        user = await FirebaseAuth.instance.authStateChanges().first;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication error. Please try again.')),
+        );
+        return;
       }
 
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({'role': _selectedRole}, SetOptions(merge: true));
+      final supabase = Supabase.instance.client;
+      await supabase.from('profiles').upsert({
+        'user_id': user.uid,
+        'role': _selectedRole,
+      });
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        if (_selectedRole == 'Pet Owner') {
-          Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
-        } else {
-          Navigator.of(context)
-              .pushReplacementNamed(KycScreen.routeName, arguments: _selectedRole);
-        }
+      if (_selectedRole == 'Pet Owner') {
+        Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Authentication error. Please try again.')),
-          );
-        }
+        Navigator.of(context)
+            .pushReplacementNamed(KycScreen.routeName, arguments: _selectedRole);
       }
     } catch (e) {
       if (mounted) {

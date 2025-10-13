@@ -1,7 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:pet_connect_app/screens/patient_details_screen.dart';
@@ -26,51 +25,55 @@ class _MyPatientsScreenState extends State<MyPatientsScreen> {
   }
 
   Future<void> _fetchMyPatients() async {
+    // TODO: Implement Supabase
+    // setState(() {
+    //   _isLoading = true;
+    // });
+    // try {
+    //   final user = FirebaseAuth.instance.currentUser;
+    //   if (user != null) {
+    //     final snapshot = await FirebaseFirestore.instance
+    //         .collection('appointments')
+    //         .where('vetId', isEqualTo: user.uid)
+    //         .get();
+
+    //     final Map<String, Map<String, dynamic>> uniquePatients = {};
+
+    //     for (var doc in snapshot.docs) {
+    //       final appointmentData = doc.data();
+    //       final petId = appointmentData['petId'];
+
+    //       if (!uniquePatients.containsKey(petId)) {
+    //         final ownerId = appointmentData['ownerId'];
+    //         final petDoc = await FirebaseFirestore.instance.collection('users').doc(ownerId).collection('pets').doc(petId).get();
+    //         final ownerDoc = await FirebaseFirestore.instance.collection('users').doc(ownerId).get();
+
+    //         if (petDoc.exists && ownerDoc.exists) {
+    //           uniquePatients[petId] = {
+    //             'id': petId,
+    //             'name': petDoc.data()!['name'],
+    //             'breed': petDoc.data()!['breed'],
+    //             'ownerName': ownerDoc.data()!['name'],
+    //           };
+    //         }
+    //       }
+    //     }
+    //     setState(() {
+    //       _patients = uniquePatients.values.toList();
+    //     });
+    //   }
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Failed to load patients: $e')),
+    //   );
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
     setState(() {
-      _isLoading = true;
+      _isLoading = false;
     });
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('appointments')
-            .where('vetId', isEqualTo: user.uid)
-            .get();
-
-        final Map<String, Map<String, dynamic>> uniquePatients = {};
-
-        for (var doc in snapshot.docs) {
-          final appointmentData = doc.data();
-          final petId = appointmentData['petId'];
-
-          if (!uniquePatients.containsKey(petId)) {
-            final ownerId = appointmentData['ownerId'];
-            final petDoc = await FirebaseFirestore.instance.collection('users').doc(ownerId).collection('pets').doc(petId).get();
-            final ownerDoc = await FirebaseFirestore.instance.collection('users').doc(ownerId).get();
-
-            if (petDoc.exists && ownerDoc.exists) {
-              uniquePatients[petId] = {
-                'id': petId,
-                'name': petDoc.data()!['name'],
-                'breed': petDoc.data()!['breed'],
-                'ownerName': ownerDoc.data()!['name'],
-              };
-            }
-          }
-        }
-        setState(() {
-          _patients = uniquePatients.values.toList();
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load patients: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   @override

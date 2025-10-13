@@ -8,7 +8,7 @@ import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -78,20 +78,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _uploadImage(File image) async {
     try {
-      final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please log in to upload a profile picture.')),
         );
         return;
       }
 
-      final storageRef = FirebaseStorage.instance.ref().child('profile_pictures').child('${currentUser.uid}.jpg');
-      await storageRef.putFile(image);
-      final imageUrl = await storageRef.getDownloadURL();
+      final supabase = Supabase.instance.client;
+      final imageExtension = image.path.split('.').last;
+      final imagePath = '/${user.uid}/profile.$imageExtension';
 
-      await currentUser.updatePhotoURL(imageUrl);
-      await currentUser.reload();
+      await supabase.storage.from('avatars').upload(
+            imagePath,
+            image,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      final imageUrl = supabase.storage.from('avatars').getPublicUrl(imagePath);
+
+      await supabase.from('profiles').upsert({'id': user.uid, 'avatar_url': imageUrl});
+
       _fetchProfileData(); // Refresh profile data to show new image
 
       ScaffoldMessenger.of(context).showSnackBar(

@@ -3,11 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/auth_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/profile_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:pet_connect_app/screens/self_care_options_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
@@ -27,16 +28,34 @@ import 'package:pet_connect_app/screens/vet_profile_screen.dart';
 import 'package:pet_connect_app/screens/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await Supabase.initialize(
+    url: 'https://goegjrqmyshnzzonfjav.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvZWdqcnFteXNobnp6b25mamF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0OTMyOTAsImV4cCI6MjA3MzA2OTI5MH0.i4KPxTg_d85Pd8vXMdOYxvoHdrVDZNmGaz30x1ZBglU',
+  );
   runApp(const PetConnectApp());
 }
 
 class PetConnectApp extends StatelessWidget {
   const PetConnectApp({super.key});
+
+  Future<String?> _getUserRole(String userId) async {
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+    if (response.isEmpty) {
+      return null;
+    }
+
+    return response['role'] as String?;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,21 +63,21 @@ class PetConnectApp extends StatelessWidget {
       title: 'Pet Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+      home: StreamBuilder<fb_auth.User?>(
+        stream: fb_auth.FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const CircularProgressIndicator();
           }
           if (snapshot.hasData) {
-            return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('users').doc(snapshot.data!.uid).get(),
+            return FutureBuilder<String?>(
+              future: _getUserRole(snapshot.data!.uid),
               builder: (context, userSnapshot) {
                 if (userSnapshot.connectionState == ConnectionState.waiting) {
                   return const CircularProgressIndicator();
                 }
-                if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                  final userRole = userSnapshot.data!.get('role');
+                if (userSnapshot.hasData) {
+                  final userRole = userSnapshot.data;
                   if (userRole == 'Pet Owner') {
                     return const MainScreen();
                   } else if (userRole == 'Vet') {

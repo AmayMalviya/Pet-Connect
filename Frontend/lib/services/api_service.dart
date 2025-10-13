@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/models/pet.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8089/api';
@@ -43,49 +44,29 @@ class ApiService {
   }
 
   static Future<pet_connect_user.User> getUserDetails(String uid) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/users/details/$uid'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('profiles')
+        .select()
+        .eq('id', uid)
+        .single();
 
-    if (response.statusCode == 200) {
-      return pet_connect_user.User.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to load user details: ${response.body}');
-    }
+    return pet_connect_user.User.fromJson(response);
   }
 
   static Future<String> addPet(Pet pet) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/pets/add'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(pet.toJson()),
-    );
-
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      throw Exception('Failed to add pet: ${response.body}');
-    }
+    final supabase = Supabase.instance.client;
+    final response = await supabase.from('pets').insert(pet.toJson()).select();
+    return response.first['id'].toString();
   }
 
   static Future<List<Pet>> getPetsByOwnerUid(String ownerUid) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/pets/owner/$ownerUid'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('pets')
+        .select()
+        .eq('owner_id', ownerUid);
 
-    if (response.statusCode == 200) {
-      Iterable l = json.decode(response.body);
-      return List<Pet>.from(l.map((model) => Pet.fromJson(model)));
-    } else {
-      throw Exception('Failed to load pets: ${response.body}');
-    }
+    return (response as List).map((pet) => Pet.fromJson(pet)).toList();
   }
 }

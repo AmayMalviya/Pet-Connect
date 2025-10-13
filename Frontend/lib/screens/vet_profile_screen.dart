@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:pet_connect_app/screens/edit_vet_profile_screen.dart';
 
@@ -26,26 +25,30 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
   }
 
   Future<void> _fetchVetData() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (docSnapshot.exists) {
-          setState(() {
-            _vetData = docSnapshot.data();
-          });
-        }
-      }
-    } catch (e) {
-      // Handle errors, e.g., show a snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load profile data: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    // TODO: Implement Supabase
+    // try {
+    //   final user = FirebaseAuth.instance.currentUser;
+    //   if (user != null) {
+    //     final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    //     if (docSnapshot.exists) {
+    //       setState(() {
+    //         _vetData = docSnapshot.data();
+    //       });
+    //     }
+    //   }
+    // } catch (e) {
+    //   // Handle errors, e.g., show a snackbar
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Failed to load profile data: $e')),
+    //   );
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
