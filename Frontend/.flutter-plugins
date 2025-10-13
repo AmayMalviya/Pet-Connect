@@ -1,0 +1,22 @@
+# This is a generated file; do not edit or check into version control.
+cloud_firestore=/Users/amaymalviya/.pub-cache/hosted/pub.dev/cloud_firestore-5.6.5/
+cloud_firestore_web=/Users/amaymalviya/.pub-cache/hosted/pub.dev/cloud_firestore_web-4.4.5/
+firebase_auth=/Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_auth-5.5.1/
+firebase_auth_web=/Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_auth_web-5.14.1/
+firebase_core=/Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_core-3.12.1/
+firebase_core_web=/Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_core_web-2.21.1/
+firebase_storage=/Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_storage-12.4.4/
+firebase_storage_web=/Users/amaymalviya/.pub-cache/hosted/pub.dev/firebase_storage_web-3.10.11/
+flutter_plugin_android_lifecycle=/Users/amaymalviya/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.27/
+google_maps_flutter=/Users/amaymalviya/.pub-cache/hosted/pub.dev/google_maps_flutter-2.11.0/
+google_maps_flutter_android=/Users/amaymalviya/.pub-cache/hosted/pub.dev/google_maps_flutter_android-2.15.0/
+google_maps_flutter_ios=/Users/amaymalviya/.pub-cache/hosted/pub.dev/google_maps_flutter_ios-2.14.0/
+google_maps_flutter_web=/Users/amaymalviya/.pub-cache/hosted/pub.dev/google_maps_flutter_web-0.5.12/
+path_provider_linux=/Users/amaymalviya/.pub-cache/hosted/pub.dev/path_provider_linux-2.2.1/
+path_provider_windows=/Users/amaymalviya/.pub-cache/hosted/pub.dev/path_provider_windows-2.3.0/
+shared_preferences=/Users/amaymalviya/.pub-cache/hosted/pub.dev/shared_preferences-2.5.2/
+shared_preferences_android=/Users/amaymalviya/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.8/
+shared_preferences_foundation=/Users/amaymalviya/.pub-cache/hosted/pub.dev/shared_preferences_foundation-2.5.4/
+shared_preferences_linux=/Users/amaymalviya/.pub-cache/hosted/pub.dev/shared_preferences_linux-2.4.1/
+shared_preferences_web=/Users/amaymalviya/.pub-cache/hosted/pub.dev/shared_preferences_web-2.4.3/
+shared_preferences_windows=/Users/amaymalviya/.pub-cache/hosted/pub.dev/shared_preferences_windows-2.4.1/
