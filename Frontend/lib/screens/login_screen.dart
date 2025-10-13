@@ -153,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 180),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -237,7 +237,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       _SocialIcon(child: const Icon(Icons.apple)),
                     ],
                   ),
-                  const SizedBox(height: 200), // Added space to avoid overlap with wave
                 ],
               ),
             ),

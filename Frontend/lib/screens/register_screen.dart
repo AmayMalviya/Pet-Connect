@@ -148,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 180),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -228,7 +228,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       _SocialIcon(child: const Icon(Icons.apple)),
                     ],
                   ),
-                  const SizedBox(height: 200), // Added space to avoid overlap with wave
                 ],
               ),
             ),
