@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/models/pet.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ApiService {
   static const String _baseUrl = 'http://localhost:8080'; // Your backend URL
@@ -64,7 +65,7 @@ class ApiService {
   }
 
   // TODO: Implement Pet endpoints in the Java backend and uncomment this section
-  /*
+
   static Future<String> addPet(Pet pet) async {
     final supabase = Supabase.instance.client;
     final response = await supabase.from('pets').insert(pet.toJson()).select();
@@ -80,5 +81,5 @@ class ApiService {
 
     return (response as List).map((pet) => Pet.fromJson(pet)).toList();
   }
-  */
+
 }

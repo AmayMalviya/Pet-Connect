@@ -41,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (currentUser != null) {
         final fetchedUser = await ApiService.getUserDetails();
         // TODO: Implement getPetsByOwnerUid in the backend and uncomment the following line.
-        final List<Pet> fetchedPets = []; // await ApiService.getPetsByOwnerUid(currentUser.uid);
+        final List<Pet> fetchedPets = await ApiService.getPetsByOwnerUid(currentUser.uid);
         setState(() {
           _user = fetchedUser;
           _pets = fetchedPets;

@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';

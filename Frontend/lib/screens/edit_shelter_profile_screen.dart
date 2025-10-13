@@ -5,10 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class EditShelterProfileScreen extends StatefulWidget {
   static const routeName = '/edit-shelter-profile';
-  // final Map<String, dynamic> shelterData;
+  final Map<String, dynamic> shelterData;
 
-  // const EditShelterProfileScreen({super.key, required this.shelterData});
-  const EditShelterProfileScreen({super.key});
+  const EditShelterProfileScreen({super.key, required this.shelterData});
 
   @override
   State<EditShelterProfileScreen> createState() => _EditShelterProfileScreenState();
@@ -25,16 +24,11 @@ class _EditShelterProfileScreenState extends State<EditShelterProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _phoneController = TextEditingController();
-    _addressController = TextEditingController();
-    _capacityController = TextEditingController();
-    _websiteController = TextEditingController();
-    // _nameController = TextEditingController(text: widget.shelterData['name']);
-    // _phoneController = TextEditingController(text: widget.shelterData['phone']);
-    // _addressController = TextEditingController(text: widget.shelterData['address']);
-    // _capacityController = TextEditingController(text: widget.shelterData['capacity']);
-    // _websiteController = TextEditingController(text: widget.shelterData['website']);
+    _nameController = TextEditingController(text: widget.shelterData['name']);
+    _phoneController = TextEditingController(text: widget.shelterData['phone']);
+    _addressController = TextEditingController(text: widget.shelterData['address']);
+    _capacityController = TextEditingController(text: widget.shelterData['capacity']);
+    _websiteController = TextEditingController(text: widget.shelterData['website']);
   }
 
   @override

@@ -5,10 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class EditVetProfileScreen extends StatefulWidget {
   static const routeName = '/edit-vet-profile';
-  // final Map<String, dynamic> vetData;
+  final Map<String, dynamic> vetData;
 
-  // const EditVetProfileScreen({super.key, required this.vetData});
-  const EditVetProfileScreen({super.key});
+  const EditVetProfileScreen({super.key, required this.vetData});
 
   @override
   State<EditVetProfileScreen> createState() => _EditVetProfileScreenState();
@@ -25,16 +24,11 @@ class _EditVetProfileScreenState extends State<EditVetProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _phoneController = TextEditingController();
-    _addressController = TextEditingController();
-    _experienceController = TextEditingController();
-    _specializationController = TextEditingController();
-    // _nameController = TextEditingController(text: widget.vetData['name']);
-    // _phoneController = TextEditingController(text: widget.vetData['phone']);
-    // _addressController = TextEditingController(text: widget.vetData['address']);
-    // _experienceController = TextEditingController(text: widget.vetData['experience']);
-    // _specializationController = TextEditingController(text: widget.vetData['specialization']);
+    _nameController = TextEditingController(text: widget.vetData['name']);
+    _phoneController = TextEditingController(text: widget.vetData['phone']);
+    _addressController = TextEditingController(text: widget.vetData['address']);
+    _experienceController = TextEditingController(text: widget.vetData['experience']);
+    _specializationController = TextEditingController(text: widget.vetData['specialization']);
   }
 
   @override
