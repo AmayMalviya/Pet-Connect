@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="2dacf349-acee-47d3-be20-44231093e792" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/.filecache" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/.filecache" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/app.dill" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/app.dill" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/kernel_snapshot_program.d" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/kernel_snapshot_program.d" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/kernel_snapshot_program.stamp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/outputs.json" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/.dart_tool/flutter_build/7a71ee0dc245aaef5e2b2137ae987470/outputs.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/package_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/.dart_tool/package_config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/.dart_tool/package_graph.json" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/.dart_tool/package_graph.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend_java/src/main/java/com/petconnect/config/FirebaseConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend_java/src/main/java/com/petconnect/config/FirebaseConfig.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;AmayMalviya&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AmayMalviya/Pet-Connect.git&quot;,
+    &quot;accountId&quot;: &quot;595d000a-a258-4bd4-88c3-c57d4d90b446&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="31VS3irks52gOnYXjdP5qweAM06" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;android.gradle.sync.needed&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Amay&quot;,
+    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2dacf349-acee-47d3-be20-44231093e792" name="Changes" comment="" />
+      <created>1755607550140</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1755607550140</updated>
+    </task>
+    <servers />
+  </component>
+</project>
