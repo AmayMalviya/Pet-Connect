@@ -38,6 +38,14 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable String id) {
+        Optional<User> userOptional = userService.getUser(id);
+        return userOptional
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/me/photo")
     public ResponseEntity<User> updateUserPhoto(@AuthenticationPrincipal FirebaseToken decodedToken, @RequestBody PhotoUpdateRequest request) {
         Optional<User> updatedUser = userService.updateUserPhoto(decodedToken.getUid(), request.getPhotoUrl());

@@ -15,12 +15,34 @@ public class PetService {
         this.petRepository = petRepository;
     }
 
+    public Pet getPetById(Long id) {
+        return petRepository.findById(id).orElse(null);
+    }
+
     public List<Pet> getPetsByOwnerId(String ownerId) {
         return petRepository.findByOwnerId(ownerId);
     }
 
+    public List<Pet> getPetsByStatus(String status) {
+        return petRepository.findByStatus(status);
+    }
+
     public Pet addPet(Pet pet) {
-        // The ownerId should be set in the controller before calling this
         return petRepository.save(pet);
+    }
+
+    public Pet updatePet(Long id, Pet pet) {
+        return petRepository.findById(id)
+                .map(existingPet -> {
+                    existingPet.setName(pet.getName());
+                    existingPet.setBreed(pet.getBreed());
+                    existingPet.setAge(pet.getAge());
+                    return petRepository.save(existingPet);
+                })
+                .orElse(null);
+    }
+
+    public void deletePet(Long id) {
+        petRepository.deleteById(id);
     }
 }

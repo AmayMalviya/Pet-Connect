@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/models/vet.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 
 class EditVetProfileScreen extends StatefulWidget {
   static const routeName = '/edit-vet-profile';
-  final Map<String, dynamic> vetData;
+  final Vet vet;
 
-  const EditVetProfileScreen({super.key, required this.vetData});
+  const EditVetProfileScreen({super.key, required this.vet});
 
   @override
   State<EditVetProfileScreen> createState() => _EditVetProfileScreenState();
@@ -24,11 +24,11 @@ class _EditVetProfileScreenState extends State<EditVetProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.vetData['name']);
-    _phoneController = TextEditingController(text: widget.vetData['phone']);
-    _addressController = TextEditingController(text: widget.vetData['address']);
-    _experienceController = TextEditingController(text: widget.vetData['experience']);
-    _specializationController = TextEditingController(text: widget.vetData['specialization']);
+    _nameController = TextEditingController(text: widget.vet.user.displayName);
+    _phoneController = TextEditingController(text: widget.vet.phone);
+    _addressController = TextEditingController(text: widget.vet.address);
+    _experienceController = TextEditingController(text: widget.vet.yearsOfExperience.toString());
+    _specializationController = TextEditingController(text: widget.vet.specialization);
   }
 
   @override
@@ -42,29 +42,29 @@ class _EditVetProfileScreenState extends State<EditVetProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // TODO: Implement Supabase
-    // if (_formKey.currentState!.validate()) {
-    //   try {
-    //     final user = FirebaseAuth.instance.currentUser;
-    //     if (user != null) {
-    //       await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-    //         'name': _nameController.text,
-    //         'phone': _phoneController.text,
-    //         'address': _addressController.text,
-    //         'experience': _experienceController.text,
-    //         'specialization': _specializationController.text,
-    //       });
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         const SnackBar(content: Text('Profile updated successfully!')),
-    //       );
-    //       Navigator.of(context).pop();
-    //     }
-    //   } catch (e) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(content: Text('Failed to update profile: $e')),
-    //     );
-    //   }
-    // }
+    if (_formKey.currentState!.validate()) {
+      try {
+        final vet = Vet(
+          id: widget.vet.id,
+          phone: _phoneController.text,
+          address: _addressController.text,
+          specialization: _specializationController.text,
+          yearsOfExperience: int.parse(_experienceController.text),
+          user: widget.vet.user, // This will not be updated
+        );
+
+        await ApiService.saveVet(vet);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+        Navigator.of(context).pop();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile: $e')),
+        );
+      }
+    }
   }
 
   @override

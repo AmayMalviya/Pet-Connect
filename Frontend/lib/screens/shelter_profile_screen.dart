@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:pet_connect_app/models/shelter.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/edit_shelter_profile_screen.dart';
 
 class ShelterProfileScreen extends StatefulWidget {
@@ -15,7 +15,7 @@ class ShelterProfileScreen extends StatefulWidget {
 }
 
 class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
-  Map<String, dynamic>? _shelterData;
+  Shelter? _shelter;
   bool _isLoading = true;
 
   @override
@@ -25,29 +25,26 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
   }
 
   Future<void> _fetchShelterData() async {
-    // TODO: Implement Supabase
-    // try {
-    //   final user = FirebaseAuth.instance.currentUser;
-    //   if (user != null) {
-    //     final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    //     if (docSnapshot.exists) {
-    //       setState(() {
-    //         _shelterData = docSnapshot.data();
-    //       });
-    //     }
-    //   }
-    // } catch (e) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Failed to load profile data: $e')),
-    //   );
-    // } finally {
-    //   setState(() {
-    //     _isLoading = false;
-    //   });
-    // }
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
+    try {
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final shelter = await ApiService.getShelter(user.uid);
+        setState(() {
+          _shelter = shelter;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load profile data: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -63,10 +60,10 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              if (_shelterData != null) {
+              if (_shelter != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => EditShelterProfileScreen(shelterData: _shelterData!),
+                    builder: (context) => EditShelterProfileScreen(shelter: _shelter!),
                   ),
                 ).then((_) => _fetchShelterData());
               }
@@ -86,7 +83,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _shelterData?['name'] ?? 'Happy Paws Shelter',
+                    _shelter?.user.displayName ?? 'Happy Paws Shelter',
                     style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -98,9 +95,9 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
                     context,
                     title: 'Contact Information',
                     info: {
-                      'Email': _shelterData?['email'] ?? 'contact@happypaws.org',
-                      'Phone': _shelterData?['phone'] ?? '+1 987 654 321',
-                      'Address': _shelterData?['address'] ?? '456 Rescue Road, Animal City',
+                      'Email': _shelter?.user.email ?? 'contact@happypaws.org',
+                      'Phone': _shelter?.phone ?? '+1 987 654 321',
+                      'Address': _shelter?.address ?? '456 Rescue Road, Animal City',
                     },
                   ),
                   const SizedBox(height: 20),
@@ -108,9 +105,8 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
                     context,
                     title: 'Shelter Details',
                     info: {
-                      'License Number': _shelterData?['licenseNumber'] ?? 'SHLTR98765',
-                      'Capacity': _shelterData?['capacity'] ?? '50 Animals',
-                      'Website': _shelterData?['website'] ?? 'www.happypaws.org',
+                      'Capacity': _shelter?.capacity ?? '50 Animals',
+                      'Website': _shelter?.website ?? 'www.happypaws.org',
                     },
                   ),
                 ],

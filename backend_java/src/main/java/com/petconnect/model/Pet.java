@@ -18,6 +18,7 @@ public class Pet {
     private String breed;
     private int age;
     private String ownerId;
+    private String status;
 
     public Pet() {
     }
@@ -60,5 +61,13 @@ public class Pet {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

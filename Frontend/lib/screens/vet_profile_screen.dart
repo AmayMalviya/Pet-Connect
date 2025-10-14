@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:pet_connect_app/models/vet.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/edit_vet_profile_screen.dart';
 
 class VetProfileScreen extends StatefulWidget {
@@ -15,7 +15,7 @@ class VetProfileScreen extends StatefulWidget {
 }
 
 class _VetProfileScreenState extends State<VetProfileScreen> {
-  Map<String, dynamic>? _vetData;
+  Vet? _vet;
   bool _isLoading = true;
 
   @override
@@ -25,30 +25,26 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
   }
 
   Future<void> _fetchVetData() async {
-    // TODO: Implement Supabase
-    // try {
-    //   final user = FirebaseAuth.instance.currentUser;
-    //   if (user != null) {
-    //     final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    //     if (docSnapshot.exists) {
-    //       setState(() {
-    //         _vetData = docSnapshot.data();
-    //       });
-    //     }
-    //   }
-    // } catch (e) {
-    //   // Handle errors, e.g., show a snackbar
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Failed to load profile data: $e')),
-    //   );
-    // } finally {
-    //   setState(() {
-    //     _isLoading = false;
-    //   });
-    // }
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
+    try {
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final vet = await ApiService.getVet(user.uid);
+        setState(() {
+          _vet = vet;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load profile data: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -64,10 +60,10 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              if (_vetData != null) {
+              if (_vet != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => EditVetProfileScreen(vetData: _vetData!),
+                    builder: (context) => EditVetProfileScreen(vet: _vet!),
                   ),
                 ).then((_) => _fetchVetData());
               }
@@ -87,7 +83,7 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _vetData?['name'] ?? 'Dr. John Doe',
+                    _vet?.user.displayName ?? 'Dr. John Doe',
                     style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -99,9 +95,9 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
                     context,
                     title: 'Contact Information',
                     info: {
-                      'Email': _vetData?['email'] ?? 'john.doe@vet.com',
-                      'Phone': _vetData?['phone'] ?? '+1 234 567 890',
-                      'Clinic Address': _vetData?['address'] ?? '123 Pet Street, Animal City',
+                      'Email': _vet?.user.email ?? 'john.doe@vet.com',
+                      'Phone': _vet?.phone ?? '+1 234 567 890',
+                      'Clinic Address': _vet?.address ?? '123 Pet Street, Animal City',
                     },
                   ),
                   const SizedBox(height: 20),
@@ -109,9 +105,8 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
                     context,
                     title: 'Professional Details',
                     info: {
-                      'License Number': _vetData?['licenseNumber'] ?? 'VET123456',
-                      'Years of Experience': _vetData?['experience'] ?? '10+',
-                      'Specialization': _vetData?['specialization'] ?? 'Small Animals',
+                      'Years of Experience': _vet?.yearsOfExperience.toString() ?? '10+',
+                      'Specialization': _vet?.specialization ?? 'Small Animals',
                     },
                   ),
                 ],

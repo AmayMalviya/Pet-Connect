@@ -37,7 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         final fetchedUser = await ApiService.getUserDetails();
-        // TODO: Implement getPetsByOwnerUid in the backend and uncomment the following line.
         final List<Pet> fetchedPets = await ApiService.getPetsByOwnerId(currentUser.uid);
         setState(() {
           _user = fetchedUser;
@@ -69,16 +68,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _uploadImage(XFile image) async {
-      final user = firebase_auth.FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please log in to upload a profile picture.')),
-        );
-        return;
-      }
-      final token = await user.getIdToken();
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to upload a profile picture.')),
+      );
+      return;
+    }
+
+    try {
       final storageService = StorageService();
-      final imageUrl = await storageService.uploadProfilePicture(token, image);
+      final imageUrl = await storageService.uploadProfilePicture(user.uid, image);
 
       if (imageUrl != null) {
         // Now update the user profile via your backend

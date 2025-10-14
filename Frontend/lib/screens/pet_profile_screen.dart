@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 
 class PetProfileScreen extends StatelessWidget {
   const PetProfileScreen({super.key, required this.pet});
@@ -17,13 +19,47 @@ class PetProfileScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              // TODO: Implement edit functionality
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => AddEditPetScreen(pet: pet),
+                ),
+              );
             },
           ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
-              // TODO: Implement delete functionality
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Delete Pet'),
+                    content: const Text('Are you sure you want to delete this pet?'),
+                    actions: [
+                      TextButton(
+                        child: const Text('Cancel'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      TextButton(
+                        child: const Text('Delete'),
+                        onPressed: () async {
+                          try {
+                            await ApiService.deletePet(pet.id!);
+                            Navigator.of(context).pop();
+                            Navigator.of(context).pop();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to delete pet: $e')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
             },
           ),
         ],

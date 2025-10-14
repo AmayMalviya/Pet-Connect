@@ -1,12 +1,13 @@
 package com.petconnect.controller;
 
-import com.google.firebase.auth.FirebaseToken;
 import com.petconnect.model.Pet;
 import com.petconnect.service.PetService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,23 +24,28 @@ public class PetController {
         this.petService = petService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<Pet>> getMyPets(@AuthenticationPrincipal FirebaseToken decodedToken) {
-        if (decodedToken == null) {
-            return ResponseEntity.status(401).build();
+    @GetMapping("/{id}")
+    public ResponseEntity<Pet> getPetById(@PathVariable Long id) {
+        Pet pet = petService.getPetById(id);
+        if (pet != null) {
+            return ResponseEntity.ok(pet);
+        } else {
+            return ResponseEntity.notFound().build();
         }
-        List<Pet> pets = petService.getPetsByOwnerId(decodedToken.getUid());
-        return ResponseEntity.ok(pets);
+    }
+
+    @GetMapping("/owner/{ownerId}")
+    public ResponseEntity<List<Pet>> getPetsByOwnerId(@PathVariable String ownerId) {
+        return ResponseEntity.ok(petService.getPetsByOwnerId(ownerId));
+    }
+
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<Pet>> getPetsByStatus(@PathVariable String status) {
+        return ResponseEntity.ok(petService.getPetsByStatus(status));
     }
 
     @PostMapping
-    public ResponseEntity<Pet> addPet(@AuthenticationPrincipal FirebaseToken decodedToken, @RequestBody Pet pet) {
-        if (decodedToken == null) {
-            return ResponseEntity.status(401).build();
-        }
-        // Set the owner ID from the authenticated user's token
-        pet.setOwnerId(decodedToken.getUid());
-        Pet savedPet = petService.addPet(pet);
-        return ResponseEntity.ok(savedPet);
+    public ResponseEntity<Pet> addPet(@RequestBody Pet pet) {
+        return ResponseEntity.ok(petService.addPet(pet));
     }
 }

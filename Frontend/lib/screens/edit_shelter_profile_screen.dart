@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/models/shelter.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 
 class EditShelterProfileScreen extends StatefulWidget {
   static const routeName = '/edit-shelter-profile';
-  final Map<String, dynamic> shelterData;
+  final Shelter shelter;
 
-  const EditShelterProfileScreen({super.key, required this.shelterData});
+  const EditShelterProfileScreen({super.key, required this.shelter});
 
   @override
   State<EditShelterProfileScreen> createState() => _EditShelterProfileScreenState();
@@ -24,11 +24,11 @@ class _EditShelterProfileScreenState extends State<EditShelterProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.shelterData['name']);
-    _phoneController = TextEditingController(text: widget.shelterData['phone']);
-    _addressController = TextEditingController(text: widget.shelterData['address']);
-    _capacityController = TextEditingController(text: widget.shelterData['capacity']);
-    _websiteController = TextEditingController(text: widget.shelterData['website']);
+    _nameController = TextEditingController(text: widget.shelter.user.displayName);
+    _phoneController = TextEditingController(text: widget.shelter.phone);
+    _addressController = TextEditingController(text: widget.shelter.address);
+    _capacityController = TextEditingController(text: widget.shelter.capacity);
+    _websiteController = TextEditingController(text: widget.shelter.website);
   }
 
   @override
@@ -42,29 +42,29 @@ class _EditShelterProfileScreenState extends State<EditShelterProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // TODO: Implement Supabase
-    // if (_formKey.currentState!.validate()) {
-    //   try {
-    //     final user = FirebaseAuth.instance.currentUser;
-    //     if (user != null) {
-    //       await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-    //         'name': _nameController.text,
-    //         'phone': _phoneController.text,
-    //         'address': _addressController.text,
-    //         'capacity': _capacityController.text,
-    //         'website': _websiteController.text,
-    //       });
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         const SnackBar(content: Text('Profile updated successfully!')),
-    //       );
-    //       Navigator.of(context).pop();
-    //     }
-    //   } catch (e) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(content: Text('Failed to update profile: $e')),
-    //     );
-    //   }
-    // }
+    if (_formKey.currentState!.validate()) {
+      try {
+        final shelter = Shelter(
+          id: widget.shelter.id,
+          phone: _phoneController.text,
+          address: _addressController.text,
+          capacity: _capacityController.text,
+          website: _websiteController.text,
+          user: widget.shelter.user, // This will not be updated
+        );
+
+        await ApiService.saveShelter(shelter);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+        Navigator.of(context).pop();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile: $e')),
+        );
+      }
+    }
   }
 
   @override

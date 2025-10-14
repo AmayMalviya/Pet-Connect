@@ -1,31 +1,39 @@
 class Pet {
+  final int? id;
   final String name;
   final String breed;
   final int age;
-  String owner_id;
+  String ownerId;
+  String? status;
 
   Pet({
+    this.id,
     required this.name,
     required this.breed,
     required this.age,
-    required this.owner_id,
+    required this.ownerId,
+    this.status,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
     return Pet(
+      id: json['id'],
       name: json['name'],
       breed: json['breed'],
       age: json['age'],
-      owner_id: json['owner_id'],
+      ownerId: json['ownerId'],
+      status: json['status'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'breed': breed,
       'age': age,
-      'owner_id': owner_id,
+      'ownerId': ownerId,
+      'status': status,
     };
   }
 }

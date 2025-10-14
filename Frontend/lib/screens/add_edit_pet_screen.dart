@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/services/api_service.dart';
 
 class AddEditPetScreen extends StatefulWidget {
   static const routeName = '/add-edit-pet';
-  final Map<String, dynamic>? pet;
+  final Pet? pet;
 
   const AddEditPetScreen({super.key, this.pet});
 
@@ -18,18 +18,16 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   late TextEditingController _nameController;
   late TextEditingController _breedController;
   late TextEditingController _ageController;
-  late TextEditingController _descriptionController;
   String _status = 'Available';
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.pet?['name']);
-    _breedController = TextEditingController(text: widget.pet?['breed']);
-    _ageController = TextEditingController(text: widget.pet?['age']?.toString());
-    _descriptionController = TextEditingController(text: widget.pet?['description']);
+    _nameController = TextEditingController(text: widget.pet?.name);
+    _breedController = TextEditingController(text: widget.pet?.breed);
+    _ageController = TextEditingController(text: widget.pet?.age.toString());
     if (widget.pet != null) {
-      _status = widget.pet!['status'];
+      _status = widget.pet!.status!;
     }
   }
 
@@ -38,39 +36,32 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _nameController.dispose();
     _breedController.dispose();
     _ageController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
   Future<void> _savePet() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          final petData = {
-            'name': _nameController.text,
-            'breed': _breedController.text,
-            'age': int.parse(_ageController.text),
-            'description': _descriptionController.text,
-            'status': _status,
-            'owner_id': user.uid,
-          };
+        final pet = Pet(
+          name: _nameController.text,
+          breed: _breedController.text,
+          age: int.parse(_ageController.text),
+          ownerId: '', // The backend will set the ownerId
+          status: _status,
+        );
 
-          final supabase = Supabase.instance.client;
-
-          if (widget.pet == null) {
-            // Add new pet
-            await supabase.from('pets').insert(petData);
-          } else {
-            // Update existing pet
-            await supabase.from('pets').update(petData).eq('id', widget.pet!['id']);
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Pet saved successfully!')),
-          );
-          Navigator.of(context).pop();
+        if (widget.pet == null) {
+          // Add new pet
+          await ApiService.addPet(pet);
+        } else {
+          // Update existing pet
+          await ApiService.updatePet(widget.pet!.id!, pet);
         }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pet saved successfully!')),
+        );
+        Navigator.of(context).pop();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save pet: $e')),
@@ -109,12 +100,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                 decoration: const InputDecoration(labelText: 'Age'),
                 keyboardType: TextInputType.number,
                 validator: (value) => value!.isEmpty ? 'Please enter an age' : null,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 3,
               ),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
