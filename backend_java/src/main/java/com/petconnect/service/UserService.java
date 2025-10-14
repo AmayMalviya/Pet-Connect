@@ -33,4 +33,14 @@ public class UserService {
     public Optional<User> getUser(String uid) {
         return userRepository.findById(uid);
     }
+
+    public Optional<User> updateUserPhoto(String uid, String photoUrl) {
+        Optional<User> userOptional = userRepository.findById(uid);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setPhotoUrl(photoUrl);
+            return Optional.of(userRepository.save(user));
+        }
+        return Optional.empty();
+    }
 }

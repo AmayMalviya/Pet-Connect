@@ -2,13 +2,13 @@ class Pet {
   final String name;
   final String breed;
   final int age;
-  String ownerUid;
+  String owner_id;
 
   Pet({
     required this.name,
     required this.breed,
     required this.age,
-    required this.ownerUid,
+    required this.owner_id,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
@@ -16,7 +16,7 @@ class Pet {
       name: json['name'],
       breed: json['breed'],
       age: json['age'],
-      ownerUid: json['ownerUid'],
+      owner_id: json['owner_id'],
     );
   }
 
@@ -25,7 +25,7 @@ class Pet {
       'name': name,
       'breed': breed,
       'age': age,
-      'ownerUid': ownerUid,
+      'owner_id': owner_id,
     };
   }
 }

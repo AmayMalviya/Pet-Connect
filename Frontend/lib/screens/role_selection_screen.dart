@@ -14,11 +14,34 @@ class RoleSelectionScreen extends StatefulWidget {
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
-  bool _isLoading = false;
-  String? _selectedRole;
+  bool _isLoading = true;
+  String? _selectedRoleId;
+  List<Map<String, dynamic>> _roles = [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRoles();
+  }
+
+  Future<void> _fetchRoles() async {
+    try {
+      final response = await Supabase.instance.client.from('roles').select('id, name');
+      setState(() {
+        _roles = (response as List).map((role) => {'id': role['id'], 'name': role['name']}).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load roles: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
 
   Future<void> _submitRole() async {
-    if (_selectedRole == null) {
+    if (_selectedRoleId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a role.')),
       );
@@ -41,16 +64,18 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       final supabase = Supabase.instance.client;
       await supabase.from('profiles').upsert({
         'user_id': user.uid,
-        'role': _selectedRole,
+        'role_id': _selectedRoleId,
       });
 
       if (!mounted) return;
 
-      if (_selectedRole == 'Pet Owner') {
+      final selectedRoleName = _roles.firstWhere((role) => role['id'] == _selectedRoleId)['name'];
+
+      if (selectedRoleName == 'Pet Owner') {
         Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
       } else {
         Navigator.of(context)
-            .pushReplacementNamed(KycScreen.routeName, arguments: _selectedRole);
+            .pushReplacementNamed(KycScreen.routeName, arguments: selectedRoleName);
       }
     } catch (e) {
       if (mounted) {
@@ -79,70 +104,70 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'How will you be using Pet Connect?',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Choose your primary role to get a personalized experience.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-              ),
-              const SizedBox(height: 48),
-              _buildRoleCard(
-                context,
-                title: 'Pet Owner',
-                description: 'For those looking to adopt or connect with other pet lovers.',
-                icon: Icons.person_outline,
-                onTap: () => setState(() => _selectedRole = 'Pet Owner'),
-                isSelected: _selectedRole == 'Pet Owner',
-              ),
-              const SizedBox(height: 24),
-              _buildRoleCard(
-                context,
-                title: 'Shelter Owner',
-                description: 'Manage a shelter, list pets for adoption, and connect with potential adopters.',
-                icon: Icons.home_outlined,
-                onTap: () => setState(() => _selectedRole = 'Shelter Owner'),
-                isSelected: _selectedRole == 'Shelter Owner',
-              ),
-              const SizedBox(height: 24),
-              _buildRoleCard(
-                context,
-                title: 'Vet',
-                description: 'Provide veterinary services and connect with pet owners.',
-                icon: Icons.medical_services_outlined,
-                onTap: () => setState(() => _selectedRole = 'Vet'),
-                isSelected: _selectedRole == 'Vet',
-              ),
-              const Spacer(),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _selectedRole == null ? null : _submitRole,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'How will you be using Pet Connect?',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
-                      ),
-                      child: const Text('Continue', style: TextStyle(fontSize: 18)),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Choose your primary role to get a personalized experience.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                        ),
+                        const SizedBox(height: 48),
+                        ..._roles.map((role) => Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: _buildRoleCard(
+                                context,
+                                title: role['name'],
+                                description: 'Description for ${role['name']}', // Replace with actual descriptions if available
+                                icon: _getIconForRole(role['name']),
+                                onTap: () => setState(() => _selectedRoleId = role['id']),
+                                isSelected: _selectedRoleId == role['id'],
+                              ),
+                        )),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: _selectedRoleId == null || _isLoading ? null : _submitRole,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Continue', style: TextStyle(fontSize: 18)),
+                        ),
+                      ],
                     ),
-            ],
-          ),
         ),
       ),
     );
+  }
+
+  IconData _getIconForRole(String roleName) {
+    switch (roleName) {
+      case 'Pet Owner':
+        return Icons.person_outline;
+      case 'Shelter Owner':
+        return Icons.home_outlined;
+      case 'Vet':
+        return Icons.medical_services_outlined;
+      default:
+        return Icons.person;
+    }
   }
 
   Widget _buildRoleCard(BuildContext context, {

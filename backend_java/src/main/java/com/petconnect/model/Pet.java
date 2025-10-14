@@ -1,10 +1,33 @@
 package com.petconnect.model;
 
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "pets")
 public class Pet {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String name;
     private String breed;
     private int age;
-    private String ownerUid;
+    private String ownerId;
+
+    // Getters and Setters
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -30,11 +53,11 @@ public class Pet {
         this.age = age;
     }
 
-    public String getOwnerUid() {
-        return ownerUid;
+    public String getOwnerId() {
+        return ownerId;
     }
 
-    public void setOwnerUid(String ownerUid) {
-        this.ownerUid = ownerUid;
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 }

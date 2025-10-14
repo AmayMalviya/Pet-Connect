@@ -14,6 +14,8 @@ public class User {
     private String email;
     private String displayName;
 
+    private String photoUrl;
+
     public User() {
         // No-argument constructor for JPA
     }
@@ -41,4 +43,11 @@ public class User {
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
-}
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
+    }

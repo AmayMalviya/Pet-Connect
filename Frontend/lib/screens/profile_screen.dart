@@ -6,9 +6,7 @@ import 'auth_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/services/storage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -23,7 +21,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Pet> _pets = [];
   bool _isLoading = true;
   String? _error;
-  File? _profileImage;
 
   @override
   void initState() {
@@ -41,13 +38,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (currentUser != null) {
         final fetchedUser = await ApiService.getUserDetails();
         // TODO: Implement getPetsByOwnerUid in the backend and uncomment the following line.
-        final List<Pet> fetchedPets = await ApiService.getPetsByOwnerUid(currentUser.uid);
+        final List<Pet> fetchedPets = await ApiService.getPetsByOwnerId(currentUser.uid);
         setState(() {
           _user = fetchedUser;
           _pets = fetchedPets;
-          if (currentUser.photoURL != null) {
-            _profileImage = null; // Clear local image if Firebase has one
-          }
         });
       } else {
         setState(() {
@@ -67,53 +61,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
 
     if (image != null) {
-      setState(() {
-        _profileImage = File(image.path);
-      });
-      await _uploadImage(_profileImage!);
+      await _uploadImage(image);
     }
   }
 
-  Future<void> _uploadImage(File image) async {
-    // TODO: Implement profile image upload endpoint in the backend.
-    /*
-    try {
-      final user = firebase_auth.FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please log in to upload a profile picture.')),
-        );
-        return;
-      }
-
-      final supabase = Supabase.instance.client;
-      final imageExtension = image.path.split('.').last;
-      final imagePath = '/${user.uid}/profile.$imageExtension';
-
-      await supabase.storage.from('avatars').upload(
-            imagePath,
-            image,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-
-      final imageUrl = supabase.storage.from('avatars').getPublicUrl(imagePath);
-
-      await supabase.from('profiles').upsert({'id': user.uid, 'avatar_url': imageUrl});
-
-      _fetchProfileData(); // Refresh profile data to show new image
-
+  Future<void> _uploadImage(XFile image) async {
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile picture updated successfully!')),
+        const SnackBar(content: Text('Please log in to upload a profile picture.')),
       );
+      return;
+    }
+
+    try {
+      final storageService = StorageService();
+      final imageUrl = await storageService.uploadProfilePicture(user.uid, image);
+
+      if (imageUrl != null) {
+        // Now update the user profile via your backend
+        await ApiService.updateUserPhoto(imageUrl);
+
+        // Refresh profile data to show new image
+        await _fetchProfileData();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated successfully!')),
+        );
+      } else {
+        throw Exception('Upload returned a null URL.');
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to upload profile picture: ${e.toString()}')),
       );
     }
-    */
   }
 
   void _addPet(Pet pet) async {
@@ -121,7 +106,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        pet.ownerUid = currentUser.uid; // Assign owner UID before adding
         await ApiService.addPet(pet);
         await _fetchProfileData(); // Refresh pet list after adding
         ScaffoldMessenger.of(context).showSnackBar(
@@ -190,15 +174,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       children: [
         GestureDetector(
-          // onTap: _pickImage, // TODO: Re-enable when backend for image upload is ready.
+          onTap: _pickImage,
           child: CircleAvatar(
             radius: 40,
-            backgroundImage: _profileImage != null
-                ? FileImage(_profileImage!) as ImageProvider
-                : (isNetworkUrl
-                    ? NetworkImage(photoUrl)
-                    : const AssetImage('assets/images/profile_avatar.png') as ImageProvider),
-            child: _profileImage == null && !isNetworkUrl
+            backgroundImage: isNetworkUrl
+                ? NetworkImage(photoUrl!)
+                : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
+            child: !isNetworkUrl
                 ? const Icon(Icons.camera_alt, size: 30, color: Colors.white70)
                 : null,
           ),
