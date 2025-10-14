@@ -69,17 +69,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _uploadImage(XFile image) async {
-    final user = firebase_auth.FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to upload a profile picture.')),
-      );
-      return;
-    }
-
-    try {
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in to upload a profile picture.')),
+        );
+        return;
+      }
+      final token = await user.getIdToken();
       final storageService = StorageService();
-      final imageUrl = await storageService.uploadProfilePicture(user.uid, image);
+      final imageUrl = await storageService.uploadProfilePicture(token, image);
 
       if (imageUrl != null) {
         // Now update the user profile via your backend

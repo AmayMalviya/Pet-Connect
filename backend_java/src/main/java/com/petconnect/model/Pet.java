@@ -19,7 +19,8 @@ public class Pet {
     private int age;
     private String ownerId;
 
-    // Getters and Setters
+    public Pet() {
+    }
 
     public Long getId() {
         return id;
