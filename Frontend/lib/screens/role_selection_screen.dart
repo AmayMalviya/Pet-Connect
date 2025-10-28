@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/utils/role_helpers.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   static const routeName = '/role-selection';
@@ -163,32 +164,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     );
   }
 
-  IconData _getIconForRole(String roleName) {
-    switch (roleName) {
-      case 'Pet Owner':
-        return Icons.person_outline;
-      case 'Shelter Owner':
-        return Icons.home_outlined;
-      case 'Vet':
-        return Icons.medical_services_outlined;
-      default:
-        return Icons.person;
-    }
-  }
-
-// Public helper so it can be unit-tested.
-IconData getIconForRole(String roleName) {
-  switch (roleName) {
-    case 'Pet Owner':
-      return Icons.person_outline;
-    case 'Shelter Owner':
-      return Icons.home_outlined;
-    case 'Vet':
-      return Icons.medical_services_outlined;
-    default:
-      return Icons.person;
-  }
-}
+  // Icons are provided by `getIconForRole` in utils/role_helpers.dart
 
   Widget _buildRoleCard(BuildContext context, {
     required String title,
@@ -248,3 +224,5 @@ IconData getIconForRole(String roleName) {
       ),
     );
   }
+
+}
