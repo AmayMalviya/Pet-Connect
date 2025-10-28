@@ -40,12 +40,21 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        // Load user profile
-    final profile = await Supabase.instance.client
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('user_id', user.id)
-      .maybeSingle();
+        // First ensure the profile exists (use snake_case column names)
+        await Supabase.instance.client
+          .from('profiles')
+          .upsert({
+            'user_id': user.id,
+            'first_name': user.email?.split('@')[0] ?? 'User', // Use email prefix as default name
+            'last_name': ''
+          });
+
+        // Then load user profile
+        final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
         
         // Check if user has any pets
         final pets = await Supabase.instance.client
@@ -55,9 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
         
         setState(() {
           // profile can be null when maybeSingle() returns no rows
-          _userName = (profile != null) 
-              ? '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim()
-              : 'User';
+      _userName = (profile != null) 
+        ? '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim()
+        : 'User';
           _hasPet = (pets as List).isNotEmpty;
           _error = null;
         });

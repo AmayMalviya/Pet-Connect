@@ -58,10 +58,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         // Get the selected role object from cached roles
         final selectedRole = _roles.firstWhere((role) => role['id'] == _selectedRoleId);
 
-        // Upsert the profile with the selected role_id
+        // Upsert the profile with the selected role name
         await Supabase.instance.client.from('profiles').upsert({
           'user_id': user.id,
-          'role_id': selectedRole['id'],
+          'role': selectedRole['name'],
         });
 
         if (!mounted) return;
