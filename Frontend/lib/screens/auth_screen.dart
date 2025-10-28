@@ -131,13 +131,13 @@ class _WaveBands extends StatelessWidget {
           left: 0,
           right: 0,
           bottom: -6,
-          child: _Band(height: 170, color: AppColors.accent),
+          child: _Band(height: 170, color: AppColors.accent, clipper: _BottomWaveClipper()),
         ),
         Positioned(
           left: 0,
           right: 0,
           bottom: 18,
-          child: _Band(height: 150, color: AppColors.primary),
+          child: _Band(height: 150, color: AppColors.primary, clipper: _BottomWaveClipper()),
         ),
         // top-right soft curve
         Positioned(
@@ -145,7 +145,7 @@ class _WaveBands extends StatelessWidget {
           right: -40,
           child: Transform.rotate(
             angle: -0.2,
-            child: _Band(height: 140, width: 240, color: AppColors.accent),
+            child: _Band(height: 140, width: 240, color: AppColors.accent, clipper: _TopWaveClipper()),
           ),
         ),
       ],
@@ -157,12 +157,13 @@ class _Band extends StatelessWidget {
   final double height;
   final double? width;
   final Color color;
-  const _Band({required this.height, required this.color, this.width});
+  final CustomClipper<Path> clipper;
+  const _Band({required this.height, required this.color, this.width, required this.clipper});
 
   @override
   Widget build(BuildContext context) {
     return ClipPath(
-      clipper: _WaveClipper(),
+      clipper: clipper,
       child: Container(
         height: height,
         width: width ?? MediaQuery.of(context).size.width,
@@ -172,7 +173,30 @@ class _Band extends StatelessWidget {
   }
 }
 
-class _WaveClipper extends CustomClipper<Path> {
+class _BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final p = Path();
+    // Start by moving to a point on the left edge, which is the start of our wave
+    p.moveTo(0, size.height * 0.7);
+    // First curve of the wave
+    p.quadraticBezierTo(size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.7);
+    // Second curve of the wave
+    p.quadraticBezierTo(size.width * 0.75, size.height * 0.9, size.width, size.height * 0.7);
+    // Line to the bottom-right corner
+    p.lineTo(size.width, size.height);
+    // Line to the bottom-left corner
+    p.lineTo(0, size.height);
+    // Close the path
+    p.close();
+    return p;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class _TopWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final p = Path();
