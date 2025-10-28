@@ -5,9 +5,42 @@ import 'package:pet_connect_app/screens/profile_screen.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
+
+  @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> {
+  String _userName = 'User';
+  String _userEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('first_name, last_name, email')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (mounted && profile != null) {
+        setState(() {
+          _userName = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
+          _userEmail = profile['email'] ?? user.email ?? '';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,16 +48,14 @@ class AppDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(
-              color: AppColors.primary,
+          UserAccountsDrawerHeader(
+            accountName: Text(_userName),
+            accountEmail: Text(_userEmail),
+            currentAccountPicture: const CircleAvatar(
+              backgroundImage: AssetImage('assets/images/profile_avatar.png'),
             ),
-            child: Text(
-              'Pet Connect',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-              ),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
             ),
           ),
           ListTile(

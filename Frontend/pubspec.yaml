@@ -43,6 +43,8 @@ dependencies:
   mobile_scanner: ^7.1.2
 
   supabase_flutter: ^2.5.0
+  google_sign_in: ^6.2.1
+
 
 dev_dependencies:
   flutter_test:

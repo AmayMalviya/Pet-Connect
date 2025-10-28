@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
@@ -123,7 +124,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleSignIn() async {
-    // TODO: Implement Google Sign in with Supabase
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.petconnect://login-callback',
+      );
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _appleSignIn() async {
+    // TODO: Implement Apple Sign In with Supabase
+    // You will need to configure this in your Supabase dashboard and Apple Developer account.
+    // It uses the `sign_in_with_apple` package.
+  }
+
+  Future<void> _facebookSignIn() async {
+    // TODO: Implement Facebook Sign In with Supabase
+    // You will need to configure this in your Supabase dashboard and Facebook Developer account.
   }
 
 
@@ -223,9 +248,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),  // placeholder
                       const SizedBox(width: 10),
-                      _SocialIcon(child: const Icon(Icons.facebook)),
+                      _SocialIcon(onTap: _facebookSignIn, child: const Icon(Icons.facebook)),
                       const SizedBox(width: 10),
-                      _SocialIcon(child: const Icon(Icons.apple)),
+                      _SocialIcon(onTap: _appleSignIn, child: const Icon(Icons.apple)),
                     ],
                   ),
                 ],

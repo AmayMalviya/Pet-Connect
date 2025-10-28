@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
-import 'package:pet_connect_app/screens/profile_details_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -32,14 +32,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    if (firstName.text.isEmpty || lastName.text.isEmpty || email.text.isEmpty || password.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final response = await Supabase.instance.client.auth.signUp(
         email: email.text.trim(),
         password: password.text,
+        data: {
+          'first_name': firstName.text.trim(),
+          'last_name': lastName.text.trim(),
+        }, // Pass additional data
       );
 
       if (response.user != null) {
+        // The user is created, but needs to confirm their email.
+        // Supabase sends the confirmation email automatically if enabled.
+
+        // We still need to create a profile in our public 'profiles' table.
         await Supabase.instance.client.from('profiles').insert({
           'user_id': response.user!.id,
           'first_name': firstName.text.trim(),
@@ -49,28 +63,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (!mounted) return;
 
-        final signInResponse = await Supabase.instance.client.auth.signInWithPassword(
-          email: email.text.trim(),
-          password: password.text,
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Registration Successful'),
+            content: const Text('Please check your email to verify your account before logging in.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.pushReplacementNamed(context, LoginScreen.routeName); // Go to login
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
-
-        if (signInResponse.user != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration successful — complete profile details.')),
-          );
-          Navigator.pushReplacementNamed(context, ProfileDetailsScreen.routeName);
-        }
       }
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) return;
+      final message = e.message.toLowerCase().contains('already registered')
+          ? 'This email address is already in use.'
+          : e.message;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _googleSignIn() async {}
+  Future<void> _googleSignIn() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.petconnect://login-callback',
+      );
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _appleSignIn() async {
+    // TODO: Implement Apple Sign In with Supabase
+  }
+
+  Future<void> _facebookSignIn() async {
+    // TODO: Implement Facebook Sign In with Supabase
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,9 +171,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),
                     const SizedBox(width: 10),
-                    _SocialIcon(child: const Icon(Icons.facebook_rounded)),
+                    _SocialIcon(onTap: _facebookSignIn, child: const Icon(Icons.facebook_rounded)),
                     const SizedBox(width: 10),
-                    _SocialIcon(child: const Icon(Icons.apple_rounded)),
+                    _SocialIcon(onTap: _appleSignIn, child: const Icon(Icons.apple_rounded)),
                   ])
                 ],
               ),

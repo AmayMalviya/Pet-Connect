@@ -27,6 +27,7 @@ import 'package:pet_connect_app/screens/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/edit_profile_screen.dart';
+import 'package:pet_connect_app/screens/social_profile_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,26 +41,15 @@ void main() async {
 class PetConnectApp extends StatelessWidget {
   const PetConnectApp({super.key});
 
-  Future<String?> _getUserRole(String userId) async {
+  Future<Map<String, dynamic>?> _getProfileData(String userId) async {
     final supabase = Supabase.instance.client;
-  final profileResponse = await supabase
-    .from('profiles')
-    .select('role_id')
-    .eq('user_id', userId)
-    .maybeSingle();
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('*, roles(name)') // Select all profile fields and the role name
+        .eq('user_id', userId)
+        .maybeSingle();
 
-  if (profileResponse == null || profileResponse['role_id'] == null) {
-    return null;
-  }
-
-  final roleId = profileResponse['role_id'];
-  final roleResponse = await supabase
-    .from('roles')
-    .select('name')
-    .eq('id', roleId)
-    .maybeSingle();
-
-  return roleResponse == null ? null : roleResponse['name'] as String?;
+    return profileResponse;
   }
 
   @override
@@ -75,24 +65,36 @@ class PetConnectApp extends StatelessWidget {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
           if (snapshot.hasData && snapshot.data?.session != null) {
-            return FutureBuilder<String?>(
-              future: _getUserRole(snapshot.data!.session!.user.id),
+            return FutureBuilder<Map<String, dynamic>?>(
+              future: _getProfileData(snapshot.data!.session!.user.id),
               builder: (context, userSnapshot) {
                 if (userSnapshot.connectionState == ConnectionState.waiting) {
                   return const Scaffold(body: Center(child: CircularProgressIndicator()));
                 }
-                if (userSnapshot.hasData) {
-                  final userRole = userSnapshot.data;
-                  if (userRole == 'Pet Owner') {
-                    return const MainScreen();
-                  } else if (userRole == 'Vet') {
-                    return const VetHomeScreen();
-                  } else if (userRole == 'Shelter Owner') {
-                    return const ShelterHomeScreen();
-                  } else {
-                    return const RoleSelectionScreen();
-                  }
+
+                final profile = userSnapshot.data;
+
+                // If profile is incomplete (e.g., new social user), go to setup.
+                if (profile == null || (profile['first_name'] == null || profile['first_name'].isEmpty)) {
+                  return const SocialProfileSetupScreen();
+                }
+
+                // If profile is complete but role is not, go to role selection.
+                if (profile['roles'] == null) {
+                  return const RoleSelectionScreen();
+                }
+
+                final userRole = profile['roles']['name'];
+
+                // Navigate based on role.
+                if (userRole == 'Pet Owner') {
+                  return const MainScreen();
+                } else if (userRole == 'Vet') {
+                  return const VetHomeScreen();
+                } else if (userRole == 'Shelter Owner') {
+                  return const ShelterHomeScreen();
                 } else {
+                  // Default fallback
                   return const RoleSelectionScreen();
                 }
               },
@@ -129,6 +131,7 @@ class PetConnectApp extends StatelessWidget {
         AdoptionRequestsScreen.routeName: (context) => const AdoptionRequestsScreen(),
         ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
         EditProfileScreen.routeName: (context) => const EditProfileScreen(),
+        SocialProfileSetupScreen.routeName: (context) => const SocialProfileSetupScreen(),
       },
     );
   }
