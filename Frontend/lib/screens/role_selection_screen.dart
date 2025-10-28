@@ -54,16 +54,18 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        // Get the role name from the selected role ID
+        // Get the selected role object from cached roles
         final selectedRole = _roles.firstWhere((role) => role['id'] == _selectedRoleId);
-        
-        await Supabase.instance.client.from('profiles').update({
-          'role': selectedRole['name'],
-        }).eq('user_id', user.id);
+
+        // Upsert the profile with the selected role_id
+        await Supabase.instance.client.from('profiles').upsert({
+          'user_id': user.id,
+          'role_id': selectedRole['id'],
+        });
 
         if (!mounted) return;
 
-        // Navigate based on the selected role
+        // Navigate based on the selected role name
         if (selectedRole['name'] == 'Pet Owner') {
           Navigator.pushReplacementNamed(context, MainScreen.routeName);
         } else {
@@ -127,17 +129,22 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                               ),
                         ),
                         const SizedBox(height: 48),
-                        ..._roles.map((role) => Padding(
-                          padding: const EdgeInsets.only(bottom: 24.0),
-                          child: _buildRoleCard(
-                                context,
-                                title: role['name'],
-                                description: 'Description for ${role['name']}', // Replace with actual descriptions if available
-                                icon: _getIconForRole(role['name']),
-                                onTap: () => setState(() => _selectedRoleId = role['id']),
-                                isSelected: _selectedRoleId == role['id'],
-                              ),
-                        )),
+                        ..._roles.map((role) {
+                          final description = (role['description'] != null && (role['description'] as String).trim().isNotEmpty)
+                              ? role['description'] as String
+                              : 'Description for ${role['name']}';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 24.0),
+                            child: _buildRoleCard(
+                              context,
+                              title: role['name'],
+                              description: description,
+                              icon: getIconForRole(role['name']),
+                              onTap: () => setState(() => _selectedRoleId = role['id']),
+                              isSelected: _selectedRoleId == role['id'],
+                            ),
+                          );
+                        }),
                         const Spacer(),
                         ElevatedButton(
                           onPressed: _selectedRoleId == null || _isLoading ? null : _submitRole,
@@ -168,6 +175,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         return Icons.person;
     }
   }
+
+// Public helper so it can be unit-tested.
+IconData getIconForRole(String roleName) {
+  switch (roleName) {
+    case 'Pet Owner':
+      return Icons.person_outline;
+    case 'Shelter Owner':
+      return Icons.home_outlined;
+    case 'Vet':
+      return Icons.medical_services_outlined;
+    default:
+      return Icons.person;
+  }
+}
 
   Widget _buildRoleCard(BuildContext context, {
     required String title,
@@ -227,4 +248,3 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       ),
     );
   }
-}

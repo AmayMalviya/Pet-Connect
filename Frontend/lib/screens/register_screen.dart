@@ -16,16 +16,24 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final name = TextEditingController();
+  final firstName = TextEditingController();
+  final lastName = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  final city = TextEditingController();
+  final state = TextEditingController();
+  final country = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    name.dispose();
+    firstName.dispose();
+    lastName.dispose();
     email.dispose();
     password.dispose();
+    city.dispose();
+    state.dispose();
+    country.dispose();
     super.dispose();
   }
 
@@ -46,8 +54,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 .from('profiles')
                 .insert({
                   'user_id': response.user!.id,
-                  'name': name.text,
-                  'email': email.text,
+                  'first_name': firstName.text.trim(),
+                  'last_name': lastName.text.trim(),
+                  'email': email.text.trim(),
+                  'city': city.text.trim(),
+                  'state': state.text.trim(),
+                  'country': country.text.trim(),
                 });
 
             if (!mounted) return;
@@ -142,8 +154,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 48),
                   PetTextField(
-                    controller: name,
-                    hint: "Full name",
+                    controller: firstName,
+                    hint: "First name",
+                    icon: Icons.person_outline_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  PetTextField(
+                    controller: lastName,
+                    hint: "Last name",
                     icon: Icons.person_outline_rounded,
                   ),
                   const SizedBox(height: 16),
@@ -151,6 +169,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: email,
                     hint: "Email",
                     icon: Icons.alternate_email_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  PetTextField(
+                    controller: city,
+                    hint: "City",
+                    icon: Icons.location_city_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  PetTextField(
+                    controller: state,
+                    hint: "State",
+                    icon: Icons.map_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  PetTextField(
+                    controller: country,
+                    hint: "Country",
+                    icon: Icons.public_rounded,
                   ),
                   const SizedBox(height: 16),
                   PetTextField(

@@ -31,16 +31,16 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final response = await Supabase.instance.client
-            .from('vets')
-            .select('*, profiles(*)')
-            .eq('id', user.id)
-            .single();
+    final response = await Supabase.instance.client
+      .from('vets')
+      .select('*, profiles(*)')
+      .eq('id', user.id)
+      .maybeSingle();
 
-        final vetData = response;
-        final profileData = vetData['profiles'];
+    final vetData = response;
+    final profileData = vetData != null ? vetData['profiles'] : null;
 
-        if (profileData != null) {
+        if (vetData != null && profileData != null) {
           final vet = Vet(
             id: vetData['id'],
             phone: vetData['phone'],
@@ -67,12 +67,10 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+        return Scaffold(
       appBar: AppBar(
         title: Text('My Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 1,
         actions: [
           IconButton(

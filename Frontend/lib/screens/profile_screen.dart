@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/screens/pet_profile_screen.dart';
+import 'package:pet_connect_app/screens/edit_profile_screen.dart';
 import 'auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
@@ -36,17 +37,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
-        final userProfile = await Supabase.instance.client
-            .from('profiles')
-            .select()
-            .eq('user_id', currentUser.id)
-            .single();
+    final userProfile = await Supabase.instance.client
+      .from('profiles')
+      .select()
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
 
         final fetchedUser = pet_connect_user.User(
           uid: currentUser.id,
           email: currentUser.email!,
-          displayName: userProfile['full_name'] ?? '',
-          photoUrl: userProfile['avatar_url'],
+          displayName: userProfile != null && userProfile['full_name'] != null ? userProfile['full_name'] : '',
+          photoUrl: userProfile != null ? userProfile['avatar_url'] : null,
         );
 
         final petsResponse = await Supabase.instance.client
@@ -203,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: CircleAvatar(
             radius: 40,
             backgroundImage: isNetworkUrl
-                ? NetworkImage(photoUrl!)
+                ? NetworkImage(photoUrl)
                 : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
             child: !isNetworkUrl
                 ? const Icon(Icons.camera_alt, size: 30, color: Colors.white70)
@@ -211,13 +212,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            Text(email),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
+              Text(email),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.edit),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditProfileScreen(
+                  initialData: {
+                    'name': name,
+                    'email': email,
+                  },
+                ),
+              ),
+            );
+            if (result == true) {
+              _fetchProfileData(); // Refresh profile data
+            }
+          },
         ),
       ],
     );

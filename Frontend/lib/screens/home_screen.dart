@@ -4,10 +4,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
+import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pet_connect_app/screens/services_screen.dart'; // Import ServicesScreen
+import 'package:pet_connect_app/screens/services_screen.dart';
+import 'package:pet_connect_app/screens/grooming_details_screen.dart';
+import 'package:pet_connect_app/screens/training_details_screen.dart';
 // Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {
@@ -38,11 +41,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         // Load user profile
-        final profile = await Supabase.instance.client
-            .from('profiles')
-            .select('name')
-            .eq('user_id', user.id)
-            .single();
+    final profile = await Supabase.instance.client
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
         
         // Check if user has any pets
         final pets = await Supabase.instance.client
@@ -51,7 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
             .eq('owner_id', user.id);
         
         setState(() {
-          _userName = profile['name'] ?? 'User';
+          // profile can be null when maybeSingle() returns no rows
+          _userName = (profile != null) 
+              ? '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim()
+              : 'User';
           _hasPet = (pets as List).isNotEmpty;
           _error = null;
         });
@@ -91,21 +97,75 @@ class _HomeScreenState extends State<HomeScreen> {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: AlertDialog(
-            title: const Text('Add a Pet'),
-            content: const Text('Please add a pet to access this service.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.pushNamed(context, AddPetScreen.routeName);
-                },
-                child: const Text('Add Pet'),
-              ),
-            ],
+             shape: RoundedRectangleBorder(
+               borderRadius: BorderRadius.circular(16),
+             ),
+             title: Row(
+               children: [
+                 Icon(Icons.pets, color: AppColors.primary),
+                 const SizedBox(width: 8),
+                 const Text('Add Your Pet'),
+               ],
+             ),
+             content: Column(
+               mainAxisSize: MainAxisSize.min,
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text(
+                   'You need to add a pet first to access this service.',
+                   style: GoogleFonts.poppins(),
+                 ),
+                 const SizedBox(height: 8),
+                 Text(
+                   'Would you like to add your pet now?',
+                   style: GoogleFonts.poppins(
+                     color: Colors.grey[600],
+                     fontSize: 14,
+                   ),
+                 ),
+               ],
+             ),
+             actions: [
+               TextButton(
+                 onPressed: () => Navigator.of(context).pop(),
+                 child: Text(
+                   'Later',
+                   style: GoogleFonts.poppins(color: Colors.grey),
+                 ),
+               ),
+               ElevatedButton(
+                 onPressed: () async {
+                   Navigator.of(context).pop();
+                   await _openAddPetAndSave();
+                 },
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: AppColors.primary,
+                   foregroundColor: Colors.white,
+                   shape: RoundedRectangleBorder(
+                     borderRadius: BorderRadius.circular(8),
+                   ),
+                 ),
+                 child: Text(
+                   'Add Pet',
+                   style: GoogleFonts.poppins(),
+                 ),
+               ),
+             ],
           ),
         );
       },
     );
+  }
+
+  Future<void> _openAddPetAndSave() async {
+    final result = await Navigator.of(context).pushNamed(AddPetScreen.routeName);
+    if (result == true) {
+      if (!mounted) return;
+      setState(() {
+        _hasPet = true;
+      });
+      await _loadUserData(); // Reload user data to refresh pet list
+    }
   }
 
   @override
@@ -132,35 +192,60 @@ class _HomeScreenState extends State<HomeScreen> {
               '${_getGreeting()}, ${_userName ?? 'User'}!',
               style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 20),
             if (!_hasPet)
-              const SizedBox(height: 20),
-            if (!_hasPet)
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, AddPetScreen.routeName);
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12.0),
-                    border: Border.all(color: AppColors.primary, width: 1.5)
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_circle_outline, color: AppColors.primary, size: 28),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Add Your Pet',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: InkWell(
+                  onTap: () async {
+                    await _openAddPetAndSave();
+                  },
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.1),
+                          AppColors.primary.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.pets, color: AppColors.primary, size: 28),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Add Your First Pet',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ),
+              ),
+            if (!_hasPet)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Add a pet to unlock all features',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             const SizedBox(height: 20),
@@ -189,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.cut,
                     onTap: () {
                       if (_hasPet) {
-                        Navigator.pushNamed(context, ServicesScreen.routeName);
+                        Navigator.pushNamed(context, GroomingDetailsScreen.routeName);
                       } else {
                         _showAddPetDialog();
                       }
@@ -200,16 +285,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.school,
                     onTap: () {
                       if (_hasPet) {
-                        Navigator.pushNamed(context, ServicesScreen.routeName);
-                      }
-                    },
-                  ),
-                  PetCareCard(
-                    title: 'Vet',
-                    icon: Icons.medical_services,
-                    onTap: () {
-                      if (_hasPet) {
-                        Navigator.pushNamed(context, ServicesScreen.routeName);
+                        Navigator.pushNamed(context, TrainingDetailsScreen.routeName);
+                      } else {
+                        _showAddPetDialog();
                       }
                     },
                   ),

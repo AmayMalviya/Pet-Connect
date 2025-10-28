@@ -18,7 +18,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   late TextEditingController _nameController;
   late TextEditingController _breedController;
   late TextEditingController _ageController;
-  String _status = 'Available';
 
   @override
   void initState() {
@@ -26,9 +25,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _nameController = TextEditingController(text: widget.pet?.name);
     _breedController = TextEditingController(text: widget.pet?.breed);
     _ageController = TextEditingController(text: widget.pet?.age.toString());
-    if (widget.pet != null) {
-      _status = widget.pet!.status!;
-    }
   }
 
   @override
@@ -54,7 +50,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
           'name': _nameController.text,
           'breed': _breedController.text,
           'age': int.parse(_ageController.text),
-          'status': _status,
         };
 
         if (widget.pet == null) {
@@ -109,22 +104,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                 decoration: const InputDecoration(labelText: 'Age'),
                 keyboardType: TextInputType.number,
                 validator: (value) => value!.isEmpty ? 'Please enter an age' : null,
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                value: _status,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: ['Available', 'Pending Adoption', 'Adopted']
-                    .map((label) => DropdownMenuItem(
-                          child: Text(label),
-                          value: label,
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _status = value!;
-                  });
-                },
               ),
               const SizedBox(height: 40),
               ElevatedButton(

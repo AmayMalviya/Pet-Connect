@@ -89,7 +89,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       appBar: AppBar(
         title: Text('Appointments', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
         elevation: 1,
       ),

@@ -35,12 +35,12 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
             .from('shelters')
             .select('*, profiles(*)')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         final shelterData = response;
-        final profileData = shelterData['profiles'];
+        final profileData = shelterData != null ? shelterData['profiles'] : null;
 
-        if (profileData != null) {
+        if (shelterData != null && profileData != null) {
           final shelter = Shelter(
             id: shelterData['id'],
             phone: shelterData['phone'],
@@ -71,8 +71,6 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
       appBar: AppBar(
         title: Text('Shelter Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 1,
         actions: [
           IconButton(

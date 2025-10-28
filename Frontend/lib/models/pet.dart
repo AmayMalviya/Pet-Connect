@@ -1,10 +1,9 @@
 class Pet {
-  final int? id;
+  final String? id; // Changed to String since it's a UUID
   final String name;
   final String breed;
   final int age;
   String? ownerId;
-  String? status;
 
   Pet({
     this.id,
@@ -12,28 +11,24 @@ class Pet {
     required this.breed,
     required this.age,
     this.ownerId,
-    this.status,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
     return Pet(
-      id: json['id'],
+      id: json['id']?.toString(), // Convert UUID to String
       name: json['name'],
       breed: json['breed'],
       age: json['age'],
-      ownerId: json['owner_id'],
-      status: json['status'],
+      ownerId: json['owner_id']?.toString(), // Convert UUID to String
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'name': name,
       'breed': breed,
       'age': age,
       'owner_id': ownerId,
-      'status': status,
     };
   }
 }

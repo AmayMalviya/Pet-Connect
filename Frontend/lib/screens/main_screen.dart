@@ -44,7 +44,7 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_appBarTitles[_selectedIndex], style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textDark,
         elevation: 1,
         actions: [

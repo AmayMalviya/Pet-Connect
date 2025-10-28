@@ -12,7 +12,7 @@ class ScanPetQrScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Scan Pet QR', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
         elevation: 1,
       ),

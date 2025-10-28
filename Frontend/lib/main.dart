@@ -26,6 +26,7 @@ import 'package:pet_connect_app/screens/vet_profile_screen.dart';
 import 'package:pet_connect_app/screens/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
+import 'package:pet_connect_app/screens/edit_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,24 +42,24 @@ class PetConnectApp extends StatelessWidget {
 
   Future<String?> _getUserRole(String userId) async {
     final supabase = Supabase.instance.client;
-    final profileResponse = await supabase
-        .from('profiles')
-        .select('role_id')
-        .eq('user_id', userId)
-        .single();
+  final profileResponse = await supabase
+    .from('profiles')
+    .select('role_id')
+    .eq('user_id', userId)
+    .maybeSingle();
 
-    if (profileResponse.isEmpty || profileResponse['role_id'] == null) {
-      return null;
-    }
+  if (profileResponse == null || profileResponse['role_id'] == null) {
+    return null;
+  }
 
-    final roleId = profileResponse['role_id'];
-    final roleResponse = await supabase
-        .from('roles')
-        .select('name')
-        .eq('id', roleId)
-        .single();
+  final roleId = profileResponse['role_id'];
+  final roleResponse = await supabase
+    .from('roles')
+    .select('name')
+    .eq('id', roleId)
+    .maybeSingle();
 
-    return roleResponse['name'] as String?;
+  return roleResponse == null ? null : roleResponse['name'] as String?;
   }
 
   @override
@@ -127,6 +128,7 @@ class PetConnectApp extends StatelessWidget {
         ManagePetsScreen.routeName: (context) => const ManagePetsScreen(),
         AdoptionRequestsScreen.routeName: (context) => const AdoptionRequestsScreen(),
         ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
+        EditProfileScreen.routeName: (context) => const EditProfileScreen(),
       },
     );
   }

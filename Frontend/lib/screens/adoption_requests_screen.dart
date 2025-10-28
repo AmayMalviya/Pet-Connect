@@ -88,7 +88,7 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
       appBar: AppBar(
         title: Text('Adoption Requests', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
         elevation: 1,
       ),

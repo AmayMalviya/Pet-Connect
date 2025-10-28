@@ -3,6 +3,7 @@ import 'package:pet_connect_app/models/cat_breed.dart';
 import 'package:pet_connect_app/models/dog_breed.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/services/breed_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddPetScreen extends StatefulWidget {
   const AddPetScreen({super.key});
@@ -99,15 +100,57 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
     return 0;
   }
 
-  void _saveForm() {
+  Future<void> _saveForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      final newPet = Pet(
-        name: _name,
-        breed: _selectedBreed!,
-        age: _convertAgeRangeToYears(_selectedAgeRange!),
-      );
-      Navigator.of(context).pop(newPet);
+      
+      try {
+        final currentUser = Supabase.instance.client.auth.currentUser;
+        if (currentUser == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please log in to add a pet')),
+          );
+          return;
+        }
+
+        // First check if user has a profile
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+
+        if (profile == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please complete your profile before adding a pet'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        final petData = {
+          'name': _name,
+          'breed': _selectedBreed!,
+          'age': _convertAgeRangeToYears(_selectedAgeRange!),
+          'owner_id': currentUser.id,
+        };
+
+        await Supabase.instance.client.from('pets').insert(petData);
+        
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pet added successfully!')),
+        );
+        Navigator.of(context).pop(true);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add pet: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -118,94 +161,202 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
         title: const Text('Add a New Pet'),
         leading: const BackButton(),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              Colors.blue.shade50,
-            ],
-          ),
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-              children: [
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Pet Name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter a name.';
-                    return null;
-                  },
-                  onSaved: (value) => _name = value!,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Select Animal',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  value: _selectedAnimal,
-                  hint: const Text('Select Animal'),
-                  items: ['Dog', 'Cat'].map((animal) => DropdownMenuItem<String>(value: animal, child: Text(animal))).toList(),
-                  onChanged: (newValue) => setState(() { _selectedAnimal = newValue; _selectedBreed = null; }),
-                  validator: (value) => value == null ? 'Please select an animal' : null,
-                ),
-                if (_selectedAnimal != null) const SizedBox(height: 16),
-                if (_selectedAnimal != null)
-                  _isLoadingBreeds
-                      ? const Center(child: CircularProgressIndicator())
-                      : DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            labelText: 'Select Breed',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          value: _selectedBreed,
-                          hint: const Text('Select Breed'),
-                          items: _selectedAnimal == 'Dog'
-                              ? _dogBreeds.map((b) => DropdownMenuItem<String>(value: b.breedName, child: Text(b.breedName))).toList()
-                              : _catBreeds.map((b) => DropdownMenuItem<String>(value: b.breedName, child: Text(b.breedName))).toList(),
-                          onChanged: (v) => setState(() => _selectedBreed = v),
-                          validator: (v) => v == null ? 'Please select a breed' : null,
-                        ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Age Range',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  value: _selectedAgeRange,
-                  hint: const Text('Select Age Range'),
-                  items: _ageRanges.map((age) => DropdownMenuItem<String>(value: age, child: Text(age))).toList(),
-                  onChanged: (v) => setState(() => _selectedAgeRange = v),
-                  validator: (v) => v == null ? 'Please select an age range.' : null,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _saveForm,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                  ),
-                  child: const Text('Save Pet'),
-                ),
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white,
+                Colors.blue.shade50,
               ],
+            ),
+          ),
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Pet Details',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Pet Name',
+                          hintText: 'Enter your pet\'s name',
+                          prefixIcon: const Icon(Icons.pets),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Please enter a name.';
+                          return null;
+                        },
+                        onSaved: (value) => _name = value!,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: 'Type of Pet',
+                          hintText: 'Select your pet type',
+                          prefixIcon: const Icon(Icons.category),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
+                        value: _selectedAnimal,
+                        hint: const Text('Select Animal'),
+                        isExpanded: true,
+                        items: ['Dog', 'Cat'].map((animal) => DropdownMenuItem<String>(
+                          value: animal,
+                          child: Text(animal),
+                        )).toList(),
+                        onChanged: (newValue) => setState(() {
+                          _selectedAnimal = newValue;
+                          _selectedBreed = null;
+                        }),
+                        validator: (value) => value == null ? 'Please select a pet type' : null,
+                      ),
+                      if (_selectedAnimal != null) const SizedBox(height: 16),
+                      if (_selectedAnimal != null)
+                        _isLoadingBreeds
+                            ? const Center(child: CircularProgressIndicator())
+                            : DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: 'Breed',
+                                  hintText: 'Select your pet\'s breed',
+                                  prefixIcon: const Icon(Icons.pets_outlined),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 14,
+                                  ),
+                                ),
+                                value: _selectedBreed,
+                                hint: const Text('Select Breed'),
+                                isExpanded: true,
+                                items: _selectedAnimal == 'Dog'
+                                    ? _dogBreeds.map((b) => DropdownMenuItem<String>(
+                                        value: b.breedName,
+                                        child: Text(
+                                          b.breedName,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      )).toList()
+                                    : _catBreeds.map((b) => DropdownMenuItem<String>(
+                                        value: b.breedName,
+                                        child: Text(
+                                          b.breedName,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      )).toList(),
+                                onChanged: (v) => setState(() => _selectedBreed = v),
+                                validator: (v) => v == null ? 'Please select a breed' : null,
+                              ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: 'Age Range',
+                          hintText: 'Select your pet\'s age range',
+                          prefixIcon: const Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          isDense: true, // Makes the dropdown more compact
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
+                        value: _selectedAgeRange,
+                        hint: const Text('Select Age Range'),
+                        isExpanded: true, // Makes dropdown take full width
+                        items: _ageRanges.map((age) => DropdownMenuItem<String>(
+                          value: age,
+                          child: Text(
+                            age,
+                            overflow: TextOverflow.ellipsis, // Handles text overflow
+                          ),
+                        )).toList(),
+                        onChanged: (v) => setState(() => _selectedAgeRange = v),
+                        validator: (v) => v == null ? 'Please select an age range' : null,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _saveForm,
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Theme.of(context).primaryColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 15,
+                            ),
+                            elevation: 2,
+                          ),
+                          icon: const Icon(Icons.pets),
+                          label: const Text(
+                            'Add Pet',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),

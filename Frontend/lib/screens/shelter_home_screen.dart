@@ -15,7 +15,7 @@ class ShelterHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Shelter Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
         elevation: 1,
       ),
