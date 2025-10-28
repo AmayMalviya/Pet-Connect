@@ -109,11 +109,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Row(
+                        Column(
                           children: [
-                            Expanded(child: PetTextField(controller: firstName, hint: 'First name', icon: Icons.person_outline_rounded)),
-                            const SizedBox(width: 12),
-                            Expanded(child: PetTextField(controller: lastName, hint: 'Last name', icon: Icons.person_outline_rounded)),
+                            PetTextField(controller: firstName, hint: 'First name', icon: Icons.person_outline_rounded),
+                            const SizedBox(height: 12),
+                            PetTextField(controller: lastName, hint: 'Last name', icon: Icons.person_outline_rounded),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -198,10 +198,17 @@ class _WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final p = Path();
-    p.lineTo(0, size.height * 0.65);
-    p.quadraticBezierTo(size.width * 0.25, size.height, size.width * 0.55, size.height * 0.74);
-    p.quadraticBezierTo(size.width * 0.82, size.height * 0.5, size.width, size.height * 0.7);
-    p.lineTo(size.width, 0);
+    // Start by moving to a point on the left edge, which is the start of our wave
+    p.moveTo(0, size.height * 0.7);
+    // First curve of the wave
+    p.quadraticBezierTo(size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.7);
+    // Second curve of the wave
+    p.quadraticBezierTo(size.width * 0.75, size.height * 0.9, size.width, size.height * 0.7);
+    // Line to the bottom-right corner
+    p.lineTo(size.width, size.height);
+    // Line to the bottom-left corner
+    p.lineTo(0, size.height);
+    // Close the path
     p.close();
     return p;
   }
