@@ -53,33 +53,33 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Authentication error. Please try again.')),
-        );
-        return;
-      }
+      if (user != null) {
+        // Get the role name from the selected role ID
+        final selectedRole = _roles.firstWhere((role) => role['id'] == _selectedRoleId);
+        
+        await Supabase.instance.client.from('profiles').update({
+          'role': selectedRole['name'],
+        }).eq('user_id', user.id);
 
-      final supabase = Supabase.instance.client;
-      await supabase.from('profiles').upsert({
-        'user_id': user.id,
-        'role_id': _selectedRoleId,
-      });
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      final selectedRoleName = _roles.firstWhere((role) => role['id'] == _selectedRoleId)['name'];
-
-      if (selectedRoleName == 'Pet Owner') {
-        Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
+        // Navigate based on the selected role
+        if (selectedRole['name'] == 'Pet Owner') {
+          Navigator.pushReplacementNamed(context, MainScreen.routeName);
+        } else {
+          Navigator.pushReplacementNamed(
+            context,
+            KycScreen.routeName,
+            arguments: selectedRole['name'],
+          );
+        }
       } else {
-        Navigator.of(context)
-            .pushReplacementNamed(KycScreen.routeName, arguments: selectedRoleName);
+        throw Exception('User is not logged in');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select role: ${e.toString()}')),
+          SnackBar(content: Text('Failed to save role: ${e.toString()}')),
         );
       }
     } finally {

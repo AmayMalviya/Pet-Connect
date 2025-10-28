@@ -20,21 +20,46 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final bool _hasPet = false; // In a real app, this would come from a state management solution
+  bool _hasPet = false;
+  bool _isLoading = true;
   String? _userName;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUserData();
   }
 
-  void _loadUserName() {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      setState(() {
-        _userName = user.userMetadata?['full_name'] ?? 'User';
-      });
+  Future<void> _loadUserData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        // Load user profile
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('name')
+            .eq('user_id', user.id)
+            .single();
+        
+        // Check if user has any pets
+        final pets = await Supabase.instance.client
+            .from('pets')
+            .select('id')
+            .eq('owner_id', user.id);
+        
+        setState(() {
+          _userName = profile['name'] ?? 'User';
+          _hasPet = (pets as List).isNotEmpty;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -89,6 +114,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeScreen() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (_error != null) {
+      return Center(child: Text('Error: $_error'));
+    }
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),

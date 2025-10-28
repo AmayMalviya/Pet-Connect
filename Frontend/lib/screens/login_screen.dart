@@ -4,9 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
-import 'package:pet_connect_app/screens/register_screen.dart'; // Added import
+import 'package:pet_connect_app/screens/register_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:pet_connect_app/screens/main_screen.dart';
+import 'package:pet_connect_app/screens/kyc_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -37,7 +38,29 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email.text,
         password: password.text,
       );
-      // No navigation needed here, the StreamBuilder in main.dart will handle it.
+
+      if (response.user != null) {
+        final userData = await Supabase.instance.client
+            .from('profiles')
+            .select('role')
+            .eq('user_id', response.user!.id)
+            .maybeSingle();
+
+        if (!mounted) return;
+
+        if (userData?['role'] != null) {
+          // User has already selected a role
+          final role = userData!['role'] as String;
+          if (role == 'Pet Owner') {
+            Navigator.pushReplacementNamed(context, MainScreen.routeName);
+          } else if (role == 'Vet' || role == 'Shelter Owner') {
+            Navigator.pushReplacementNamed(context, KycScreen.routeName, arguments: role);
+          }
+        } else {
+          // User hasn't selected a role yet
+          Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
+        }
+      }
     } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
@@ -61,15 +84,41 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+    
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(email.text);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent.')),
+      
+      if (!mounted) return;
+      
+      // Show a dialog with instructions
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Password Reset Email Sent'),
+          content: Text('A password reset link has been sent to ${email.text}. Please check your email to reset your password.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
     } on AuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

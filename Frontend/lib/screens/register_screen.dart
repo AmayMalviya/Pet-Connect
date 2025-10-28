@@ -6,7 +6,6 @@ import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:pet_connect_app/services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -40,19 +39,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: password.text,
       );
 
-      if (response.user != null) {
-        await Supabase.instance.client.from('profiles').insert({
-          'user_id': response.user!.id,
-          'full_name': name.text,
-        });
-      }
+        if (response.user != null) {
+          try {
+            // Insert the profile using correct column names
+            await Supabase.instance.client
+                .from('profiles')
+                .insert({
+                  'user_id': response.user!.id,
+                  'name': name.text,
+                  'email': email.text,
+                });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thank you for signing up! Please check your email for a confirmation link.')),
-        );
-        Navigator.pushReplacementNamed(context, LoginScreen.routeName);
-      }
+            if (!mounted) return;
+
+            // After successful profile creation, automatically sign in
+            final signInResponse = await Supabase.instance.client.auth.signInWithPassword(
+              email: email.text,
+              password: password.text,
+            );
+
+            if (signInResponse.user != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Registration successful! Welcome to Pet Connect.')),
+              );
+              Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
+            }
+          } catch (e) {
+            if (!mounted) return;
+
+            // On profile creation failure, sign out and show error
+            await Supabase.instance.client.auth.signOut();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error creating profile: ${e.toString()}')),
+            );
+
+            Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+          }
+        }
     } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
