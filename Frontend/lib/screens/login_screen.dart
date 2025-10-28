@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/screens/register_screen.dart'; // Added import
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pet_connect_app/services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,35 +33,25 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final response = await Supabase.instance.client.auth.signInWithPassword(
         email: email.text,
         password: password.text,
       );
-      await ApiService.synchronizeUser(); // Sync user with backend
-      Navigator.pushReplacementNamed(
-        context,
-        RoleSelectionScreen.routeName,
-      );
-    } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Wrong password provided for that user.';
-      } else {
-        message = e.message ?? 'An unknown error occurred.';
-      }
+      // No navigation needed here, the StreamBuilder in main.dart will handle it.
+    } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(content: Text(e.message)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _resetPassword() async {
@@ -73,50 +62,19 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.text);
+      await Supabase.instance.client.auth.resetPasswordForEmail(email.text);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password reset email sent.')),
       );
-    } on FirebaseAuthException catch (e) {
+    } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'An unknown error occurred.')),
+        SnackBar(content: Text(e.message)),
       );
     }
   }
 
   Future<void> _googleSignIn() async {
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        scopes: ['email'], // optional, you can add more scopes if needed
-      );
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-      if (googleUser == null) {
-        // User canceled the sign-in
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      // ✅ accessToken is no longer needed or available
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
-      await ApiService.synchronizeUser(); // Sync user with backend
-
-      Navigator.pushReplacementNamed(
-        context,
-        RoleSelectionScreen.routeName,
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    }
+    // TODO: Implement Google Sign in with Supabase
   }
 
 

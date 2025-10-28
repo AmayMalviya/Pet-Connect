@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/models/vet.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EditVetProfileScreen extends StatefulWidget {
   static const routeName = '/edit-vet-profile';
@@ -44,16 +44,16 @@ class _EditVetProfileScreenState extends State<EditVetProfileScreen> {
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final vet = Vet(
-          id: widget.vet.id,
-          phone: _phoneController.text,
-          address: _addressController.text,
-          specialization: _specializationController.text,
-          yearsOfExperience: int.parse(_experienceController.text),
-          user: widget.vet.user, // This will not be updated
-        );
+        await Supabase.instance.client.from('vets').update({
+          'phone': _phoneController.text,
+          'address': _addressController.text,
+          'specialization': _specializationController.text,
+          'years_of_experience': int.parse(_experienceController.text),
+        }).eq('id', widget.vet.id);
 
-        await ApiService.saveVet(vet);
+        await Supabase.instance.client.from('profiles').update({
+          'full_name': _nameController.text,
+        }).eq('user_id', widget.vet.id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),

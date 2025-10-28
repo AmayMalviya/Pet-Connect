@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/services_screen.dart'; // Import ServicesScreen
 // Import SelfCareOptionsScreen
 
@@ -30,10 +30,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadUserName() {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
       setState(() {
-        _userName = user.displayName ?? 'User';
+        _userName = user.userMetadata?['full_name'] ?? 'User';
       });
     }
   }

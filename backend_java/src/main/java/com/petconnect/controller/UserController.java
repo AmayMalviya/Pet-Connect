@@ -1,17 +1,18 @@
 package com.petconnect.controller;
 
-import com.google.firebase.auth.FirebaseToken;
 import com.petconnect.model.User;
 import com.petconnect.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.util.Optional;
 
 @RestController
@@ -25,14 +26,16 @@ public class UserController {
     }
 
     @PostMapping("/sync")
-    public ResponseEntity<User> synchronizeUser(@AuthenticationPrincipal FirebaseToken decodedToken) {
-        User synchronizedUser = userService.synchronizeUser(decodedToken);
+    public ResponseEntity<User> synchronizeUser(@AuthenticationPrincipal Principal principal) {
+        // TODO: Implement user synchronization with Supabase JWT
+        // For now, returning a placeholder or handling it in the service layer
+        User synchronizedUser = userService.synchronizeUser(principal);
         return ResponseEntity.ok(synchronizedUser);
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> getUserProfile(@AuthenticationPrincipal FirebaseToken decodedToken) {
-        Optional<User> userOptional = userService.getUser(decodedToken.getUid());
+    public ResponseEntity<User> getUserProfile(@AuthenticationPrincipal Principal principal) {
+        Optional<User> userOptional = userService.getUser(principal.getName());
         return userOptional
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -47,8 +50,8 @@ public class UserController {
     }
 
     @PutMapping("/me/photo")
-    public ResponseEntity<User> updateUserPhoto(@AuthenticationPrincipal FirebaseToken decodedToken, @RequestBody PhotoUpdateRequest request) {
-        Optional<User> updatedUser = userService.updateUserPhoto(decodedToken.getUid(), request.getPhotoUrl());
+    public ResponseEntity<User> updateUserPhoto(@AuthenticationPrincipal Principal principal, @RequestBody PhotoUpdateRequest request) {
+        Optional<User> updatedUser = userService.updateUserPhoto(principal.getName(), request.getPhotoUrl());
         return updatedUser
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

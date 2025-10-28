@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/appointment.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:pet_connect_app/models/pet.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   static const routeName = '/appointments';
@@ -28,11 +29,33 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       _isLoading = true;
     });
     try {
-      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final appointments = await ApiService.getAppointmentsByVetId(user.uid);
+        final response = await Supabase.instance.client
+            .from('appointments')
+            .select('*, pets(*), profiles(*)')
+            .eq('vet_id', user.id);
+
+        final List<Appointment> loadedAppointments = [];
+        for (var ap in response as List) {
+          final petData = ap['pets'];
+          final ownerData = ap['profiles'];
+
+          if (petData != null && ownerData != null) {
+            loadedAppointments.add(Appointment(
+              id: ap['id'],
+              petId: ap['pet_id'],
+              ownerId: ap['owner_id'],
+              vetId: ap['vet_id'],
+              time: DateTime.parse(ap['time']),
+              status: ap['status'],
+              pet: Pet.fromJson(petData),
+              owner: pet_connect_user.User.fromJson(ownerData),
+            ));
+          }
+        }
         setState(() {
-          _appointments = appointments;
+          _appointments = loadedAppointments;
         });
       }
     } catch (e) {
@@ -48,7 +71,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
   Future<void> _updateAppointmentStatus(int appointmentId, String status) async {
     try {
-      await ApiService.updateAppointmentStatus(appointmentId, status);
+      await Supabase.instance.client
+          .from('appointments')
+          .update({'status': status})
+          .eq('id', appointmentId);
       _fetchAppointments(); // Refresh the list
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

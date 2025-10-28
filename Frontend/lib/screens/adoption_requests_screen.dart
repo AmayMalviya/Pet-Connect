@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/adoption_request.dart';
-import 'package:pet_connect_app/services/api_service.dart';
 
 class AdoptionRequestsScreen extends StatefulWidget {
   static const routeName = '/adoption-requests';
@@ -28,11 +29,32 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
       _isLoading = true;
     });
     try {
-      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final requests = await ApiService.getAdoptionRequestsByShelterOwnerId(user.uid);
+        final response = await Supabase.instance.client
+            .from('adoption_requests')
+            .select('*, pets(*), profiles(*)')
+            .eq('shelter_owner_id', user.id);
+
+        final List<AdoptionRequest> loadedRequests = [];
+        for (var req in response as List) {
+          final petData = req['pets'];
+          final requesterData = req['profiles'];
+
+          if (petData != null && requesterData != null) {
+            loadedRequests.add(AdoptionRequest(
+              id: req['id'],
+              petId: req['pet_id'],
+              requesterId: req['requester_id'],
+              shelterOwnerId: req['shelter_owner_id'],
+              status: req['status'],
+              pet: Pet.fromJson(petData),
+              requester: pet_connect_user.User.fromJson(requesterData),
+            ));
+          }
+        }
         setState(() {
-          _requests = requests;
+          _requests = loadedRequests;
         });
       }
     } catch (e) {
@@ -48,7 +70,10 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
 
   Future<void> _updateRequestStatus(int requestId, String status) async {
     try {
-      await ApiService.updateAdoptionRequestStatus(requestId, status);
+      await Supabase.instance.client
+          .from('adoption_requests')
+          .update({'status': status})
+          .eq('id', requestId);
       _fetchAdoptionRequests(); // Refresh the list
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

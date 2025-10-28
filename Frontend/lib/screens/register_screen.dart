@@ -4,10 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pet_connect_app/services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -37,77 +35,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final response = await Supabase.instance.client.auth.signUp(
         email: email.text,
         password: password.text,
       );
 
-      if (userCredential.user != null) {
-        await userCredential.user!.updateDisplayName(name.text);
-
-        // Sync user with backend
-        await ApiService.synchronizeUser();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thank you for signing up!')),
-        );
-        Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to register user.')),
-        );
+      if (response.user != null) {
+        await Supabase.instance.client.from('profiles').insert({
+          'user_id': response.user!.id,
+          'full_name': name.text,
+        });
       }
-    } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'weak-password') {
-        message = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'The account already exists for that email.';
-      } else {
-        message = e.message ?? 'An unknown error occurred.';
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thank you for signing up! Please check your email for a confirmation link.')),
+        );
+        Navigator.pushReplacementNamed(context, LoginScreen.routeName);
       }
+    } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(content: Text(e.message)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _googleSignIn() async {
-    try {
-      final GoogleSignIn _googleSignIn = GoogleSignIn();
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // The user canceled the sign-in
-        return;
-      }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.idToken,
-        idToken: googleAuth.idToken,
-      );
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      
-      if (userCredential.user != null) {
-        // Sync user with backend
-        await ApiService.synchronizeUser();
-
-        Navigator.pushReplacementNamed(
-          context,
-          RoleSelectionScreen.routeName,
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    }
+    // TODO: Implement Google Sign in with Supabase
   }
 
   @override

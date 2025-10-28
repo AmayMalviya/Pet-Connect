@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:pet_connect_app/services/storage_service.dart';
 
 class VetProfileScreen extends StatefulWidget {
   static const routeName = '/vet-profile';
@@ -37,9 +37,9 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
       _error = null;
     });
     try {
-      final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
-        final fetchedUser = await ApiService.getUserDetails(currentUser.uid);
+        final fetchedUser = await ApiService.getUserDetails(currentUser.id);
         if (!mounted) return;
         setState(() {
           _user = fetchedUser;
@@ -73,13 +73,13 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
       setState(() {
         _profileImage = File(image.path);
       });
-      await _uploadImage(_profileImage!);
+      await _uploadImage(image);
     }
   }
 
-  Future<void> _uploadImage(File image) async {
+  Future<void> _uploadImage(XFile image) async {
     try {
-      final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please log in to upload a profile picture.')),
@@ -87,12 +87,10 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
         return;
       }
 
-      final storageRef = FirebaseStorage.instance.ref().child('profile_pictures').child('${currentUser.uid}.jpg');
-      await storageRef.putFile(image);
-      final imageUrl = await storageRef.getDownloadURL();
+      final storageService = StorageService();
+      final imageUrl = await storageService.uploadProfilePicture(currentUser.id, image);
 
-      await currentUser.updatePhotoURL(imageUrl);
-      await currentUser.reload();
+      await ApiService.updateUserPhoto(imageUrl!);
       _fetchProfileData(); // Refresh profile data to show new image
 
       ScaffoldMessenger.of(context).showSnackBar(

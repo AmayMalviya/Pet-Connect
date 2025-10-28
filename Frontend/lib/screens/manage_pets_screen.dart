@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/models/pet.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
@@ -29,13 +29,13 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
       _isLoading = true;
     });
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         final supabase = Supabase.instance.client;
         final response = await supabase
             .from('pets')
             .select()
-            .eq('owner_id', user.uid);
+            .eq('owner_id', user.id);
 
         setState(() {
           _pets = response as List<Map<String, dynamic>>;
@@ -146,7 +146,7 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
                           icon: const Icon(Icons.edit, color: Colors.blue),
                           onPressed: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => AddEditPetScreen(pet: pet)),
+                              MaterialPageRoute(builder: (context) => AddEditPetScreen(pet: Pet.fromJson(pet))),
                             ).then((_) => _fetchPets());
                           },
                         ),

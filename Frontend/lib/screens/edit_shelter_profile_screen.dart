@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/models/shelter.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EditShelterProfileScreen extends StatefulWidget {
   static const routeName = '/edit-shelter-profile';
@@ -44,16 +44,16 @@ class _EditShelterProfileScreenState extends State<EditShelterProfileScreen> {
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final shelter = Shelter(
-          id: widget.shelter.id,
-          phone: _phoneController.text,
-          address: _addressController.text,
-          capacity: _capacityController.text,
-          website: _websiteController.text,
-          user: widget.shelter.user, // This will not be updated
-        );
+        await Supabase.instance.client.from('shelters').update({
+          'phone': _phoneController.text,
+          'address': _addressController.text,
+          'capacity': _capacityController.text,
+          'website': _websiteController.text,
+        }).eq('id', widget.shelter.id);
 
-        await ApiService.saveShelter(shelter);
+        await Supabase.instance.client.from('profiles').update({
+          'full_name': _nameController.text,
+        }).eq('user_id', widget.shelter.id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),

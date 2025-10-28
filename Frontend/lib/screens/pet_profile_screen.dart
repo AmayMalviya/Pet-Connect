@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PetProfileScreen extends StatelessWidget {
   const PetProfileScreen({super.key, required this.pet});
@@ -46,7 +46,10 @@ class PetProfileScreen extends StatelessWidget {
                         child: const Text('Delete'),
                         onPressed: () async {
                           try {
-                            await ApiService.deletePet(pet.id!);
+                            await Supabase.instance.client
+                                .from('pets')
+                                .delete()
+                                .eq('id', pet.id!);
                             Navigator.of(context).pop();
                             Navigator.of(context).pop();
                           } catch (e) {

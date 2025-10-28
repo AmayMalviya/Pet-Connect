@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
@@ -53,7 +52,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Authentication error. Please try again.')),
@@ -63,7 +62,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
       final supabase = Supabase.instance.client;
       await supabase.from('profiles').upsert({
-        'user_id': user.uid,
+        'user_id': user.id,
         'role_id': _selectedRoleId,
       });
 

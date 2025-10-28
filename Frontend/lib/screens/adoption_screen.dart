@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/pet_profile_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdoptionScreen extends StatefulWidget {
   static const routeName = '/adoption';
@@ -28,7 +28,13 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
       _isLoading = true;
     });
     try {
-      final pets = await ApiService.getPetsByStatus('Available');
+      final response = await Supabase.instance.client
+          .from('pets')
+          .select()
+          .eq('status', 'Available');
+
+      final List<Pet> pets =
+          (response as List).map((data) => Pet.fromJson(data)).toList();
       setState(() {
         _pets = pets;
         _filteredPets = pets;

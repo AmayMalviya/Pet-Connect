@@ -6,8 +6,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.petconnect.security.FirebaseTokenFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -23,8 +21,7 @@ public class SecurityConfig {
             .sessionManagement()
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
-            .csrf().disable()
-            .addFilterBefore(new FirebaseTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+            .csrf().disable();
 
         return http.build();
     }

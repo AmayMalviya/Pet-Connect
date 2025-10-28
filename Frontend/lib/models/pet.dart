@@ -3,7 +3,7 @@ class Pet {
   final String name;
   final String breed;
   final int age;
-  String ownerId;
+  String? ownerId;
   String? status;
 
   Pet({
@@ -11,7 +11,7 @@ class Pet {
     required this.name,
     required this.breed,
     required this.age,
-    required this.ownerId,
+    this.ownerId,
     this.status,
   });
 
@@ -21,7 +21,7 @@ class Pet {
       name: json['name'],
       breed: json['breed'],
       age: json['age'],
-      ownerId: json['ownerId'],
+      ownerId: json['owner_id'],
       status: json['status'],
     );
   }
@@ -32,7 +32,7 @@ class Pet {
       'name': name,
       'breed': breed,
       'age': age,
-      'ownerId': ownerId,
+      'owner_id': ownerId,
       'status': status,
     };
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddEditPetScreen extends StatefulWidget {
   static const routeName = '/add-edit-pet';
@@ -42,20 +42,29 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   Future<void> _savePet() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final pet = Pet(
-          name: _nameController.text,
-          breed: _breedController.text,
-          age: int.parse(_ageController.text),
-          ownerId: '', // The backend will set the ownerId
-          status: _status,
-        );
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You must be logged in to save a pet.')),
+          );
+          return;
+        }
+
+        final petData = {
+          'name': _nameController.text,
+          'breed': _breedController.text,
+          'age': int.parse(_ageController.text),
+          'status': _status,
+        };
 
         if (widget.pet == null) {
-          // Add new pet
-          await ApiService.addPet(pet);
+          petData['owner_id'] = user.id;
+          await Supabase.instance.client.from('pets').insert(petData);
         } else {
-          // Update existing pet
-          await ApiService.updatePet(widget.pet!.id!, pet);
+          await Supabase.instance.client
+              .from('pets')
+              .update(petData)
+              .eq('id', widget.pet!.id!);
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

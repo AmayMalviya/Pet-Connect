@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/screens/pet_profile_screen.dart';
 import 'auth_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/services/storage_service.dart';
 
@@ -34,10 +34,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _error = null;
     });
     try {
-      final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
-        final fetchedUser = await ApiService.getUserDetails();
-        final List<Pet> fetchedPets = await ApiService.getPetsByOwnerId(currentUser.uid);
+        final userProfile = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('user_id', currentUser.id)
+            .single();
+
+        final fetchedUser = pet_connect_user.User(
+          uid: currentUser.id,
+          email: currentUser.email!,
+          displayName: userProfile['full_name'] ?? '',
+          photoUrl: userProfile['avatar_url'],
+        );
+
+        final petsResponse = await Supabase.instance.client
+            .from('pets')
+            .select()
+            .eq('owner_id', currentUser.id);
+
+        final List<Pet> fetchedPets =
+            (petsResponse as List).map((data) => Pet.fromJson(data)).toList();
+
         setState(() {
           _user = fetchedUser;
           _pets = fetchedPets;
@@ -60,7 +79,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
 
     if (image != null) {
       await _uploadImage(image);
@@ -68,34 +88,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _uploadImage(XFile image) async {
-    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to upload a profile picture.')),
+        const SnackBar(
+            content: Text('Please log in to upload a profile picture.')),
       );
       return;
     }
 
     try {
       final storageService = StorageService();
-      final imageUrl = await storageService.uploadProfilePicture(user.uid, image);
+      final imageUrl =
+          await storageService.uploadProfilePicture(user.id, image);
 
       if (imageUrl != null) {
-        // Now update the user profile via your backend
-        await ApiService.updateUserPhoto(imageUrl);
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'avatar_url': imageUrl}).eq('user_id', user.id);
 
-        // Refresh profile data to show new image
         await _fetchProfileData();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully!')),
+          const SnackBar(
+              content: Text('Profile picture updated successfully!')),
         );
       } else {
         throw Exception('Upload returned a null URL.');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload profile picture: ${e.toString()}')),
+        SnackBar(
+            content: Text('Failed to upload profile picture: ${e.toString()}')),
       );
     }
   }
@@ -103,9 +127,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _addPet(Pet pet) async {
     if (!mounted) return;
     try {
-      final firebase_auth.User? currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
-        await ApiService.addPet(pet);
+        final newPet = pet.toJson();
+        newPet['owner_id'] = currentUser.id;
+        await Supabase.instance.client.from('pets').insert(newPet);
         await _fetchProfileData(); // Refresh pet list after adding
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Pet added successfully!')),
@@ -133,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             tooltip: "Logout",
             icon: const Icon(Icons.logout_rounded),
             onPressed: () async {
-              await firebase_auth.FirebaseAuth.instance.signOut();
+              await Supabase.instance.client.auth.signOut();
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const AuthScreen()),

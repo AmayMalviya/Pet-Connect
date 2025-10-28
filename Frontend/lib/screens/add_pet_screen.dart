@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/cat_breed.dart';
 import 'package:pet_connect_app/models/dog_breed.dart';
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:pet_connect_app/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddPetScreen extends StatefulWidget {
   const AddPetScreen({super.key});
@@ -40,8 +40,17 @@ class _AddPetScreenState extends State<AddPetScreen> {
 
   Future<void> _fetchBreeds() async {
     try {
-      final dogBreeds = await ApiService.getDogBreeds();
-      final catBreeds = await ApiService.getCatBreeds();
+      final supabase = Supabase.instance.client;
+      final dogBreedsResponse = await supabase.from('dog_breeds').select();
+      final catBreedsResponse = await supabase.from('cat_breeds').select();
+
+      final List<DogBreed> dogBreeds = (dogBreedsResponse as List)
+          .map((data) => DogBreed.fromJson(data))
+          .toList();
+      final List<CatBreed> catBreeds = (catBreedsResponse as List)
+          .map((data) => CatBreed.fromJson(data))
+          .toList();
+
       setState(() {
         _dogBreeds = dogBreeds;
         _catBreeds = catBreeds;
@@ -74,7 +83,6 @@ class _AddPetScreenState extends State<AddPetScreen> {
         name: _name,
         breed: _selectedBreed!,
         age: _convertAgeRangeToYears(_selectedAgeRange!),
-        owner_id: '', // This will be set in ProfileScreen
       );
       Navigator.of(context).pop(newPet);
     }

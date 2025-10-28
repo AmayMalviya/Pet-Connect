@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/shelter.dart';
-import 'package:pet_connect_app/services/api_service.dart';
 import 'package:pet_connect_app/screens/edit_shelter_profile_screen.dart';
 
 class ShelterProfileScreen extends StatefulWidget {
@@ -29,12 +29,30 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
       _isLoading = true;
     });
     try {
-      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final shelter = await ApiService.getShelter(user.uid);
-        setState(() {
-          _shelter = shelter;
-        });
+        final response = await Supabase.instance.client
+            .from('shelters')
+            .select('*, profiles(*)')
+            .eq('id', user.id)
+            .single();
+
+        final shelterData = response;
+        final profileData = shelterData['profiles'];
+
+        if (profileData != null) {
+          final shelter = Shelter(
+            id: shelterData['id'],
+            phone: shelterData['phone'],
+            address: shelterData['address'],
+            capacity: shelterData['capacity'],
+            website: shelterData['website'],
+            user: pet_connect_user.User.fromJson(profileData),
+          );
+          setState(() {
+            _shelter = shelter;
+          });
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
