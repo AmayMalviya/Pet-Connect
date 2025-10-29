@@ -41,7 +41,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _selectedBreed = widget.pet?.breed;
     _selectedAgeRange = _ageRanges.firstWhere(
         (age) => _convertAgeRangeToYears(age) == widget.pet?.age,
-        orElse: () => _ageRanges[2]);
+        orElse: () => _ageRanges.isNotEmpty ? _ageRanges[0] : '');
     _fetchBreeds();
   }
 
@@ -100,7 +100,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         };
 
         if (widget.pet == null) {
-          // This screen is for editing only now, but keeping this for safety
           petData['owner_id'] = user.id;
           await Supabase.instance.client.from('pets').insert(petData);
         } else {
@@ -131,59 +130,104 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         leading: const BackButton(),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter a name' : null,
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Pet Details',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                    validator: (value) =>
+                        value!.isEmpty ? 'Please enter a name' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  if (_isLoadingBreeds)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Breed',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                      ),
+                      value: _selectedBreed,
+                      items: widget.pet?.animal == 'Dog'
+                          ? _dogBreeds
+                              .map((b) => DropdownMenuItem<String>(
+                                    value: b.breedName,
+                                    child: Text(b.breedName),
+                                  ))
+                              .toList()
+                          : _catBreeds
+                              .map((b) => DropdownMenuItem<String>(
+                                    value: b.breedName,
+                                    child: Text(b.breedName),
+                                  ))
+                              .toList(),
+                      onChanged: (v) => setState(() => _selectedBreed = v),
+                      validator: (v) => v == null ? 'Please select a breed' : null,
+                    ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Age',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                    value: _selectedAgeRange,
+                    items: _ageRanges
+                        .map((age) => DropdownMenuItem<String>(
+                              value: age,
+                              child: Text(age),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedAgeRange = v),
+                    validator: (v) => v == null ? 'Please select an age' : null,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _savePet,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Save Pet'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              if (_isLoadingBreeds)
-                const Center(child: CircularProgressIndicator())
-              else
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Breed'),
-                  value: _selectedBreed,
-                  items: widget.pet?.type == 'Dog'
-                      ? _dogBreeds
-                          .map((b) => DropdownMenuItem<String>(
-                                value: b.breedName,
-                                child: Text(b.breedName),
-                              ))
-                          .toList()
-                      : _catBreeds
-                          .map((b) => DropdownMenuItem<String>(
-                                value: b.breedName,
-                                child: Text(b.breedName),
-                              ))
-                          .toList(),
-                  onChanged: (v) => setState(() => _selectedBreed = v),
-                  validator: (v) => v == null ? 'Please select a breed' : null,
-                ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Age'),
-                value: _selectedAgeRange,
-                items: _ageRanges
-                    .map((age) => DropdownMenuItem<String>(
-                          value: age,
-                          child: Text(age),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedAgeRange = v),
-                validator: (v) => v == null ? 'Please select an age' : null,
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: _savePet,
-                child: const Text('Save Pet'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

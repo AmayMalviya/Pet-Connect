@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/cat_breed.dart';
 import 'package:pet_connect_app/models/dog_breed.dart';
-import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/services/breed_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -18,7 +17,8 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
   final _formKey = GlobalKey<FormState>();
   String _name = '';
   String? _selectedAnimal;
-  String? _selectedBreed;
+  int? _selectedBreedId;
+  String? _selectedBreedName;
   String? _selectedAgeRange;
 
   bool _isLoadingBreeds = true;
@@ -113,37 +113,20 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
           return;
         }
 
-        // First check if user has a profile
-        final profile = await Supabase.instance.client
-            .from('profiles')
-            .select()
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
-
-        if (profile == null) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please complete your profile before adding a pet'),
-              duration: Duration(seconds: 3),
-            ),
-          );
-          return;
-        }
-
         final petData = {
           'name': _name,
-          'breed': _selectedBreed!,
+          'breed': _selectedBreedName,
+          'breed_id': _selectedBreedId,
           'age': _convertAgeRangeToYears(_selectedAgeRange!),
           'owner_id': currentUser.id,
-          'type': _selectedAnimal,
+          'animal': _selectedAnimal,
         };
 
         await Supabase.instance.client.from('pets').insert(petData);
         
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pet added successfully!')),
+          const SnackBar(content: Text('Pet added successfully!'))
         );
         Navigator.of(context).pop(true);
       } catch (e) {
@@ -250,7 +233,8 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                         )).toList(),
                         onChanged: (newValue) => setState(() {
                           _selectedAnimal = newValue;
-                          _selectedBreed = null;
+                          _selectedBreedId = null;
+                          _selectedBreedName = null;
                         }),
                         validator: (value) => value == null ? 'Please select a pet type' : null,
                       ),
@@ -258,7 +242,7 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                       if (_selectedAnimal != null)
                         _isLoadingBreeds
                             ? const Center(child: CircularProgressIndicator())
-                            : DropdownButtonFormField<String>(
+                            : DropdownButtonFormField<int>(
                                 decoration: InputDecoration(
                                   labelText: 'Breed',
                                   hintText: 'Select your pet\'s breed',
@@ -274,25 +258,28 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                                     vertical: 14,
                                   ),
                                 ),
-                                value: _selectedBreed,
+                                value: _selectedBreedId,
                                 hint: const Text('Select Breed'),
                                 isExpanded: true,
                                 items: _selectedAnimal == 'Dog'
-                                    ? _dogBreeds.map((b) => DropdownMenuItem<String>(
-                                        value: b.breedName,
-                                        child: Text(
-                                          b.breedName,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                    ? _dogBreeds.map((b) => DropdownMenuItem<int>(
+                                        value: b.breedId,
+                                        child: Text(b.breedName),
                                       )).toList()
-                                    : _catBreeds.map((b) => DropdownMenuItem<String>(
-                                        value: b.breedName,
-                                        child: Text(
-                                          b.breedName,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                    : _catBreeds.map((b) => DropdownMenuItem<int>(
+                                        value: b.breedId,
+                                        child: Text(b.breedName),
                                       )).toList(),
-                                onChanged: (v) => setState(() => _selectedBreed = v),
+                                onChanged: (v) => setState(() {
+                                  _selectedBreedId = v;
+                                  if (v != null) {
+                                    if (_selectedAnimal == 'Dog') {
+                                      _selectedBreedName = _dogBreeds.firstWhere((b) => b.breedId == v).breedName;
+                                    } else {
+                                      _selectedBreedName = _catBreeds.firstWhere((b) => b.breedId == v).breedName;
+                                    }
+                                  }
+                                }),
                                 validator: (v) => v == null ? 'Please select a breed' : null,
                               ),
                       const SizedBox(height: 16),
@@ -306,7 +293,7 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                           ),
                           filled: true,
                           fillColor: Colors.grey[50],
-                          isDense: true, // Makes the dropdown more compact
+                          isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 14,
@@ -314,12 +301,12 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                         ),
                         value: _selectedAgeRange,
                         hint: const Text('Select Age Range'),
-                        isExpanded: true, // Makes dropdown take full width
+                        isExpanded: true,
                         items: _ageRanges.map((age) => DropdownMenuItem<String>(
                           value: age,
                           child: Text(
                             age,
-                            overflow: TextOverflow.ellipsis, // Handles text overflow
+                            overflow: TextOverflow.ellipsis,
                           ),
                         )).toList(),
                         onChanged: (v) => setState(() => _selectedAgeRange = v),

@@ -40,6 +40,19 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     }
   }
 
+  String _getRoleDescription(String roleName) {
+    switch (roleName) {
+      case 'Pet Owner':
+        return 'Manage your pets, appointments, and connect with a community of pet lovers.';
+      case 'Vet':
+        return 'Manage your clinic, appointments, and provide care for pets.';
+      case 'Shelter Owner':
+        return 'Manage your shelter, list pets for adoption, and connect with potential adopters.';
+      default:
+        return 'A general user role.';
+    }
+  }
+
   Future<void> _submitRole() async {
     if (_selectedRoleId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,10 +68,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        // Get the selected role object from cached roles
         final selectedRole = _roles.firstWhere((role) => role['id'] == _selectedRoleId);
 
-        // Upsert the profile with the selected role name
         await Supabase.instance.client.from('profiles').upsert({
           'user_id': user.id,
           'role': selectedRole['name'],
@@ -66,7 +77,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
         if (!mounted) return;
 
-        // Navigate based on the selected role name
         if (selectedRole['name'] == 'Pet Owner') {
           Navigator.pushReplacementNamed(context, MainScreen.routeName);
         } else {
@@ -110,61 +120,67 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _error != null
                   ? Center(child: Text(_error!))
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'How will you be using Pet Connect?',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
+                  : _roles.isEmpty
+                      ? const Center(child: Text('No roles available. Please contact support.'))
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      'How will you be using Pet Connect?',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Choose your primary role to get a personalized experience.',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                            color: Colors.grey[600],
+                                          ),
+                                    ),
+                                    const SizedBox(height: 48),
+                                    ..._roles.map((role) {
+                                      final roleName = role['name'] as String;
+                                      final description = _getRoleDescription(roleName);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 24.0),
+                                        child: _buildRoleCard(
+                                          context,
+                                          title: roleName,
+                                          description: description,
+                                          icon: getIconForRole(roleName),
+                                          onTap: () => setState(() => _selectedRoleId = role['id']),
+                                          isSelected: _selectedRoleId == role['id'],
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
                               ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Choose your primary role to get a personalized experience.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.grey[600],
+                            ),
+                            ElevatedButton(
+                              onPressed: _selectedRoleId == null || _isLoading ? null : _submitRole,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                        ),
-                        const SizedBox(height: 48),
-                        ..._roles.map((role) {
-                          final description = (role['description'] != null && (role['description'] as String).trim().isNotEmpty)
-                              ? role['description'] as String
-                              : 'Description for ${role['name']}';
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 24.0),
-                            child: _buildRoleCard(
-                              context,
-                              title: role['name'],
-                              description: description,
-                              icon: getIconForRole(role['name']),
-                              onTap: () => setState(() => _selectedRoleId = role['id']),
-                              isSelected: _selectedRoleId == role['id'],
+                              child: const Text('Continue', style: TextStyle(fontSize: 18)),
                             ),
-                          );
-                        }),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: _selectedRoleId == null || _isLoading ? null : _submitRole,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Continue', style: TextStyle(fontSize: 18)),
+                          ],
                         ),
-                      ],
-                    ),
         ),
       ),
     );
   }
-
-  // Icons are provided by `getIconForRole` in utils/role_helpers.dart
 
   Widget _buildRoleCard(BuildContext context, {
     required String title,
@@ -224,5 +240,4 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       ),
     );
   }
-
 }

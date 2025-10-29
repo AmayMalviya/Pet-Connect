@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
-import 'package:pet_connect_app/screens/self_care_options_screen.dart';
-// Import AppTheme for colors
+import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
@@ -13,17 +12,12 @@ class ServicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pet Services'),
-        leading: const BackButton(), // Added back button
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 30), // Reposition Self Care Card lower
-            // Consolidated Pet Care Message and Self Care Button
+            const SizedBox(height: 30),
             Card(
               elevation: 2,
               margin: const EdgeInsets.only(bottom: 16),
@@ -38,21 +32,21 @@ class ServicesScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor, // Use primary color
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, SelfCareOptionsScreen.routeName);
+                        Navigator.pushNamed(context, GroomingDetailsScreen.routeName);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor, // Use primary color
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10), // Reduced button size
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                       ),
                       child: const Text(
                         'Self Care',
@@ -63,8 +57,7 @@ class ServicesScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 20), // Reposition cards lower
-            // Other Services
+            const SizedBox(height: 20),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -76,30 +69,29 @@ class ServicesScreen extends StatelessWidget {
                   title: 'Health Track',
                   icon: Icons.medical_services_outlined,
                   onTap: () => Navigator.pushNamed(context, HealthDetailsScreen.routeName),
-                  cardHeight: 120, // Smaller height
-                  iconSize: 30, // Smaller icon
-                  textSize: 14, // Smaller text
+                  cardHeight: 120,
+                  iconSize: 30,
+                  textSize: 14,
                 ),
                 ServiceCard(
                   title: 'Adoption',
                   icon: Icons.pets,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
-                  cardHeight: 120, // Smaller height
-                  iconSize: 30, // Smaller icon
-                  textSize: 14, // Smaller text
+                  cardHeight: 120,
+                  iconSize: 30,
+                  textSize: 14,
                 ),
               ],
             ),
-            const SizedBox(height: 16), // Spacing before Vets near me card
-            // Vets near me card (repositioned and resized)
+            const SizedBox(height: 16),
             ServiceCard(
               title: 'Vets near me',
               icon: Icons.map,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen())),
-              cardHeight: 80, // Decreased height
-              iconSize: 30, // Adjusted icon size
-              textSize: 16, // Adjusted text size
-              isWide: true, // Increase horizontally
+              cardHeight: 80,
+              iconSize: 30,
+              textSize: 16,
+              isWide: true,
             ),
           ],
         ),
@@ -122,23 +114,23 @@ class ServiceCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.onTap,
-    this.cardHeight = 150, // Default height
-    this.iconSize = 50, // Default icon size
-    this.textSize = 18, // Default text size
+    this.cardHeight = 150,
+    this.iconSize = 50,
+    this.textSize = 18,
     this.isWide = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2, // Added elevation for better visual
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // Rounded corners
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           height: cardHeight,
-          width: isWide ? double.infinity : null, // Make wide if isWide is true
+          width: isWide ? double.infinity : null,
           padding: const EdgeInsets.all(8.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

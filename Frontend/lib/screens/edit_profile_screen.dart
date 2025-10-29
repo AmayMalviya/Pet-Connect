@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pet_connect_app/screens/role_selection_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   static const routeName = '/edit-profile';
@@ -18,6 +17,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
+  late TextEditingController _phoneController;
 
   bool _isLoading = false;
   List<Map<String, dynamic>> _allLocations = [];
@@ -35,6 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController = TextEditingController(text: widget.initialData?['first_name'] ?? '');
     _lastNameController = TextEditingController(text: widget.initialData?['last_name'] ?? '');
     _emailController = TextEditingController(text: widget.initialData?['email'] ?? '');
+    _phoneController = TextEditingController(text: widget.initialData?['phone'] ?? '');
 
     _selectedCountry = widget.initialData?['country'];
     _selectedState = widget.initialData?['state'];
@@ -48,6 +49,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -57,22 +59,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final response = await Supabase.instance.client.from('indian_cities').select();
       _allLocations = (response as List).map((item) => item as Map<String, dynamic>).toList();
       
-      // Get unique countries
-      _countries = _allLocations.map((e) => e['country'] as String).toSet().toList();
+      _countries = _allLocations.map((e) => e['country'] as String).toSet().toList()..sort();
       
       if (_selectedCountry != null) {
         _states = _allLocations
             .where((e) => e['country'] == _selectedCountry)
             .map((e) => e['state'] as String)
             .toSet()
-            .toList();
+            .toList()..sort();
       }
       if (_selectedState != null) {
         _cities = _allLocations
-            .where((e) => e['state'] == _selectedState)
+            .where((e) => e['country'] == _selectedCountry && e['state'] == _selectedState)
             .map((e) => e['city'] as String)
             .toSet()
-            .toList();
+            .toList()..sort();
       }
 
     } catch (e) {
@@ -98,6 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
         'city': _selectedCity,
         'state': _selectedState,
         'country': _selectedCountry,
@@ -111,7 +113,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
-      Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -141,10 +143,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Card(
+                      elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 2,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -167,6 +169,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -185,6 +189,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -203,6 +209,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -215,6 +223,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _phoneController,
+                              decoration: InputDecoration(
+                                labelText: 'Phone Number',
+                                hintText: 'Enter your phone number',
+                                prefixIcon: const Icon(Icons.phone),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                              ),
+                              keyboardType: TextInputType.phone,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your phone number';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
                               value: _selectedCountry,
                               decoration: InputDecoration(
@@ -222,6 +251,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
                               items: _countries.map((String country) {
                                 return DropdownMenuItem<String>(
@@ -238,7 +269,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       .where((e) => e['country'] == newValue)
                                       .map((e) => e['state'] as String)
                                       .toSet()
-                                      .toList();
+                                      .toList()..sort();
                                   _cities = [];
                                 });
                               },
@@ -252,6 +283,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
                               items: _states.map((String state) {
                                 return DropdownMenuItem<String>(
@@ -264,10 +297,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   _selectedState = newValue;
                                   _selectedCity = null;
                                   _cities = _allLocations
-                                      .where((e) => e['state'] == newValue)
+                                      .where((e) => e['country'] == _selectedCountry && e['state'] == newValue)
                                       .map((e) => e['city'] as String)
                                       .toSet()
-                                      .toList();
+                                      .toList()..sort();
                                 });
                               },
                               validator: (value) => value == null ? 'Please select a state' : null,
@@ -280,6 +313,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
                               items: _cities.map((String city) {
                                 return DropdownMenuItem<String>(
