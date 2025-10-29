@@ -45,7 +45,7 @@ class PetConnectApp extends StatelessWidget {
     final supabase = Supabase.instance.client;
     final profileResponse = await supabase
         .from('profiles')
-        .select('*, roles(name)') // Select all profile fields and the role name
+        .select() // Select all profile fields
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -73,18 +73,20 @@ class PetConnectApp extends StatelessWidget {
                 }
 
                 final profile = userSnapshot.data;
+                final user = snapshot.data!.session!.user;
+                final provider = user.appMetadata['provider'];
 
-                // If profile is incomplete (e.g., new social user), go to setup.
-                if (profile == null || (profile['first_name'] == null || profile['first_name'].isEmpty)) {
+                // For social logins, if profile is incomplete, go to setup screen.
+                if (provider != 'email' && (profile == null || profile['first_name'] == null || profile['first_name'].isEmpty)) {
                   return const SocialProfileSetupScreen();
                 }
 
-                // If profile is complete but role is not, go to role selection.
-                if (profile['roles'] == null) {
+                // For all users, if role is not set, go to role selection.
+                if (profile == null || profile['role'] == null || (profile['role'] as String).isEmpty) {
                   return const RoleSelectionScreen();
                 }
 
-                final userRole = profile['roles']['name'];
+                final userRole = profile['role'];
 
                 // Navigate based on role.
                 if (userRole == 'Pet Owner') {

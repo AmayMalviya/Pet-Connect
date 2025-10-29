@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
         
         setState(() {
           _userName = (profile != null) 
-            ? '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim()
+            ? '${profile['first_name'] ?? 'User'}'
             : 'User';
           _hasPet = (pets as List).isNotEmpty;
           _error = null;
@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               '${_getGreeting()}, ${_userName ?? 'User'}!',
-              style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             if (!_hasPet)

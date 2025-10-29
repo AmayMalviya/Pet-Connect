@@ -18,10 +18,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
-  late TextEditingController _cityController;
-  late TextEditingController _stateController;
-  late TextEditingController _countryController;
+
   bool _isLoading = false;
+  List<Map<String, dynamic>> _allLocations = [];
+  List<String> _countries = [];
+  List<String> _states = [];
+  List<String> _cities = [];
+
+  String? _selectedCountry;
+  String? _selectedState;
+  String? _selectedCity;
 
   @override
   void initState() {
@@ -29,9 +35,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController = TextEditingController(text: widget.initialData?['first_name'] ?? '');
     _lastNameController = TextEditingController(text: widget.initialData?['last_name'] ?? '');
     _emailController = TextEditingController(text: widget.initialData?['email'] ?? '');
-    _cityController = TextEditingController(text: widget.initialData?['city'] ?? '');
-    _stateController = TextEditingController(text: widget.initialData?['state'] ?? '');
-    _countryController = TextEditingController(text: widget.initialData?['country'] ?? '');
+
+    _selectedCountry = widget.initialData?['country'];
+    _selectedState = widget.initialData?['state'];
+    _selectedCity = widget.initialData?['city'];
+
+    _fetchLocations();
   }
 
   @override
@@ -39,10 +48,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    _countryController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchLocations() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await Supabase.instance.client.from('indian_cities').select();
+      _allLocations = (response as List).map((item) => item as Map<String, dynamic>).toList();
+      
+      // Get unique countries
+      _countries = _allLocations.map((e) => e['country'] as String).toSet().toList();
+      
+      if (_selectedCountry != null) {
+        _states = _allLocations
+            .where((e) => e['country'] == _selectedCountry)
+            .map((e) => e['state'] as String)
+            .toSet()
+            .toList();
+      }
+      if (_selectedState != null) {
+        _cities = _allLocations
+            .where((e) => e['state'] == _selectedState)
+            .map((e) => e['city'] as String)
+            .toSet()
+            .toList();
+      }
+
+    } catch (e) {
+      // Handle error
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -61,9 +98,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
-        'city': _cityController.text.trim(),
-        'state': _stateController.text.trim(),
-        'country': _countryController.text.trim(),
+        'city': _selectedCity,
+        'state': _selectedState,
+        'country': _selectedCountry,
       };
 
       await Supabase.instance.client
@@ -178,61 +215,86 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _cityController,
-                              decoration: InputDecoration(
-                                labelText: 'City',
-                                hintText: 'Enter your city',
-                                prefixIcon: const Icon(Icons.location_city),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your city';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _stateController,
-                              decoration: InputDecoration(
-                                labelText: 'State',
-                                hintText: 'Enter your state',
-                                prefixIcon: const Icon(Icons.map),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your state';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _countryController,
+                            DropdownButtonFormField<String>(
+                              value: _selectedCountry,
                               decoration: InputDecoration(
                                 labelText: 'Country',
-                                hintText: 'Enter your country',
-                                prefixIcon: const Icon(Icons.public),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your country';
-                                }
-                                return null;
+                              items: _countries.map((String country) {
+                                return DropdownMenuItem<String>(
+                                  value: country,
+                                  child: Text(country),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _selectedCountry = newValue;
+                                  _selectedState = null;
+                                  _selectedCity = null;
+                                  _states = _allLocations
+                                      .where((e) => e['country'] == newValue)
+                                      .map((e) => e['state'] as String)
+                                      .toSet()
+                                      .toList();
+                                  _cities = [];
+                                });
                               },
+                              validator: (value) => value == null ? 'Please select a country' : null,
                             ),
                             const SizedBox(height: 16),
-
+                            DropdownButtonFormField<String>(
+                              value: _selectedState,
+                              decoration: InputDecoration(
+                                labelText: 'State',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: _states.map((String state) {
+                                return DropdownMenuItem<String>(
+                                  value: state,
+                                  child: Text(state),
+                                );
+                              }).toList(),
+                              onChanged: _selectedCountry == null ? null : (newValue) {
+                                setState(() {
+                                  _selectedState = newValue;
+                                  _selectedCity = null;
+                                  _cities = _allLocations
+                                      .where((e) => e['state'] == newValue)
+                                      .map((e) => e['city'] as String)
+                                      .toSet()
+                                      .toList();
+                                });
+                              },
+                              validator: (value) => value == null ? 'Please select a state' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: _selectedCity,
+                              decoration: InputDecoration(
+                                labelText: 'City',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: _cities.map((String city) {
+                                return DropdownMenuItem<String>(
+                                  value: city,
+                                  child: Text(city),
+                                );
+                              }).toList(),
+                              onChanged: _selectedState == null ? null : (newValue) {
+                                setState(() {
+                                  _selectedCity = newValue;
+                                });
+                              },
+                              validator: (value) => value == null ? 'Please select a city' : null,
+                            ),
+                            const SizedBox(height: 16),
                           ],
                         ),
                       ),

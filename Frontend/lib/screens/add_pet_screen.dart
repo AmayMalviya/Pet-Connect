@@ -76,8 +76,8 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
 
       if (mounted) {
         setState(() {
-          _dogBreeds = dogBreeds;
-          _catBreeds = catBreeds;
+          _dogBreeds = dogBreeds..sort((a, b) => a.breedName.compareTo(b.breedName));
+          _catBreeds = catBreeds..sort((a, b) => a.breedName.compareTo(b.breedName));
           _isLoadingBreeds = false;
         });
       }
@@ -136,6 +136,7 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
           'breed': _selectedBreed!,
           'age': _convertAgeRangeToYears(_selectedAgeRange!),
           'owner_id': currentUser.id,
+          'type': _selectedAnimal,
         };
 
         await Supabase.instance.client.from('pets').insert(petData);

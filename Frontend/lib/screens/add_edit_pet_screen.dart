@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pet_connect_app/models/cat_breed.dart';
+import 'package:pet_connect_app/models/dog_breed.dart';
 import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/services/breed_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddEditPetScreen extends StatefulWidget {
@@ -16,23 +19,67 @@ class AddEditPetScreen extends StatefulWidget {
 class _AddEditPetScreenState extends State<AddEditPetScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _breedController;
-  late TextEditingController _ageController;
+  String? _selectedBreed;
+  String? _selectedAgeRange;
+
+  bool _isLoadingBreeds = true;
+  List<DogBreed> _dogBreeds = [];
+  List<CatBreed> _catBreeds = [];
+
+  final List<String> _ageRanges = [
+    '0-6 months (puppy phase)',
+    '6-12 months (adolescence)',
+    '1-2 years (adulthood)',
+    '2+ years',
+    '7/8+ years (senior)',
+  ];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.pet?.name);
-    _breedController = TextEditingController(text: widget.pet?.breed);
-    _ageController = TextEditingController(text: widget.pet?.age.toString());
+    _selectedBreed = widget.pet?.breed;
+    _selectedAgeRange = _ageRanges.firstWhere(
+        (age) => _convertAgeRangeToYears(age) == widget.pet?.age,
+        orElse: () => _ageRanges[2]);
+    _fetchBreeds();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _breedController.dispose();
-    _ageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchBreeds() async {
+    try {
+      final dogBreeds = await BreedService.getDogBreeds();
+      final catBreeds = await BreedService.getCatBreeds();
+
+      if (mounted) {
+        setState(() {
+          _dogBreeds = dogBreeds..sort((a, b) => a.breedName.compareTo(b.breedName));
+          _catBreeds = catBreeds..sort((a, b) => a.breedName.compareTo(b.breedName));
+          _isLoadingBreeds = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingBreeds = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load breeds: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  int _convertAgeRangeToYears(String ageRange) {
+    if (ageRange == '0-6 months (puppy phase)') return 0;
+    if (ageRange == '6-12 months (adolescence)') return 1;
+    if (ageRange == '1-2 years (adulthood)') return 1;
+    if (ageRange == '2+ years') return 2;
+    if (ageRange == '7/8+ years (senior)') return 7;
+    return 0;
   }
 
   Future<void> _savePet() async {
@@ -48,11 +95,12 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
 
         final petData = {
           'name': _nameController.text,
-          'breed': _breedController.text,
-          'age': int.parse(_ageController.text),
+          'breed': _selectedBreed,
+          'age': _convertAgeRangeToYears(_selectedAgeRange!),
         };
 
         if (widget.pet == null) {
+          // This screen is for editing only now, but keeping this for safety
           petData['owner_id'] = user.id;
           await Supabase.instance.client.from('pets').insert(petData);
         } else {
@@ -78,7 +126,8 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.pet == null ? 'Add Pet' : 'Edit Pet', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(widget.pet == null ? 'Add Pet' : 'Edit Pet',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
       ),
       body: SingleChildScrollView(
@@ -90,20 +139,44 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Name'),
-                validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'Please enter a name' : null,
               ),
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _breedController,
-                decoration: const InputDecoration(labelText: 'Breed'),
-                validator: (value) => value!.isEmpty ? 'Please enter a breed' : null,
-              ),
+              if (_isLoadingBreeds)
+                const Center(child: CircularProgressIndicator())
+              else
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Breed'),
+                  value: _selectedBreed,
+                  items: widget.pet?.type == 'Dog'
+                      ? _dogBreeds
+                          .map((b) => DropdownMenuItem<String>(
+                                value: b.breedName,
+                                child: Text(b.breedName),
+                              ))
+                          .toList()
+                      : _catBreeds
+                          .map((b) => DropdownMenuItem<String>(
+                                value: b.breedName,
+                                child: Text(b.breedName),
+                              ))
+                          .toList(),
+                  onChanged: (v) => setState(() => _selectedBreed = v),
+                  validator: (v) => v == null ? 'Please select a breed' : null,
+                ),
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _ageController,
+              DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Age'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Please enter an age' : null,
+                value: _selectedAgeRange,
+                items: _ageRanges
+                    .map((age) => DropdownMenuItem<String>(
+                          value: age,
+                          child: Text(age),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedAgeRange = v),
+                validator: (v) => v == null ? 'Please select an age' : null,
               ),
               const SizedBox(height: 40),
               ElevatedButton(

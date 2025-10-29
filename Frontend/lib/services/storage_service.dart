@@ -25,4 +25,25 @@ class StorageService {
       return null;
     }
   }
+
+  Future<String?> uploadPetPicture(String petId, XFile image) async {
+    try {
+      final bytes = await image.readAsBytes();
+      final fileExt = image.path.split('.').last;
+      final fileName = '$petId.$fileExt';
+      final filePath = fileName;
+
+      await _supabase.storage.from('pet-pictures').uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      final imageUrl = _supabase.storage.from('pet-pictures').getPublicUrl(filePath);
+      return imageUrl;
+    } catch (e) {
+      print('Error uploading pet picture: $e');
+      return null;
+    }
+  }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
-import 'package:pet_connect_app/screens/pet_profile_screen.dart';
 import 'package:pet_connect_app/screens/edit_profile_screen.dart';
 import 'auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -37,17 +38,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
-    final userProfile = await Supabase.instance.client
-      .from('profiles')
-      .select()
-      .eq('user_id', currentUser.id)
-      .maybeSingle();
+        final userProfile = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
 
         final fetchedUser = pet_connect_user.User(
           uid: currentUser.id,
           email: currentUser.email!,
-          displayName: userProfile != null && userProfile['full_name'] != null ? userProfile['full_name'] : '',
-          photoUrl: userProfile != null ? userProfile['avatar_url'] : null,
+          displayName: userProfile != null && userProfile['first_name'] != null
+              ? '${userProfile['first_name']} ${userProfile['last_name'] ?? ''}'
+              : '',
+          photoUrl: userProfile?['avatar_url'],
+          phone: userProfile?['phone'],
+          city: userProfile?['city'],
+          state: userProfile?['state'],
+          country: userProfile?['country'],
         );
 
         final petsResponse = await Supabase.instance.client
@@ -125,36 +132,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _addPet(Pet pet) async {
-    if (!mounted) return;
-    try {
-      final currentUser = Supabase.instance.client.auth.currentUser;
-      if (currentUser != null) {
-        final newPet = pet.toJson();
-        newPet['owner_id'] = currentUser.id;
-        await Supabase.instance.client.from('pets').insert(newPet);
-        await _fetchProfileData(); // Refresh pet list after adding
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pet added successfully!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please log in to add a pet.')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add pet: ${e.toString()}')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Your Profile"),
-        leading: const BackButton(), // Added back button
+        title: Text("Your Profile", style: GoogleFonts.poppins()),
+        leading: const BackButton(),
         actions: [
           IconButton(
             tooltip: "Logout",
@@ -169,24 +152,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
         ],
+        elevation: 0,
+        backgroundColor: Colors.transparent,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
-              : ListView(
-                  padding: const EdgeInsets.all(16.0),
-                  children: [
-                    _buildProfileHeader(_user?.displayName ?? 'N/A', _user?.email ?? 'N/A', _user?.photoUrl),
-                    const SizedBox(height: 20),
-                    _buildPetList(),
-                  ],
+              : RefreshIndicator(
+                  onRefresh: _fetchProfileData,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      _buildProfileHeader(),
+                      const SizedBox(height: 20),
+                      _buildUserDetails(),
+                      const SizedBox(height: 20),
+                      _buildPetList(),
+                    ],
+                  ),
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final newPet = await Navigator.of(context).pushNamed(AddPetScreen.routeName);
-          if (newPet != null && newPet is Pet) {
-            _addPet(newPet);
+          final result = await Navigator.of(context).pushNamed(AddPetScreen.routeName);
+          if (result == true) {
+            _fetchProfileData();
           }
         },
         child: const Icon(Icons.add),
@@ -194,54 +184,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(String name, String email, String? photoUrl) {
-    bool isNetworkUrl = photoUrl != null && (photoUrl.startsWith('http://') || photoUrl.startsWith('https://'));
+  Widget _buildProfileHeader() {
+    bool isNetworkUrl = _user?.photoUrl != null &&
+        (_user!.photoUrl!.startsWith('http://') || _user!.photoUrl!.startsWith('https://'));
 
-    return Row(
+    return Column(
       children: [
         GestureDetector(
           onTap: _pickImage,
           child: CircleAvatar(
-            radius: 40,
+            radius: 50,
             backgroundImage: isNetworkUrl
-                ? NetworkImage(photoUrl)
-                : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
-            child: !isNetworkUrl
-                ? const Icon(Icons.camera_alt, size: 30, color: Colors.white70)
-                : null,
+                ? NetworkImage(_user!.photoUrl!)
+                : const AssetImage('assets/images/profile_avatar.png')
+                    as ImageProvider,
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 5),
-              Text(email),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => EditProfileScreen(
-                  initialData: {
-                    'name': name,
-                    'email': email,
+        const SizedBox(height: 10),
+        Text(_user?.displayName ?? 'N/A',
+            style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(_user?.email ?? 'N/A', style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildUserDetails() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("My Details", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () async {
+                    final nameParts = _user?.displayName?.split(' ');
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProfileScreen(
+                          initialData: {
+                            'first_name': nameParts?.first ?? '',
+                            'last_name': (nameParts?.length ?? 0) > 1 ? nameParts?.last : '',
+                            'email': _user?.email,
+                            'phone': _user?.phone,
+                            'city': _user?.city,
+                            'state': _user?.state,
+                            'country': _user?.country,
+                          },
+                        ),
+                      ),
+                    );
+                    if (result == true) {
+                      _fetchProfileData();
+                    }
                   },
                 ),
-              ),
-            );
-            if (result == true) {
-              _fetchProfileData(); // Refresh profile data
-            }
-          },
-        ),
-      ],
+              ],
+            ),
+            const Divider(),
+            _buildDetailRow(Icons.phone, "Phone", _user?.phone ?? "Not provided"),
+            _buildDetailRow(Icons.location_on, "Location", 
+              '${_user?.city ?? ''}, ${_user?.state ?? ''}, ${_user?.country ?? 'Not provided'}'),
+          ],
+        ),      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+              Text(subtitle, style: GoogleFonts.poppins(color: Colors.grey)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -249,38 +296,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'My Pets',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         _pets.isEmpty
-            ? const Text('No pets added yet.')
+            ? const Center(child: Text('No pets added yet.'))
             : ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _pets.length,
                 itemBuilder: (context, index) {
                   final pet = _pets[index];
-                  return Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: AssetImage('assets/images/logo.png'), // Use pet image if available
-                      ),
-                      title: Text(pet.name),
-                      subtitle: Text(pet.breed),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PetProfileScreen(pet: pet),
-                          ),
-                        );
-                      },
-                    ),
-                  );
+                  return ExpandablePetCard(pet: pet, onPetUpdated: _fetchProfileData);
                 },
               ),
       ],
+    );
+  }
+}
+
+class ExpandablePetCard extends StatefulWidget {
+  final Pet pet;
+  final VoidCallback onPetUpdated;
+
+  const ExpandablePetCard(
+      {Key? key, required this.pet, required this.onPetUpdated})
+      : super(key: key);
+
+  @override
+  _ExpandablePetCardState createState() => _ExpandablePetCardState();
+}
+
+class _ExpandablePetCardState extends State<ExpandablePetCard> {
+  bool _isExpanded = false;
+
+  Future<void> _pickAndUploadPetImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+
+    if (image != null) {
+      final storageService = StorageService();
+      final imageUrl = await storageService.uploadPetPicture(widget.pet.id!, image);
+      if (imageUrl != null) {
+        await Supabase.instance.client
+            .from('pets')
+            .update({'photo_url': imageUrl}).eq('id', widget.pet.id!);
+        widget.onPetUpdated();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isNetworkUrl = widget.pet.photoUrl != null &&
+        (widget.pet.photoUrl!.startsWith('http://') ||
+            widget.pet.photoUrl!.startsWith('https://'));
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        children: [
+          ListTile(
+            leading: GestureDetector(
+              onTap: _pickAndUploadPetImage,
+              child: CircleAvatar(
+                radius: 30,
+                backgroundImage: isNetworkUrl
+                    ? NetworkImage(widget.pet.photoUrl!)
+                    : const AssetImage('assets/images/logo.png') as ImageProvider,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(Icons.camera_alt, size: 15, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            title: Text(widget.pet.name, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+            subtitle: Text(widget.pet.breed, style: GoogleFonts.poppins()),
+            trailing: IconButton(
+              icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
+              onPressed: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: Container(),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Age: ${widget.pet.age} years', style: GoogleFonts.poppins()),
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddEditPetScreen(pet: widget.pet),
+                            ),
+                          );
+                          widget.onPetUpdated();
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+          ),
+        ],
+      ),
     );
   }
 }
