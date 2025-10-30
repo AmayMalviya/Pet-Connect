@@ -19,7 +19,9 @@ class AddEditPetScreen extends StatefulWidget {
 class _AddEditPetScreenState extends State<AddEditPetScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
+  String? _selectedAnimal;
   String? _selectedBreed;
+  int? _selectedBreedId;
   String? _selectedAgeRange;
 
   bool _isLoadingBreeds = true;
@@ -38,7 +40,9 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.pet?.name);
+    _selectedAnimal = widget.pet?.animal;
     _selectedBreed = widget.pet?.breed;
+    _selectedBreedId = widget.pet?.breedId;
     _selectedAgeRange = _ageRanges.firstWhere(
         (age) => _convertAgeRangeToYears(age) == widget.pet?.age,
         orElse: () => _ageRanges.isNotEmpty ? _ageRanges[0] : '');
@@ -95,7 +99,9 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
 
         final petData = {
           'name': _nameController.text,
+          'animal': _selectedAnimal,
           'breed': _selectedBreed,
+          'breed_id': _selectedBreedId,
           'age': _convertAgeRangeToYears(_selectedAgeRange!),
         };
 
@@ -165,10 +171,34 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                         value!.isEmpty ? 'Please enter a name' : null,
                   ),
                   const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Animal',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                    value: _selectedAnimal,
+                    items: ['Dog', 'Cat']
+                        .map((animal) => DropdownMenuItem<String>(
+                              value: animal,
+                              child: Text(animal),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() {
+                      _selectedAnimal = v;
+                      _selectedBreed = null;
+                      _selectedBreedId = null;
+                    }),
+                    validator: (v) => v == null ? 'Please select an animal' : null,
+                  ),
+                  const SizedBox(height: 16),
                   if (_isLoadingBreeds)
                     const Center(child: CircularProgressIndicator())
                   else
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<int>(
                       decoration: InputDecoration(
                         labelText: 'Breed',
                         border: OutlineInputBorder(
@@ -177,21 +207,31 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                         filled: true,
                         fillColor: Colors.grey[200],
                       ),
-                      value: _selectedBreed,
-                      items: widget.pet?.animal == 'Dog'
+                      value: _selectedBreedId,
+                      items: _selectedAnimal == 'Dog'
                           ? _dogBreeds
-                              .map((b) => DropdownMenuItem<String>(
-                                    value: b.breedName,
-                                    child: Text(b.breedName),
+                              .map((b) => DropdownMenuItem<int>(
+                                    value: b.breedId,
+                                    child: Text(b.breedName, overflow: TextOverflow.ellipsis),
                                   ))
                               .toList()
                           : _catBreeds
-                              .map((b) => DropdownMenuItem<String>(
-                                    value: b.breedName,
-                                    child: Text(b.breedName),
+                              .map((b) => DropdownMenuItem<int>(
+                                    value: b.breedId,
+                                    child: Text(b.breedName, overflow: TextOverflow.ellipsis),
                                   ))
                               .toList(),
-                      onChanged: (v) => setState(() => _selectedBreed = v),
+                      isExpanded: true,
+                      onChanged: (v) => setState(() {
+                        _selectedBreedId = v;
+                        if (v != null) {
+                          if (_selectedAnimal == 'Dog') {
+                            _selectedBreed = _dogBreeds.firstWhere((b) => b.breedId == v).breedName;
+                          } else {
+                            _selectedBreed = _catBreeds.firstWhere((b) => b.breedId == v).breedName;
+                          }
+                        }
+                      }),
                       validator: (v) => v == null ? 'Please select a breed' : null,
                     ),
                   const SizedBox(height: 16),
@@ -208,10 +248,11 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                     items: _ageRanges
                         .map((age) => DropdownMenuItem<String>(
                               value: age,
-                              child: Text(age),
+                              child: Text(age, overflow: TextOverflow.ellipsis),
                             ))
                         .toList(),
                     onChanged: (v) => setState(() => _selectedAgeRange = v),
+                    isExpanded: true,
                     validator: (v) => v == null ? 'Please select an age' : null,
                   ),
                   const SizedBox(height: 24),

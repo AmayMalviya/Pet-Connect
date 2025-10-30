@@ -36,7 +36,7 @@ class _GroomingDetailsScreenState extends State<GroomingDetailsScreen> {
           .select()
           .eq('owner_id', user.id);
 
-      final List<Pet> pets = (petsResponse as List).map((data) => Pet.fromJson(data)).toList();
+      final List<Pet> pets = (petsResponse as List<dynamic>).map((data) => Pet.fromJson(data as Map<String, dynamic>)).toList();
       List<Map<String, dynamic>> petCareData = [];
 
       for (final pet in pets) {
