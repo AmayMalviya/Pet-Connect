@@ -17,6 +17,7 @@ class _GroomingDetailsScreenState extends State<GroomingDetailsScreen> {
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _petCareData = [];
+  int? _expandedIndex;
 
   @override
   void initState() {
@@ -83,58 +84,45 @@ class _GroomingDetailsScreenState extends State<GroomingDetailsScreen> {
               ? Center(child: Text(_error!))
               : _petCareData.isEmpty
                   ? const Center(child: Text('No pets found.'))
-                  : ListView.builder(
+                  : SingleChildScrollView(
                       padding: const EdgeInsets.all(16.0),
-                      itemCount: _petCareData.length,
-                      itemBuilder: (context, index) {
-                        final data = _petCareData[index];
-                        final Pet pet = data['pet'];
-                        final String groomingNeeds = data['grooming_needs'];
-                        final String diet = data['diet'];
-                        final String trainingTips = data['training_tips'];
-                        final String exerciseNeeds = data['exercise_needs'];
-                        final isNetworkUrl = pet.photoUrl != null &&
-                            (pet.photoUrl!.startsWith('http://') ||
-                                pet.photoUrl!.startsWith('https://'));
+                      child: ExpansionPanelList(
+                        elevation: 0,
+                        dividerColor: Colors.transparent,
+                        expansionCallback: (int index, bool isExpanded) {
+                          setState(() {
+                            _expandedIndex = _expandedIndex == index ? null : index;
+                          });
+                        },
+                        children: _petCareData.map<ExpansionPanel>((data) {
+                          final Pet pet = data['pet'];
+                          final String groomingNeeds = data['grooming_needs'];
+                          final String diet = data['diet'];
+                          final String trainingTips = data['training_tips'];
+                          final String exerciseNeeds = data['exercise_needs'];
+                          final isNetworkUrl = pet.photoUrl != null &&
+                              (pet.photoUrl!.startsWith('http://') ||
+                                  pet.photoUrl!.startsWith('https://'));
 
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => PetProfileScreen(pet: pet),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            elevation: 2,
-                            margin: const EdgeInsets.only(bottom: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: Padding(
+                          return ExpansionPanel(
+                            canTapOnHeader: true,
+                            headerBuilder: (BuildContext context, bool isExpanded) {
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  radius: 30,
+                                  backgroundImage: isNetworkUrl
+                                      ? NetworkImage(pet.photoUrl!)
+                                      : const AssetImage('assets/images/logo.png') as ImageProvider,
+                                ),
+                                title: Text(pet.name, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                                subtitle: Text(pet.breed, style: GoogleFonts.poppins(color: Colors.grey)),
+                              );
+                            },
+                            body: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 30,
-                                        backgroundImage: isNetworkUrl
-                                            ? NetworkImage(pet.photoUrl!)
-                                            : const AssetImage('assets/images/logo.png') as ImageProvider,
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(pet.name, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-                                            Text(pet.breed, style: GoogleFonts.poppins(color: Colors.grey)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 20),
                                   _buildDetailSection('Grooming Needs', groomingNeeds),
                                   _buildDetailSection('Diet', diet),
                                   _buildDetailSection('Training Tips', trainingTips),
@@ -142,22 +130,30 @@ class _GroomingDetailsScreenState extends State<GroomingDetailsScreen> {
                                 ],
                               ),
                             ),
-                          ),
-                        );
-                      },
+                            isExpanded: _expandedIndex == _petCareData.indexOf(data),
+                          );
+                        }).toList(),
+                      ),
                     ),
     );
   }
 
   Widget _buildDetailSection(String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 8),
-        Text(content, style: GoogleFonts.poppins()),
-        const SizedBox(height: 16),
-      ],
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).primaryColor)),
+            const SizedBox(height: 8),
+            Text(content, style: GoogleFonts.poppins(fontSize: 16, height: 1.5)),
+          ],
+        ),
+      ),
     );
   }
 }
