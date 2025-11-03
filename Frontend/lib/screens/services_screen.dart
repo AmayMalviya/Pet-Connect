@@ -68,7 +68,12 @@ class ServicesScreen extends StatelessWidget {
                 ServiceCard(
                   title: 'Health Track',
                   icon: Icons.medical_services_outlined,
-                  onTap: () => Navigator.pushNamed(context, HealthDetailsScreen.routeName),
+                  onTap: () {
+                  // TODO: This feature is now accessed from the pet's profile.
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please access the health calendar from your pet\'s profile.')),
+                  );
+                },
                   cardHeight: 120,
                   iconSize: 30,
                   textSize: 14,

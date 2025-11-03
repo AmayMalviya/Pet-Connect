@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "978698245676",
+    "project_id": "patconnect-4251b",
+    "storage_bucket": "patconnect-4251b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978698245676:android:1dddf9c1ebc64d0f5e6389",
+        "android_client_info": {
+          "package_name": "com.example.pet_connect_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGOS_ONge_sSKOPSuvC8t7NsvoUCLepF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

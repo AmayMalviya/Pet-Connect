@@ -10,6 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/services/storage_service.dart';
 
+import 'package:pet_connect_app/screens/health_details_screen.dart';
+
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
   const ProfileScreen({super.key});
@@ -422,6 +424,19 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                         },
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.calendar_today),
+                    label: const Text('Health Calendar'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HealthDetailsScreen(petId: widget.pet.id!),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

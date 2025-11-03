@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pet_connect_app/firebase_options.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
@@ -30,9 +31,18 @@ import 'package:pet_connect_app/screens/edit_profile_screen.dart';
 import 'package:pet_connect_app/screens/social_profile_setup_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/profile_details_screen.dart';
+import 'package:pet_connect_app/screens/add_edit_medical_note_screen.dart';
+import 'package:pet_connect_app/models/medical_note.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'package:pet_connect_app/services/notification_service.dart';
+
+final notificationService = NotificationService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await notificationService.init(); // Initialize notification service
   await Supabase.initialize(
     url: 'https://goegjrqmyshnzzonfjav.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvZWdqcnFteXNobnp6b25mamF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0OTMyOTAsImV4cCI6MjA3MzA2OTI5MH0.i4KPxTg_d85Pd8vXMdOYxvoHdrVDZNmGaz30x1ZBglU',
@@ -90,6 +100,9 @@ class PetConnectApp extends StatelessWidget {
 
                 final userRole = profile['role'];
 
+                // Save FCM token
+                notificationService.saveFCMToken();
+
                 // Navigate based on role.
                 if (userRole == 'Pet Owner') {
                   return const MainScreen();
@@ -116,7 +129,7 @@ class PetConnectApp extends StatelessWidget {
         MainScreen.routeName: (context) => const MainScreen(),
         AddPetScreen.routeName: (context) => const AddPetScreen(),
         SelfCareOptionsScreen.routeName: (context) => const SelfCareOptionsScreen(),
-        HealthDetailsScreen.routeName: (context) => const HealthDetailsScreen(),
+
         ServicesScreen.routeName: (context) => const ServicesScreen(),
         ShopScreen.routeName: (context) => const ShopScreen(),
         GroomingDetailsScreen.routeName: (context) => const GroomingDetailsScreen(),
@@ -138,6 +151,12 @@ class PetConnectApp extends StatelessWidget {
         SocialProfileSetupScreen.routeName: (context) => const SocialProfileSetupScreen(),
         MapScreen.routeName: (context) => const MapScreen(),
         ProfileDetailsScreen.routeName: (context) => const ProfileDetailsScreen(),
+        AddEditMedicalNoteScreen.routeName: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+          final petId = args?['petId'] as String;
+          final note = args?['note'] as MedicalNote?;
+          return AddEditMedicalNoteScreen(petId: petId, note: note);
+        },
       },
     );
   }
