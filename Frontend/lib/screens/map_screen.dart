@@ -2,15 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
-
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class MapScreen extends StatefulWidget {
   static const routeName = '/map';
+  final String? placeType;
 
-  const MapScreen({super.key});
+  const MapScreen({super.key, this.placeType});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -22,64 +21,28 @@ class _MapScreenState extends State<MapScreen> {
   static const String _googleApiKey = 'AIzaSyC6FUq2HsQPZicGKijt1xEh4fuo_19vBb4';
   LatLng? _currentPosition;
   bool _isLoading = true;
+  String _selectedPlaceType = 'veterinary_care';
 
   @override
   void initState() {
     super.initState();
+    _selectedPlaceType = widget.placeType ?? 'veterinary_care';
     _getUserLocation();
   }
 
   Future<void> _getUserLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Check service availability
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      print('Location services are disabled.');
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
-
-    // Check permission
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        print('Location permissions are denied');
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      print('Location permissions are permanently denied.');
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
-
-    // Now safe to fetch position
-    try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      print('Current position: ${position.latitude}, ${position.longitude}');
-      setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
-        _isLoading = false;
-      });
-      _addMarker(_currentPosition!, 'My Location', 'This is my current location');
-      _searchNearbyPlaces();
-    } catch (e) {
-      print('Error getting location: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    _currentPosition = const LatLng(22.719568, 75.857727); // Indore, MP, India
+    setState(() {
+      _isLoading = false;
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('currentLocation'),
+          position: _currentPosition!,
+          infoWindow: const InfoWindow(title: 'Your Location'),
+        ),
+      );
+    });
+    _searchNearbyPlaces();
   }
 
   void _addMarker(LatLng position, String markerId, String info, {BitmapDescriptor? icon}) {
@@ -88,22 +51,53 @@ class _MapScreenState extends State<MapScreen> {
       position: position,
       infoWindow: InfoWindow(title: info),
       icon: icon ?? BitmapDescriptor.defaultMarker,
-      onTap: () => _launchMaps(position.latitude, position.longitude),
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(info),
+            content: const Text('Do you want to open this location in Google Maps?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _launchMaps(position.latitude, position.longitude);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Open'),
+              ),
+            ],
+          ),
+        );
+      },
     );
     setState(() {
       _markers.add(marker);
     });
   }
 
-  Future<void> _searchNearbyPlaces() async {
+  Future<void> _searchNearbyPlaces({String? type, String? keyword}) async {
     if (_currentPosition == null) return;
+
+    setState(() {
+      _markers.removeWhere((marker) => marker.markerId.value != 'currentLocation');
+    });
 
     final lat = _currentPosition!.latitude;
     final lng = _currentPosition!.longitude;
     const radius = 5000;
-    const type = 'veterinary_care|pet_store|animal_shelter';
-    final url =
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=$radius&type=$type&key=$_googleApiKey';
+    var url =
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=$radius&key=$_googleApiKey';
+
+    if (type != null) {
+      url += '&type=$type';
+    }
+    if (keyword != null) {
+      url += '&keyword=$keyword';
+    }
 
     final response = await http.get(Uri.parse(url));
 
@@ -118,8 +112,7 @@ class _MapScreenState extends State<MapScreen> {
           final placeId = place['place_id'];
 
           _addMarker(LatLng(lat, lng), placeId, name,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure));
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure));
         }
       }
     }
@@ -134,6 +127,22 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  void _onFilterChanged(String filter) {
+    if (filter == 'shelter') {
+      final keywords = [
+        'animal shelters near me',
+        'pet adoption centers',
+        'dog shelters',
+        'cat rescues',
+        'humane society',
+        'SPCA'
+      ].join('|');
+      _searchNearbyPlaces(keyword: keywords);
+    } else {
+      _searchNearbyPlaces(type: filter);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,17 +151,71 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: _isLoading || _currentPosition == null
           ? const Center(child: CircularProgressIndicator())
-          : GoogleMap(
-              mapType: MapType.normal,
-              initialCameraPosition: CameraPosition(
-                target: _currentPosition!,
-                zoom: 14,
-              ),
-              onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
-              },
-              markers: _markers,
+          : Stack(
+              children: [
+                GoogleMap(
+                  mapType: MapType.normal,
+                  initialCameraPosition: CameraPosition(
+                    target: _currentPosition!,
+                    zoom: 14,
+                  ),
+                  onMapCreated: (GoogleMapController controller) {
+                    _controller.complete(controller);
+                  },
+                  markers: _markers,
+                ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    color: Colors.white.withOpacity(0.8),
+                    child: SizedBox(
+                      height: 50.0,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          ActionChip(
+                            label: const Text('Vets'),
+                            onPressed: () => _onFilterChanged('veterinary_care'),
+                          ),
+                          const SizedBox(width: 10),
+                          ActionChip(
+                            label: const Text('Pet Shops'),
+                            onPressed: () => _onFilterChanged('pet_store'),
+                          ),
+                          const SizedBox(width: 10),
+                          ActionChip(
+                            label: const Text('Shelters'),
+                            onPressed: () => _onFilterChanged('shelter'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () async {
+              final controller = await _controller.future;
+              controller.animateCamera(CameraUpdate.zoomIn());
+            },
+            child: const Icon(Icons.add),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () async {
+              final controller = await _controller.future;
+              controller.animateCamera(CameraUpdate.zoomOut());
+            },
+            child: const Icon(Icons.remove),
+          ),
+        ],
+      ),
     );
   }
 }

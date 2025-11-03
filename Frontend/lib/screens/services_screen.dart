@@ -76,7 +76,7 @@ class ServicesScreen extends StatelessWidget {
                 ServiceCard(
                   title: 'Adoption',
                   icon: Icons.pets,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen(placeType: 'animal_shelter'))),
                   cardHeight: 120,
                   iconSize: 30,
                   textSize: 14,
@@ -87,7 +87,7 @@ class ServicesScreen extends StatelessWidget {
             ServiceCard(
               title: 'Vets near me',
               icon: Icons.map,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen())),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen(placeType: 'veterinary_care'))),
               cardHeight: 80,
               iconSize: 30,
               textSize: 16,
