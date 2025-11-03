@@ -50,7 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           displayName: userProfile != null && userProfile['first_name'] != null
               ? '${userProfile['first_name']} ${userProfile['last_name'] ?? ''}'
               : '',
-          photoUrl: userProfile?['avatar_url'],
+          photoUrl: userProfile?['photo_url'],
           phone: userProfile?['phone'],
           city: userProfile?['city'],
           state: userProfile?['state'],
@@ -113,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (imageUrl != null) {
         await Supabase.instance.client
             .from('profiles')
-            .update({'avatar_url': imageUrl}).eq('user_id', user.id);
+            .update({'photo_url': imageUrl}).eq('user_id', user.id);
 
         await _fetchProfileData();
 

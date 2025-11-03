@@ -56,5 +56,7 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to your location to show nearby pet services.</string>
 </dict>
 </plist>

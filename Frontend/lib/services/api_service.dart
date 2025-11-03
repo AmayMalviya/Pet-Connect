@@ -10,14 +10,14 @@ class ApiService {
   /// Falls back to joining first_name/last_name into displayName.
   static Future<pet_connect_user.User?> getUserDetails(String userId) async {
     final client = Supabase.instance.client;
-    final resp = await client.from('profiles').select('user_id, first_name, last_name, email, avatar_url').eq('user_id', userId).maybeSingle();
+    final resp = await client.from('profiles').select('user_id, first_name, last_name, email, photo_url').eq('user_id', userId).maybeSingle();
 
     if (resp == null) return null;
 
     final firstName = resp['first_name'] as String?;
     final lastName = resp['last_name'] as String?;
     final email = resp['email'] as String? ?? '';
-    final avatar = resp['avatar_url'] as String?;
+    final avatar = resp['photo_url'] as String?;
 
     final displayName = ((firstName ?? '') + ' ' + (lastName ?? '')).trim();
 
@@ -36,7 +36,7 @@ class ApiService {
 
     await Supabase.instance.client.from('profiles').upsert({
       'user_id': user.id,
-      'avatar_url': url,
+      'photo_url': url,
     });
   }
 }

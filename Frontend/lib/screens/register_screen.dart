@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final lastName = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  final confirmPassword = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -28,10 +29,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     lastName.dispose();
     email.dispose();
     password.dispose();
+    confirmPassword.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    if (password.text != confirmPassword.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
     if (firstName.text.isEmpty || lastName.text.isEmpty || email.text.isEmpty || password.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
@@ -52,22 +60,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (response.user != null) {
         // The user is created, but needs to confirm their email.
         // Supabase sends the confirmation email automatically if enabled.
-
-        // We still need to create a profile in our public 'profiles' table.
-        await Supabase.instance.client.from('profiles').insert({
-          'user_id': response.user!.id,
-          'first_name': firstName.text.trim(),
-          'last_name': lastName.text.trim(),
-          'email': email.text.trim(),
-        });
+        // We recommend setting up a database trigger to create a profile in the public 'profiles' table
+        // when a new user is created in the 'auth.users' table.
 
         if (!mounted) return;
 
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Registration Successful'),
-            content: const Text('Please check your email to verify your account before logging in.'),
+            title: const Text('Confirm your email'),
+            content: const Text('We have sent a confirmation link to your email address. Please click the link to activate your account.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -154,7 +156,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 12),
                   PetTextField(controller: email, hint: 'Email', icon: Icons.alternate_email_rounded),
                   const SizedBox(height: 12),
-                  PetTextField(controller: password, hint: 'Password', icon: Icons.lock_outline_rounded, obscure: true),
+                  PetTextField(controller: password, hint: 'Create Password', icon: Icons.lock_outline_rounded, obscure: true),
+                  const SizedBox(height: 12),
+                  PetTextField(controller: confirmPassword, hint: 'Confirm Password', icon: Icons.lock_outline_rounded, obscure: true),
 
                   const SizedBox(height: 18),
                   _isLoading ? const Center(child: CircularProgressIndicator()) : PrimaryButton(label: 'Sign Up', icon: Icons.check_circle_rounded, onPressed: _submit),

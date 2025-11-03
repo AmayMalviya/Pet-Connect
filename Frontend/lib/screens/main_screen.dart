@@ -6,6 +6,7 @@ import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/app_drawer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,6 +19,29 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  String? _photoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('photo_url')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      if (profile != null && profile['photo_url'] != null) {
+        setState(() {
+          _photoUrl = profile['photo_url'];
+        });
+      }
+    }
+  }
 
   static const List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
@@ -55,12 +79,15 @@ class _MainScreenState extends State<MainScreen> {
             },
           ),
           IconButton(
-            icon: const CircleAvatar(
+            icon: CircleAvatar(
               radius: 18,
-              backgroundImage: AssetImage('assets/images/profile_avatar.png'),
+              backgroundImage: _photoUrl != null
+                  ? NetworkImage(_photoUrl!)
+                  : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
             ),
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/profile');
+              _loadUserData();
             },
           ),
         ],
