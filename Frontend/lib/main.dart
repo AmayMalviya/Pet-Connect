@@ -28,6 +28,8 @@ import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/edit_profile_screen.dart';
 import 'package:pet_connect_app/screens/social_profile_setup_screen.dart';
+import 'package:pet_connect_app/screens/map_screen.dart';
+import 'package:pet_connect_app/screens/profile_details_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -134,6 +136,8 @@ class PetConnectApp extends StatelessWidget {
         ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
         EditProfileScreen.routeName: (context) => const EditProfileScreen(),
         SocialProfileSetupScreen.routeName: (context) => const SocialProfileSetupScreen(),
+        MapScreen.routeName: (context) => const MapScreen(),
+        ProfileDetailsScreen.routeName: (context) => const ProfileDetailsScreen(),
       },
     );
   }

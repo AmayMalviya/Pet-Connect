@@ -9,6 +9,7 @@ import 'package:pet_connect_app/screens/register_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/profile_details_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -43,13 +44,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.user != null) {
         final userData = await Supabase.instance.client
             .from('profiles')
-            .select('role')
+            .select()
             .eq('user_id', response.user!.id)
             .maybeSingle();
 
         if (!mounted) return;
 
-        if (userData?['role'] != null) {
+        if (userData == null || userData['phone'] == null || (userData['phone'] as String).isEmpty) {
+          Navigator.pushReplacementNamed(context, ProfileDetailsScreen.routeName);
+        } else if (userData['role'] != null) {
           // User has already selected a role
           final role = userData!['role'] as String;
           if (role == 'Pet Owner') {

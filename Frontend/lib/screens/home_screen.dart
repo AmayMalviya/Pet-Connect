@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
+import 'package:pet_connect_app/screens/map_screen.dart';
 // Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {
@@ -299,6 +300,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else {
                         _showAddPetDialog();
                       }
+                    },
+                  ),
+                  PetCareCard(
+                    title: 'Nearby Services',
+                    icon: Icons.location_on,
+                    onTap: () {
+                      Navigator.pushNamed(context, MapScreen.routeName);
                     },
                   ),
                 ],
