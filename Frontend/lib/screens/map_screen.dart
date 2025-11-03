@@ -1,155 +1,221 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as latlong2;
-import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  static const routeName = '/map';
+  final String? placeType;
 
-  static const String routeName = '/map-screen';
+  const MapScreen({super.key, this.placeType});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
-  MapController? _mapController;
-  latlong2.LatLng? _currentLocation;
+  final Completer<GoogleMapController> _controller = Completer();
+  final Set<Marker> _markers = {};
+  static const String _googleApiKey = 'AIzaSyC6FUq2HsQPZicGKijt1xEh4fuo_19vBb4';
+  LatLng? _currentPosition;
   bool _isLoading = true;
-  String? _error;
-  final List<Marker> _markers = [];
+  String _selectedPlaceType = 'veterinary_care';
 
   @override
   void initState() {
     super.initState();
-    _determinePosition();
+    _selectedPlaceType = widget.placeType ?? 'veterinary_care';
+    _getUserLocation();
   }
 
-  Future<void> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() {
-        _error = 'Location services are disabled.';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() {
-          _error = 'Location permissions are denied';
-          _isLoading = false;
-        });
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _error = 'Location permissions are permanently denied, we cannot request permissions.';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      setState(() {
-        _currentLocation = latlong2.LatLng(position.latitude, position.longitude);
-        _isLoading = false;
-      });
-      _fetchNearbyPlaces(latlong2.LatLng(position.latitude, position.longitude));
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to get current location: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
+  Future<void> _getUserLocation() async {
+    _currentPosition = const LatLng(22.719568, 75.857727); // Indore, MP, India
+    setState(() {
+      _isLoading = false;
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('currentLocation'),
+          position: _currentPosition!,
+          infoWindow: const InfoWindow(title: 'Your Location'),
+        ),
+      );
+    });
+    _searchNearbyPlaces();
   }
 
-  Future<void> _fetchNearbyPlaces(latlong2.LatLng location) async {
-    final String apiKey = 'AIzaSyAAprcPivvOxN-w7XNsAHOiVydUcxjXdHI';
-    final String baseUrl = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
-    final String types = 'veterinary_care|pet_store|animal_shelter'; // Add more types as needed
-    final String keywords = 'pet services|pet adoption';
+  void _addMarker(LatLng position, String markerId, String info, {BitmapDescriptor? icon}) {
+    final marker = Marker(
+      markerId: MarkerId(markerId),
+      position: position,
+      infoWindow: InfoWindow(title: info),
+      icon: icon ?? BitmapDescriptor.defaultMarker,
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(info),
+            content: const Text('Do you want to open this location in Google Maps?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _launchMaps(position.latitude, position.longitude);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Open'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    setState(() {
+      _markers.add(marker);
+    });
+  }
 
-    final Uri uri = Uri.parse(
-        '$baseUrl?location=${location.latitude},${location.longitude}&radius=5000&type=$types&keyword=$keywords&key=$apiKey');
+  Future<void> _searchNearbyPlaces({String? type, String? keyword}) async {
+    if (_currentPosition == null) return;
 
-    try {
-      final response = await http.get(uri);
+    setState(() {
+      _markers.removeWhere((marker) => marker.markerId.value != 'currentLocation');
+    });
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
-          setState(() {
-            for (var place in data['results']) {
-              final lat = place['geometry']['location']['lat'];
-              final lng = place['geometry']['location']['lng'];
-              final name = place['name'];
-              final placeId = place['place_id'];
+    final lat = _currentPosition!.latitude;
+    final lng = _currentPosition!.longitude;
+    const radius = 5000;
+    var url =
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=$radius&key=$_googleApiKey';
 
-              _markers.add(
-                Marker(
-                  point: latlong2.LatLng(lat, lng),
-                  child: const Icon(Icons.location_pin, color: Colors.red, size: 30.0),
-                ),
-              );
-            }
-          });
-        } else {
-          print('Google Places API error: ${data['status']}');
+    if (type != null) {
+      url += '&type=$type';
+    }
+    if (keyword != null) {
+      url += '&keyword=$keyword';
+    }
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        for (var place in data['results']) {
+          final placeLoc = place['geometry']['location'];
+          final lat = placeLoc['lat'];
+          final lng = placeLoc['lng'];
+          final name = place['name'];
+          final placeId = place['place_id'];
+
+          _addMarker(LatLng(lat, lng), placeId, name,
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure));
         }
-      } else {
-        print('HTTP error: ${response.statusCode}');
       }
-    } catch (e) {
-      print('Error fetching nearby places: $e');
     }
   }
 
-  void _onMapCreated(MapController controller) {
-    _mapController = controller;
+  Future<void> _launchMaps(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  void _onFilterChanged(String filter) {
+    if (filter == 'shelter') {
+      final keywords = [
+        'animal shelters near me',
+        'pet adoption centers',
+        'dog shelters',
+        'cat rescues',
+        'humane society',
+        'SPCA'
+      ].join('|');
+      _searchNearbyPlaces(keyword: keywords);
+    } else {
+      _searchNearbyPlaces(type: filter);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nearby Services', style: GoogleFonts.poppins()),
-        leading: const BackButton(),
+        title: const Text('Nearby Pet Services'),
       ),
-      body: _isLoading
+      body: _isLoading || _currentPosition == null
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : _currentLocation == null
-                  ? const Center(child: Text('Could not get current location.'))
-                  : FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _currentLocation!,
-                        initialZoom: 14.0,
+          : Stack(
+              children: [
+                GoogleMap(
+                  mapType: MapType.normal,
+                  initialCameraPosition: CameraPosition(
+                    target: _currentPosition!,
+                    zoom: 14,
+                  ),
+                  onMapCreated: (GoogleMapController controller) {
+                    _controller.complete(controller);
+                  },
+                  markers: _markers,
+                ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    color: Colors.white.withOpacity(0.8),
+                    child: SizedBox(
+                      height: 50.0,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          ActionChip(
+                            label: const Text('Vets'),
+                            onPressed: () => _onFilterChanged('veterinary_care'),
+                          ),
+                          const SizedBox(width: 10),
+                          ActionChip(
+                            label: const Text('Pet Shops'),
+                            onPressed: () => _onFilterChanged('pet_store'),
+                          ),
+                          const SizedBox(width: 10),
+                          ActionChip(
+                            label: const Text('Shelters'),
+                            onPressed: () => _onFilterChanged('shelter'),
+                          ),
+                        ],
                       ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                          userAgentPackageName: 'com.example.pet_connect_app',
-                        ),
-                        MarkerLayer(
-                          markers: _markers,
-                        ),
-                      ],
                     ),
+                  ),
+                ),
+              ],
+            ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () async {
+              final controller = await _controller.future;
+              controller.animateCamera(CameraUpdate.zoomIn());
+            },
+            child: const Icon(Icons.add),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () async {
+              final controller = await _controller.future;
+              controller.animateCamera(CameraUpdate.zoomOut());
+            },
+            child: const Icon(Icons.remove),
+          ),
+        ],
+      ),
     );
   }
 }

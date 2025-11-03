@@ -38,8 +38,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController = TextEditingController(text: widget.initialData?['phone'] ?? '');
 
     _selectedCountry = widget.initialData?['country'];
-    _selectedState = widget.initialData?['state'];
-    _selectedCity = widget.initialData?['city'];
+    _selectedState = widget.initialData?['State'];
+    _selectedCity = widget.initialData?['City'];
 
     _fetchLocations();
   }
@@ -57,26 +57,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await Supabase.instance.client.from('indian_cities').select();
-      _allLocations = (response as List).map((item) => item as Map<String, dynamic>).toList();
+      print('Locations response: $response');
+      _allLocations = (response as List)
+          .where((item) => item != null)
+          .map((item) => item as Map<String, dynamic>)
+          .toList();
       
-      _countries = _allLocations.map((e) => e['country'] as String).toSet().toList()..sort();
+      _countries = _allLocations
+          .where((e) => e['country'] != null)
+          .map((e) => e['country'] as String)
+          .toSet()
+          .toList()..sort();
+      print('Countries: $_countries');
       
       if (_selectedCountry != null) {
         _states = _allLocations
-            .where((e) => e['country'] == _selectedCountry)
-            .map((e) => e['state'] as String)
+            .where((e) => e['country'] == _selectedCountry && e['State'] != null)
+            .map((e) => e['State'] as String)
             .toSet()
             .toList()..sort();
+        print('States for $_selectedCountry: $_states');
+      }
+      if (_selectedState != null && !_states.contains(_selectedState)) { // Check if _selectedState is valid
+        _selectedState = null;
       }
       if (_selectedState != null) {
         _cities = _allLocations
-            .where((e) => e['country'] == _selectedCountry && e['state'] == _selectedState)
-            .map((e) => e['city'] as String)
+            .where((e) => e['country'] == _selectedCountry && e['State'] == _selectedState && e['City'] != null)
+            .map((e) => e['City'] as String)
             .toSet()
             .toList()..sort();
+        print('Cities for $_selectedState: $_cities');
+      }
+      if (_selectedCity != null && !_cities.contains(_selectedCity)) { // Check if _selectedCity is valid
+        _selectedCity = null;
       }
 
     } catch (e) {
+      print('Error fetching locations: $e');
       // Handle error
     } finally {
       setState(() => _isLoading = false);
@@ -266,8 +284,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   _selectedState = null;
                                   _selectedCity = null;
                                   _states = _allLocations
-                                      .where((e) => e['country'] == newValue)
-                                      .map((e) => e['state'] as String)
+                                      .where((e) => e['country'] == newValue && e['State'] != null)
+                                      .map((e) => e['State'] as String)
                                       .toSet()
                                       .toList()..sort();
                                   _cities = [];
@@ -297,8 +315,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   _selectedState = newValue;
                                   _selectedCity = null;
                                   _cities = _allLocations
-                                      .where((e) => e['country'] == _selectedCountry && e['state'] == newValue)
-                                      .map((e) => e['city'] as String)
+                                      .where((e) => e['country'] == _selectedCountry && e['State'] == newValue && e['City'] != null)
+                                      .map((e) => e['City'] as String)
                                       .toSet()
                                       .toList()..sort();
                                 });

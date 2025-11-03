@@ -57,6 +57,13 @@
 		</dict>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to your location to show nearby pet services.</string>
+	<string>We need your location to show nearby pet services.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to location when in the background.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>apple-maps</string>
+	</array>
 </dict>
 </plist>

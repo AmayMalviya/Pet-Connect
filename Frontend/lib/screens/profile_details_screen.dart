@@ -16,18 +16,50 @@ class ProfileDetailsScreen extends StatefulWidget {
 
 class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   final phone = TextEditingController();
-  final city = TextEditingController();
-  final stateCtrl = TextEditingController();
-  final country = TextEditingController();
   bool _isLoading = false;
+
+  List<Map<String, dynamic>> _allLocations = [];
+  List<String> _countries = [];
+  List<String> _states = [];
+  List<String> _cities = [];
+
+  String? _selectedCountry;
+  String? _selectedState;
+  String? _selectedCity;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocations();
+  }
 
   @override
   void dispose() {
     phone.dispose();
-    city.dispose();
-    stateCtrl.dispose();
-    country.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchLocations() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await Supabase.instance.client.from('indian_cities').select();
+      _allLocations = (response as List)
+          .where((item) => item != null)
+          .map((item) => item as Map<String, dynamic>)
+          .toList();
+      
+      _countries = _allLocations
+          .where((e) => e['country'] != null)
+          .map((e) => e['country'] as String)
+          .toSet()
+          .toList()..sort();
+      print('Countries: $_countries');
+      
+    } catch (e) {
+      // Handle error
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -39,9 +71,9 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
       final payload = {
         'user_id': user.id,
         if (phone.text.trim().isNotEmpty) 'phone': phone.text.trim(),
-        if (city.text.trim().isNotEmpty) 'city': city.text.trim(),
-        if (stateCtrl.text.trim().isNotEmpty) 'state': stateCtrl.text.trim(),
-        if (country.text.trim().isNotEmpty) 'country': country.text.trim(),
+        'city': _selectedCity,
+        'state': _selectedState,
+        'country': _selectedCountry,
       };
 
       await Supabase.instance.client.from('profiles').upsert(payload);
@@ -78,11 +110,91 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
               PetTextField(controller: phone, hint: 'Phone', icon: Icons.phone_outlined),
               const SizedBox(height: 12),
-              PetTextField(controller: city, hint: 'City', icon: Icons.location_city_outlined),
+              DropdownButtonFormField<String>(
+                value: _selectedCountry,
+                decoration: InputDecoration(
+                  labelText: 'Country',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
+                items: _countries.map((String country) {
+                  return DropdownMenuItem<String>(
+                    value: country,
+                    child: Text(country),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedCountry = newValue;
+                    _selectedState = null;
+                    _selectedCity = null;
+                    _states = _allLocations
+                        .where((e) => e['country'] == newValue && e['State'] != null)
+                        .map((e) => e['State'] as String)
+                        .toSet()
+                        .toList()..sort();
+                    _cities = [];
+                  });
+                },
+                validator: (value) => value == null ? 'Please select a country' : null,
+              ),
               const SizedBox(height: 12),
-              PetTextField(controller: stateCtrl, hint: 'State', icon: Icons.map_outlined),
+              DropdownButtonFormField<String>(
+                value: _selectedState,
+                decoration: InputDecoration(
+                  labelText: 'State',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
+                items: _states.map((String state) {
+                  return DropdownMenuItem<String>(
+                    value: state,
+                    child: Text(state),
+                  );
+                }).toList(),
+                onChanged: _selectedCountry == null ? null : (newValue) {
+                  setState(() {
+                    _selectedState = newValue;
+                    _selectedCity = null;
+                    _cities = _allLocations
+                        .where((e) => e['country'] == _selectedCountry && e['State'] == newValue && e['City'] != null)
+                        .map((e) => e['City'] as String)
+                        .toSet()
+                        .toList()..sort();
+                  });
+                },
+                validator: (value) => value == null ? 'Please select a state' : null,
+              ),
               const SizedBox(height: 12),
-              PetTextField(controller: country, hint: 'Country', icon: Icons.public_outlined),
+              DropdownButtonFormField<String>(
+                value: _selectedCity,
+                decoration: InputDecoration(
+                  labelText: 'City',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
+                items: _cities.map((String city) {
+                  return DropdownMenuItem<String>(
+                    value: city,
+                    child: Text(city),
+                  );
+                }).toList(),
+                onChanged: _selectedState == null ? null : (newValue) {
+                  setState(() {
+                    _selectedCity = newValue;
+                  });
+                },
+                validator: (value) => value == null ? 'Please select a city' : null,
+              ),
 
               const SizedBox(height: 20),
 
