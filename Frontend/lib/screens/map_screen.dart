@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_webservice/places.dart';
-import 'package:permission_handler/permission_handler.dart';
+
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class MapScreen extends StatefulWidget {
@@ -19,7 +20,6 @@ class _MapScreenState extends State<MapScreen> {
   final Completer<GoogleMapController> _controller = Completer();
   final Set<Marker> _markers = {};
   static const String _googleApiKey = 'AIzaSyC6FUq2HsQPZicGKijt1xEh4fuo_19vBb4';
-  final _places = GoogleMapsPlaces(apiKey: _googleApiKey);
   LatLng? _currentPosition;
   bool _isLoading = true;
 
@@ -30,28 +30,55 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _getUserLocation() async {
-    var status = await Permission.location.request();
-    if (status.isGranted) {
-      try {
-        Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high);
-        setState(() {
-          _currentPosition = LatLng(position.latitude, position.longitude);
-          _isLoading = false;
-        });
-        _addMarker(_currentPosition!, 'My Location', 'This is my current location');
-        _searchNearbyPlaces();
-      } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
-        // Handle location error
-      }
-    } else {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check service availability
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      print('Location services are disabled.');
       setState(() {
         _isLoading = false;
       });
-      // Handle permission denial
+      return;
+    }
+
+    // Check permission
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        print('Location permissions are denied');
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      print('Location permissions are permanently denied.');
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Now safe to fetch position
+    try {
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      print('Current position: ${position.latitude}, ${position.longitude}');
+      setState(() {
+        _currentPosition = LatLng(position.latitude, position.longitude);
+        _isLoading = false;
+      });
+      _addMarker(_currentPosition!, 'My Location', 'This is my current location');
+      _searchNearbyPlaces();
+    } catch (e) {
+      print('Error getting location: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -71,21 +98,29 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _searchNearbyPlaces() async {
     if (_currentPosition == null) return;
 
-    final location = Location(
-        lat: _currentPosition!.latitude, lng: _currentPosition!.longitude);
-    final result = await _places.searchNearbyWithRadius(location, 5000,
-        type: 'veterinary_care|pet_store|animal_shelter');
+    final lat = _currentPosition!.latitude;
+    final lng = _currentPosition!.longitude;
+    const radius = 5000;
+    const type = 'veterinary_care|pet_store|animal_shelter';
+    final url =
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=$radius&type=$type&key=$_googleApiKey';
 
-    if (result.status == "OK") {
-      for (var place in result.results) {
-        final placeLoc = place.geometry!.location;
-        final lat = placeLoc.lat;
-        final lng = placeLoc.lng;
-        final name = place.name;
+    final response = await http.get(Uri.parse(url));
 
-        _addMarker(LatLng(lat, lng), place.placeId, name,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueAzure));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        for (var place in data['results']) {
+          final placeLoc = place['geometry']['location'];
+          final lat = placeLoc['lat'];
+          final lng = placeLoc['lng'];
+          final name = place['name'];
+          final placeId = place['place_id'];
+
+          _addMarker(LatLng(lat, lng), placeId, name,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueAzure));
+        }
       }
     }
   }
@@ -105,20 +140,19 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         title: const Text('Nearby Pet Services'),
       ),
-      body: _isLoading
+      body: _isLoading || _currentPosition == null
           ? const Center(child: CircularProgressIndicator())
-          : _currentPosition == null
-              ? const Center(child: Text('Could not get current location.'))
-              : GoogleMap(
-                  mapType: MapType.normal,
-                  initialCameraPosition: CameraPosition(
-                    target: _currentPosition!,
-                    zoom: 14,
-                  ),
-                  onMapCreated: (GoogleMapController controller) {
-                    _controller.complete(controller);},
-                  markers: _markers,
-                ),
+          : GoogleMap(
+              mapType: MapType.normal,
+              initialCameraPosition: CameraPosition(
+                target: _currentPosition!,
+                zoom: 14,
+              ),
+              onMapCreated: (GoogleMapController controller) {
+                _controller.complete(controller);
+              },
+              markers: _markers,
+            ),
     );
   }
 }
