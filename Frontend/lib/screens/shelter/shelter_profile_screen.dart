@@ -111,6 +111,15 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
         title: const Text("Manage Profile"),
         centerTitle: true,
         leading: const BackButton(), // Added back button
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              Navigator.of(context).pushReplacementNamed('/login');
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
