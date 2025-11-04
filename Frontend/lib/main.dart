@@ -100,8 +100,6 @@ class PetConnectApp extends StatelessWidget {
 
                 final userRole = profile['role'];
 
-                // Save FCM token
-                notificationService.saveFCMToken();
 
                 // Navigate based on role.
                 if (userRole == 'Pet Owner') {

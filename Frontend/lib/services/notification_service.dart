@@ -42,8 +42,9 @@ class NotificationService {
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings();
     const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+        InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsDarwin);
     await _localNotifications.initialize(initializationSettings);
 
     // Handle messages when the app is in the foreground
@@ -59,49 +60,50 @@ class NotificationService {
 
     // Set the background messaging handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  }
 
-  void _showLocalNotification(RemoteMessage message) {
-    RemoteNotification? notification = message.notification;
-    AndroidNotification? android = message.notification?.android;
+    // Get and save the initial FCM token
+    _fcm.getToken().then((token) => _saveToken(token));
 
-    if (notification != null && android != null) {
-      _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            'your_channel_id', // id
-            'Your Channel Name', // title
-            channelDescription: 'your channel description', // description
-            icon: android.smallIcon,
-            // other properties...
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<String?> getFCMToken() async {
-    return await _fcm.getToken();
-  }
-
-  Future<void> saveFCMToken() async {
-    final token = await getFCMToken();
-    if (token != null) {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        try {
-          await Supabase.instance.client
-              .from('profiles')
-              .update({'fcm_token': token})
-              .eq('user_id', userId);
-          print('FCM token saved successfully!');
-        } catch (e) {
-          print('Error saving FCM token: $e');
+        // Listen for token refreshes
+        _fcm.onTokenRefresh.listen(_saveToken).onError((error) {
+          print('Error refreshing FCM token: $error');
+        });
+      }
+    
+      void _showLocalNotification(RemoteMessage message) {
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+    
+        if (notification != null && android != null) {
+          _localNotifications.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                'your_channel_id', // id
+                'Your Channel Name', // title
+                channelDescription: 'your channel description', // description
+                icon: android.smallIcon,
+                // other properties...
+              ),
+            ),
+          );
         }
       }
-    }
-  }
-}
+    
+      Future<void> _saveToken(String? token) async {
+        if (token == null) return;
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          try {
+            await Supabase.instance.client
+                .from('profiles')
+                .update({'fcm_token': token})
+                .eq('user_id', userId);
+            print('FCM token saved successfully!');
+          } catch (e) {
+            print('Error saving FCM token: $e');
+          }
+        }
+      }}

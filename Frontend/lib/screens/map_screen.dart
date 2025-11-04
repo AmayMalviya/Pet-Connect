@@ -127,17 +127,22 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _onFilterChanged(String filter) {
+  void _onFilterChanged(String filter) async {
     if (filter == 'shelter') {
       final keywords = [
-        'animal shelters near me',
-        'pet adoption centers',
-        'dog shelters',
-        'cat rescues',
+        'animal shelter',
+        'pet adoption center',
+        'dog shelter',
+        'cat rescue',
         'humane society',
         'SPCA'
-      ].join('|');
-      _searchNearbyPlaces(keyword: keywords);
+      ];
+      setState(() {
+        _markers.removeWhere((marker) => marker.markerId.value != 'currentLocation');
+      });
+      for (String keyword in keywords) {
+        await _searchNearbyPlaces(keyword: keyword);
+      }
     } else {
       _searchNearbyPlaces(type: filter);
     }
@@ -172,24 +177,26 @@ class _MapScreenState extends State<MapScreen> {
                     color: Colors.white.withOpacity(0.8),
                     child: SizedBox(
                       height: 50.0,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          ActionChip(
-                            label: const Text('Vets'),
-                            onPressed: () => _onFilterChanged('veterinary_care'),
-                          ),
-                          const SizedBox(width: 10),
-                          ActionChip(
-                            label: const Text('Pet Shops'),
-                            onPressed: () => _onFilterChanged('pet_store'),
-                          ),
-                          const SizedBox(width: 10),
-                          ActionChip(
-                            label: const Text('Shelters'),
-                            onPressed: () => _onFilterChanged('shelter'),
-                          ),
-                        ],
+                      child: IntrinsicWidth(
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            ActionChip(
+                              label: const Text('Vets'),
+                              onPressed: () => _onFilterChanged('veterinary_care'),
+                            ),
+                            const SizedBox(width: 10),
+                            ActionChip(
+                              label: const Text('Pet Shops'),
+                              onPressed: () => _onFilterChanged('pet_store'),
+                            ),
+                            const SizedBox(width: 10),
+                            ActionChip(
+                              label: const Text('Shelters'),
+                              onPressed: () => _onFilterChanged('shelter'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -202,8 +209,18 @@ class _MapScreenState extends State<MapScreen> {
           FloatingActionButton(
             onPressed: () async {
               final controller = await _controller.future;
+              controller.animateCamera(CameraUpdate.newLatLng(_currentPosition!));
+            },
+            heroTag: "centerLocation",
+            child: const Icon(Icons.my_location),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () async {
+              final controller = await _controller.future;
               controller.animateCamera(CameraUpdate.zoomIn());
             },
+            heroTag: "zoomIn",
             child: const Icon(Icons.add),
           ),
           const SizedBox(height: 10),
