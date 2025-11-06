@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/post.dart';
 import 'package:pet_connect_app/screens/create_post_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/screens/comments_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -105,16 +106,136 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
           ],
           const SizedBox(height: 10),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.comment, color: Colors.grey),
-              Icon(Icons.favorite_border, color: Colors.grey),
-              Icon(Icons.share, color: Colors.grey),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.comment, color: Colors.grey),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CommentsScreen(postId: post.id),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 5),
+                  Text(post.commentCount.toString()),
+                ],
+              ),
+              LikeButton(post: post),
+              const Icon(Icons.share, color: Colors.grey),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class LikeButton extends StatefulWidget {
+  final Post post;
+  const LikeButton({super.key, required this.post});
+
+  @override
+  State<LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends State<LikeButton> {
+  bool _isLiked = false;
+  bool _isLoading = true;
+  final _supabase = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLikeStatus();
+  }
+
+  Future<void> _fetchLikeStatus() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+    final response = await _supabase
+        .from('likes')
+        .select()
+        .eq('post_id', widget.post.id)
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (mounted) {
+      setState(() {
+        _isLiked = response != null;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to like a post.')),
+      );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    if (_isLiked) {
+      await _supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', widget.post.id)
+          .eq('user_id', userId);
+    } else {
+      await _supabase.from('likes').insert({
+        'post_id': widget.post.id,
+        'user_id': userId,
+      });
+    }
+    if (mounted) {
+      setState(() {
+        _isLiked = !_isLiked;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(
+            _isLiked ? Icons.favorite : Icons.favorite_border,
+            color: _isLiked ? Colors.red : Colors.grey,
+          ),
+          onPressed: _toggleLike,
+        ),
+        Text(widget.post.likeCount.toString()),
+      ],
     );
   }
 }
