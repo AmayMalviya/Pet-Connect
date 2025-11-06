@@ -1,0 +1,27 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class ShelterAnalyticsScreen extends StatelessWidget {
+  static const routeName = '/shelter-analytics';
+
+  const ShelterAnalyticsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Shelter Analytics', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black,
+        elevation: 1,
+      ),
+      body: Center(
+        child: Text(
+          'Shelter Analytics Coming Soon!',
+          style: GoogleFonts.poppins(fontSize: 18),
+        ),
+      ),
+    );
+  }
+}

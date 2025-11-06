@@ -19,6 +19,9 @@ class Pet {
   final String? coatType;
   final String? groomingNeeds;
   final String? preferredFoodType;
+  final String? description;
+  final String? status;
+  final String? healthStatus;
 
   Pet({
     this.id,
@@ -41,6 +44,9 @@ class Pet {
     this.coatType,
     this.groomingNeeds,
     this.preferredFoodType,
+    this.description,
+    this.status,
+    this.healthStatus,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
@@ -65,6 +71,9 @@ class Pet {
       coatType: json['coat_type'],
       groomingNeeds: json['grooming_needs'],
       preferredFoodType: json['preferred_food_type'],
+      description: json['description'],
+      status: json['status'],
+      healthStatus: json['health_status'],
     );
   }
 
@@ -90,6 +99,9 @@ class Pet {
       'coat_type': coatType,
       'grooming_needs': groomingNeeds,
       'preferred_food_type': preferredFoodType,
+      'description': description,
+      'status': status,
+      'health_status': healthStatus,
     };
   }
 }

@@ -105,63 +105,87 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const AddEditPetScreen()),
-              ).then((_) => _fetchPets());
+              _showPetForm(context, null);
             },
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _pets.length,
-              itemBuilder: (context, index) {
-                final pet = _pets[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(15),
-                    leading: CircleAvatar(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                      child: const Icon(Icons.pets),
-                    ),
-                    title: Text(
-                      pet['name'] ?? 'No Name',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      '${pet['breed'] ?? 'Unknown Breed'} - ${pet['status'] ?? 'Unknown'}',
-                      style: GoogleFonts.poppins(),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => AddEditPetScreen(pet: Pet.fromJson(pet))),
-                            ).then((_) => _fetchPets());
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            _showDeleteConfirmationDialog(pet['id'].toString());
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () { /* TODO: Implement photo upload */ },
+                  icon: const Icon(Icons.photo_camera),
+                  label: const Text('Upload Photo'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () { /* TODO: Implement Excel/CSV upload */ },
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Upload Excel/CSV'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () { /* TODO: Implement photo of list upload */ },
+                  icon: const Icon(Icons.photo_album),
+                  label: const Text('Upload List Photo'),
+                ),
+              ],
             ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: _pets.length,
+                    itemBuilder: (context, index) {
+                      final pet = _pets[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(15),
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                            child: const Icon(Icons.pets),
+                          ),
+                          title: Text(
+                            pet['name'] ?? 'No Name',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            '${pet['breed'] ?? 'Unknown Breed'} - ${pet['status'] ?? 'Unknown'}',
+                            style: GoogleFonts.poppins(),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                                                      IconButton(
+                                                        icon: const Icon(Icons.edit, color: Colors.blue),
+                                                        onPressed: () {
+                                                          _showPetForm(context, Pet.fromJson(pet));
+                                                        },
+                                                      ),                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () {
+                                  _showDeleteConfirmationDialog(pet['id'].toString());
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

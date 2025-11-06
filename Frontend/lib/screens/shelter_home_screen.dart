@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
+import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
+import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
   static const routeName = '/shelter-home';
@@ -57,6 +59,22 @@ class ShelterHomeScreen extends StatelessWidget {
                     icon: Icons.person,
                     onTap: () {
                       Navigator.pushNamed(context, ShelterProfileScreen.routeName);
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Manage Appointments',
+                    icon: Icons.calendar_today,
+                    onTap: () {
+                      Navigator.pushNamed(context, ManageAppointmentsScreen.routeName);
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Shelter Analytics',
+                    icon: Icons.analytics,
+                    onTap: () {
+                      Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
                     },
                   ),
                 ],

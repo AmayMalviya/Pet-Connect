@@ -1,8 +1,8 @@
 class RecommendedProduct {
-  final String productId; // bigint in DB, coerced to String
+  final String productId;        // bigint in DB, will come as numeric or string from Supabase
   final String productName;
   final String category;
-  final String? price; // text in DB
+  final String? price;           // text in DB
   final String? imageUrl;
   final String? productUrl;
   final List<String>? tags;
@@ -21,10 +21,10 @@ class RecommendedProduct {
 
   factory RecommendedProduct.fromJson(Map<String, dynamic> json) {
     return RecommendedProduct(
-      productId: json['product_id'].toString(),
+      productId: json['product_id'].toString(),       // ensure string
       productName: json['product_name'] as String,
       category: json['category'] as String,
-      price: json['price']?.toString(),
+      price: json['price']?.toString(),               // keep as string
       imageUrl: json['image_url'] as String?,
       productUrl: json['product_url'] as String?,
       tags: json['tags'] != null ? List<String>.from(json['tags']) : null,

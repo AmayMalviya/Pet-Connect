@@ -35,6 +35,8 @@ import 'package:pet_connect_app/screens/add_edit_medical_note_screen.dart';
 import 'package:pet_connect_app/models/medical_note.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
+import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
+import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
 
 import 'package:pet_connect_app/services/notification_service.dart';
 
@@ -162,6 +164,8 @@ class PetConnectApp extends StatelessWidget {
           final petName = args['petName'] as String;
           return RecommendedShopScreen(petId: petId, petName: petName);
         },
+        ManageAppointmentsScreen.routeName: (context) => const ManageAppointmentsScreen(),
+        ShelterAnalyticsScreen.routeName: (context) => const ShelterAnalyticsScreen(),
       },
     );
   }

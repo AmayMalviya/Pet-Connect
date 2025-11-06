@@ -98,10 +98,7 @@ class _RecommendedShopScreenState extends State<RecommendedShopScreen> {
                                   children: [
                                     Text(product.productName, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
                                     if (product.price != null)
-                                      Text(
-                                        '\${product.price!.toStringAsFixed(2)}',
-                                        style: GoogleFonts.poppins(fontSize: 14, color: AppColors.primary),
-                                      ),
+                                      Text(product.price != null ? '\$${product.price!.toStringAsFixed(2)}' : '',style: GoogleFonts.poppins(fontSize: 14, color: AppColors.primary)),
                                     if (product.matchReason != null)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 4.0),
