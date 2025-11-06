@@ -6,6 +6,7 @@ class CalendarEvent {
   final String description;
   final DateTime date;
   final TimeOfDay time;
+  final String userId; // Add this line
 
   CalendarEvent({
     required this.id,
@@ -13,5 +14,6 @@ class CalendarEvent {
     required this.description,
     required this.date,
     required this.time,
+    required this.userId, // Add this line
   });
 }

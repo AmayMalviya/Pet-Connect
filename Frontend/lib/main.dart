@@ -132,7 +132,6 @@ class PetConnectApp extends StatelessWidget {
         SelfCareOptionsScreen.routeName: (context) => const SelfCareOptionsScreen(),
 
         ServicesScreen.routeName: (context) => const ServicesScreen(),
-        ShopScreen.routeName: (context) => const ShopScreen(),
         GroomingDetailsScreen.routeName: (context) => const GroomingDetailsScreen(),
         TrainingDetailsScreen.routeName: (context) => const TrainingDetailsScreen(),
         VetDetailsScreen.routeName: (context) => const VetDetailsScreen(),
@@ -157,12 +156,6 @@ class PetConnectApp extends StatelessWidget {
           final petId = args?['petId'] as String;
           final note = args?['note'] as MedicalNote?;
           return AddEditMedicalNoteScreen(petId: petId, note: note);
-        },
-        RecommendedShopScreen.routeName: (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          final petId = args['petId'] as String;
-          final petName = args['petName'] as String;
-          return RecommendedShopScreen(petId: petId, petName: petName);
         },
         ManageAppointmentsScreen.routeName: (context) => const ManageAppointmentsScreen(),
         ShelterAnalyticsScreen.routeName: (context) => const ShelterAnalyticsScreen(),

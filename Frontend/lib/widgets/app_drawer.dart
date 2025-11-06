@@ -80,13 +80,6 @@ class _AppDrawerState extends State<AppDrawer> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.shopping_bag),
-            title: const Text('Shop'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, ShopScreen.routeName);
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: () {
