@@ -53,7 +53,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   void _filterPets(String query) {
     setState(() {
       _filteredPets = _pets
-          .where((pet) => pet.breed.toLowerCase().contains(query.toLowerCase()))
+          .where((pet) => (pet.breed ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -97,8 +97,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                             radius: 30,
                             backgroundImage: AssetImage('assets/images/logo.png'), // Use pet image if available
                           ),
-                          title: Text(pet.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(pet.breed),
+                          title: Text(pet.name ?? 'Unknown Pet', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(pet.breed ?? 'Unknown Breed'),
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(

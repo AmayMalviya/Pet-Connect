@@ -10,7 +10,7 @@ class BreedService {
       // Use dogs_pet_data table as per DB schema
       final response = await supabase
           .from('dogs_pet_data')
-          .select('breed_id, breed_name')
+          .select('id, breed_name')
           .order('breed_name');
 
       return (response as List)
@@ -27,7 +27,7 @@ class BreedService {
       // Use cats_pet_data table as per DB schema
       final response = await supabase
           .from('cats_pet_data')
-          .select('breed_id, breed_name')
+          .select('id, breed_name')
           .order('breed_name');
 
       return (response as List)

@@ -12,6 +12,8 @@ import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
+import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
+import 'package:pet_connect_app/screens/shop_screen.dart'; // Import existing ShopScreen
 // Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {
@@ -28,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _userName;
   String? _error;
+  Pet? _selectedPet; // To store the currently selected pet for recommendations
 
   @override
   void initState() {
@@ -48,17 +51,21 @@ class _HomeScreenState extends State<HomeScreen> {
           .eq('user_id', user.id)
           .maybeSingle();
         
-        // Check if user has any pets
-        final pets = await Supabase.instance.client
-            .from('pets')
-            .select('id')
-            .eq('owner_id', user.id);
-        
+        // Check if user has any pets and fetch the first one
+        final petsResponse = await Supabase.instance.client
+            .from('pet_breed_info')
+            .select()
+            .eq('owner_id', user.id)
+            .limit(1); // Get only the first pet for now
+
         setState(() {
-          _userName = (profile != null) 
+          _userName = (profile != null)
             ? '${profile['first_name'] ?? 'User'}'
             : 'User';
-          _hasPet = (pets as List).isNotEmpty;
+          _hasPet = (petsResponse as List).isNotEmpty;
+          if (_hasPet) {
+            _selectedPet = Pet.fromJson(petsResponse[0]);
+          }
           _error = null;
         });
       }
@@ -299,6 +306,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => AdoptionScreen()));
                       } else {
                         _showAddPetDialog();
+                      }
+                    },
+                  ),
+                  PetCareCard(
+                    title: 'Shop',
+                    icon: Icons.shopping_bag_outlined,
+                    onTap: () {
+                      if (_hasPet && _selectedPet != null) {
+                        Navigator.pushNamed(
+                          context,
+                          RecommendedShopScreen.routeName,
+                          arguments: {
+                            'petId': _selectedPet!.id,
+                            'petName': _selectedPet!.name ?? 'Unknown Pet',
+                          },
+                        );
+                      } else {
+                        // Optionally navigate to general shop or show add pet dialog
+                        Navigator.pushNamed(context, ShopScreen.routeName);
                       }
                     },
                   ),

@@ -1,7 +1,7 @@
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 // This function needs to be a top-level function (not a class method)
 @pragma('vm:entry-point')
@@ -62,48 +62,69 @@ class NotificationService {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Get and save the initial FCM token
-    _fcm.getToken().then((token) => _saveToken(token));
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final apnsToken = await _fcm.getAPNSToken();
+      if (apnsToken != null) {
+        saveFCMToken();
+      } else {
+        print('APNS token not available yet. FCM token will not be saved.');
+      }
+    } else {
+      saveFCMToken();
+    }
 
-        // Listen for token refreshes
-        _fcm.onTokenRefresh.listen(_saveToken).onError((error) {
-          print('Error refreshing FCM token: $error');
-        });
+    // Listen for token refreshes
+    _fcm.onTokenRefresh.listen((token) {
+      _saveToken(token);
+    }).onError((error) {
+      print('Error refreshing FCM token: $error');
+    });
+  }
+
+  void _showLocalNotification(RemoteMessage message) {
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+
+    if (notification != null && android != null) {
+      _localNotifications.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'your_channel_id', // id
+            'Your Channel Name', // title
+            channelDescription: 'your channel description', // description
+            icon: android.smallIcon,
+            // other properties...
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<String?> getFCMToken() async {
+    return await _fcm.getToken();
+  }
+
+  Future<void> saveFCMToken() async {
+    final token = await getFCMToken();
+    await _saveToken(token);
+  }
+
+  Future<void> _saveToken(String? token) async {
+    if (token == null) return;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      try {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'fcm_token': token})
+            .eq('user_id', userId);
+        print('FCM token saved successfully!');
+      } catch (e) {
+        print('Error saving FCM token: $e');
       }
-    
-      void _showLocalNotification(RemoteMessage message) {
-        RemoteNotification? notification = message.notification;
-        AndroidNotification? android = message.notification?.android;
-    
-        if (notification != null && android != null) {
-          _localNotifications.show(
-            notification.hashCode,
-            notification.title,
-            notification.body,
-            NotificationDetails(
-              android: AndroidNotificationDetails(
-                'your_channel_id', // id
-                'Your Channel Name', // title
-                channelDescription: 'your channel description', // description
-                icon: android.smallIcon,
-                // other properties...
-              ),
-            ),
-          );
-        }
-      }
-    
-      Future<void> _saveToken(String? token) async {
-        if (token == null) return;
-        final userId = Supabase.instance.client.auth.currentUser?.id;
-        if (userId != null) {
-          try {
-            await Supabase.instance.client
-                .from('profiles')
-                .update({'fcm_token': token})
-                .eq('user_id', userId);
-            print('FCM token saved successfully!');
-          } catch (e) {
-            print('Error saving FCM token: $e');
-          }
-        }
-      }}
+    }
+  }
+}

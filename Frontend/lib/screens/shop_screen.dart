@@ -1,179 +1,292 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/models/recommended_product.dart';
+import 'package:pet_connect_app/services/recommendation_service.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShopScreen extends StatefulWidget {
+  static const routeName = '/shop';
   const ShopScreen({super.key});
-
-  static const String routeName = '/shop';
 
   @override
   State<ShopScreen> createState() => _ShopScreenState();
 }
 
-class _ShopScreenState extends State<ShopScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  List<Product> _products = [];
-  List<Product> _filteredProducts = [];
+class _ShopScreenState extends State<ShopScreen> with AutomaticKeepAliveClientMixin {
+  final RecommendationService _recommendationService = RecommendationService();
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _petSectionKeys = {};
+
+  late Future<_ShopData> _dataFuture;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _products = _getProducts();
-    _filteredProducts = _products;
-    _searchController.addListener(_onSearchChanged);
+    print('DEBUG: ShopScreen initState called');
+    _dataFuture = _loadAll();
+  }
+
+  Future<_ShopData> _loadAll() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final petsResp = await Supabase.instance.client
+        .from('pets')
+        .select('id, name, animal, breed, photo_url')
+        .eq('owner_id', user.id);
+
+    final List<Pet> allPets = (petsResp as List).map((j) => Pet.fromJson(j as Map<String, dynamic>)).toList();
+    
+    // Debug: log all pets and their IDs
+    print('DEBUG: Loaded ${allPets.length} pets from Supabase');
+    for (final p in allPets) {
+      print('DEBUG: Pet - name: ${p.name}, id: ${p.id}, animal: ${p.animal}');
+    }
+
+    // Filter to pets with valid non-empty IDs
+    final List<Pet> pets = allPets.where((p) => (p.id?.isNotEmpty ?? false)).toList();
+    print('DEBUG: Filtered to ${pets.length} pets with valid IDs');
+
+    if (pets.isEmpty) {
+      print('DEBUG: No pets with valid IDs found');
+      return _ShopData(pets: [], recsByPet: {});
+    }
+
+    // Fetch recommendations per pet in parallel
+    final Map<String, List<RecommendedProduct>> recsByPet = {};
+    await Future.wait(pets.map((pet) async {
+      final petId = pet.id!; // Safe because we filtered above
+      print('DEBUG: Fetching recommendations for pet: $petId');
+      final list = await _recommendationService.getRecommendedProducts(petId);
+      recsByPet[petId] = list;
+      print('DEBUG: Got ${list.length} recommendations for pet: $petId');
+    }));
+
+    // Init keys for scroll-to-section
+    for (final p in pets) {
+      final petId = p.id!; // Safe because we filtered above
+      _petSectionKeys[petId] = GlobalKey();
+    }
+
+    return _ShopData(pets: pets, recsByPet: recsByPet);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onSearchChanged() {
-    setState(() {
-      _filteredProducts = _products
-          .where(
-            (product) => product.name.toLowerCase().contains(
-              _searchController.text.toLowerCase(),
-            ),
-          )
-          .toList();
-    });
-  }
-
-  List<Product> _getProducts() {
-    return [
-      Product(
-        name: 'Dog Food',
-        price: ' 650 Rs',
-        imageUrl: 'assets/images/DogFood.png', // Using a placeholder image
-        productUrl: 'https://www.google.com/search?q=dog+food&oq=dog+food&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIHCAEQABiABDIHCAIQABiABDIHCAMQABiABDIMCAQQABgUGIcCGIAEMgkIBRAAGAoYgAQyBwgGEAAYgAQyBwgHEAAYgAQyBggIEAAYgAQyBggJEC4YQNIBCDE3MDJqMGoxqAIIsAIB8QWtvuSWxlIJMQ&sourceid=chrome&ie=UTF8#pvs=0:~:text=Dry%20Dog%20Food-,Meat,-%26%20Rice',
-      ),
-      Product(
-        name: 'Cat Food',
-        price: ' 400 Rs',
-        imageUrl: 'assets/images/CatFood.png', // Using a placeholder image
-        productUrl: 'https://www.google.com/search?q=cat+food&sca_esv=87473f56703eda8f&sxsrf=AE3TifOfMqlOal0kERoee_fBrHh3rxxZBA%3A1755752865660&ei=oammaPf-J8uy4-EP-ILdiAs&ved=0ahUKEwi30_uOkZuPAxVL2TgGHXhBF7EQ4dUDCBA&uact=5&oq=cat+food&gs_lp=Egxnd3Mtd2l6LXNlcnAiCGNhdCBmb29kMg0QLhiABBixAxhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBgUGIcCMgUQABiABDIFEAAYgAQyDRAAGIAEGLEDGEMYigUyBhAAGAcYHjIcEC4YgAQYsQMYQxiKBRiXBRjcBBjeBBjfBNgBAUjiElD0B1iQC3ACeAGQAQCYAdEBoAHBBKoBBTAuMi4xuAEDyAEA-AEBmAIEoAKfA8ICEBAuGLADGNEDGNYEGEcYxwHCAgoQABiwAxjWBBhHwgINEAAYgAQYsAMYQxiKBZgDAIgGAZAGCroGBggBEAEYFJIHBTIuMS4xoAfcF7IHBTAuMS4zyAcP&sclient=gws-wiz-serp#:~:text=Purepet-,Adult,-Cat%20Ocean%20Fish',
-      ),
-      Product(
-        name: 'Chew Toy',
-        price: '\$9.99',
-        imageUrl: 'assets/images/logo.png',
-        productUrl: null,
-      ),
-      Product(
-        name: 'Leash',
-        price: '\$15.00',
-        imageUrl: 'assets/images/logo.png',
-        productUrl: null,
-      ),
-      Product(
-        name: 'Pet Bed',
-        price: '\$45.00',
-        imageUrl: 'assets/images/logo.png',
-        productUrl: null,
-      ),
-    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shop'),
-        leading: const BackButton(), // Added back button
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+    super.build(context);
+    return FutureBuilder<_ShopData>(
+      future: _dataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: Text('No data'));
+        }
+
+        final data = snapshot.data!;
+        final pets = data.pets;
+        final recsByPet = data.recsByPet;
+
+        if (pets.isEmpty) {
+          return const Center(child: Text('No pets found. Add a pet to see recommendations.'));
+        }
+
+        return ListView(
+          controller: _scrollController,
+          children: [
+            _buildPetHeader(pets, onTap: (petId) => _scrollToPetSection(petId)),
+            const SizedBox(height: 8),
+            ...pets.map((pet) {
+              final petId = pet.id?.toString() ?? '';
+              final recs = recsByPet[petId] ?? [];
+              return Container(
+                key: _petSectionKeys[petId],
+                child: _buildPetSection(context, pet, recs),
+              );
+            }).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  void _scrollToPetSection(String petId) {
+    final key = _petSectionKeys[petId];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+        alignment: 0.05,
+      );
+    }
+  }
+
+  Widget _buildPetHeader(List<Pet> pets, {void Function(String petId)? onTap}) {
+    return SizedBox(
+      height: 110,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: pets.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final pet = pets[index];
+          return GestureDetector(
+            onTap: onTap != null ? () => onTap(pet.id?.toString() ?? '') : null,
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundImage: pet.photoUrl != null ? NetworkImage(pet.photoUrl!) : null,
+                  child: pet.photoUrl == null ? const Icon(Icons.pets, size: 28) : null,
                 ),
-                filled: true,
-                fillColor: Colors.grey[200],
+                const SizedBox(height: 2),
+                SizedBox(
+                  width: 80,
+                  child: Text(
+                    pet.name ?? 'Pet',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                Text(
+                  (pet.animal ?? '').toUpperCase(),
+                  style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPetSection(BuildContext context, Pet pet, List<RecommendedProduct> products) {
+    final grouped = _groupProductsByCategory(products);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recommended for ${pet.name ?? 'your pet'}',
+            style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          if (products.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                'No recommendations yet for ${pet.name ?? 'this pet'}.',
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
               ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _filteredProducts.length,
-              itemBuilder: (context, index) {
-                return ProductCard(product: _filteredProducts[index]);
-              },
-            ),
-          ),
+          ...grouped.entries.map((entry) {
+            final category = entry.key;
+            final items = entry.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Text(
+                  category,
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 6),
+                ...items.map((product) => _buildProductCard(context, product)).toList(),
+              ],
+            );
+          }),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
-}
 
-class Product {
-  final String name;
-  final String price;
-  final String imageUrl;
-  final String? productUrl;
+  Widget _buildProductCard(BuildContext context, RecommendedProduct product) {
+    final priceText = (product.price != null && product.price!.isNotEmpty)
+        ? '\$${double.tryParse(product.price!)?.toStringAsFixed(2) ?? product.price!}'
+        : '';
 
-  Product({required this.name, required this.price, required this.imageUrl, this.productUrl});
-}
-
-class ProductCard extends StatelessWidget {
-  final Product product;
-
-  const ProductCard({super.key, required this.product});
-
-  Future<void> _launchUrl() async {
-    if (product.productUrl != null) {
-      final Uri url = Uri.parse(product.productUrl!); 
-      if (!await launchUrl(url)) {
-        throw Exception('Could not launch $url');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.all(8.0),
-      child: InkWell(
-        onTap: product.productUrl != null ? _launchUrl : null,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              Image.asset(product.imageUrl, width: 100, height: 100),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: product.imageUrl != null
+                  ? Image.network(
+                      product.imageUrl!,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, size: 48),
+                    )
+                  : const SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: Icon(Icons.image_not_supported, size: 48),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.productName, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
+                  if (priceText.isNotEmpty)
+                    Text(priceText, style: GoogleFonts.poppins(fontSize: 14, color: AppColors.primary)),
+                  if (product.matchReason != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        'Why Recommended: ${product.matchReason!}',
+                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.green[700]),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Text(product.price, style: const TextStyle(fontSize: 16)),
-                  ],
-                ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.add_shopping_cart),
-                onPressed: () {},
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Map<String, List<RecommendedProduct>> _groupProductsByCategory(List<RecommendedProduct> products) {
+    final Map<String, List<RecommendedProduct>> grouped = {};
+    for (final p in products) {
+      (grouped[p.category] ??= []).add(p);
+    }
+    return grouped;
+  }
+}
+
+class _ShopData {
+  final List<Pet> pets;
+  final Map<String, List<RecommendedProduct>> recsByPet;
+  _ShopData({required this.pets, required this.recsByPet});
 }

@@ -388,8 +388,8 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                 ),
               ),
             ),
-            title: Text(widget.pet.name, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-            subtitle: Text(widget.pet.breed, style: GoogleFonts.poppins()),
+            title: Text(widget.pet.name ?? 'Unknown Pet', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+            subtitle: Text(widget.pet.breed ?? 'Unknown Breed', style: GoogleFonts.poppins()),
             trailing: IconButton(
               icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
               onPressed: () {

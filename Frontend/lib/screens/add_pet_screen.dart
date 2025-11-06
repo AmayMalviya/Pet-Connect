@@ -15,11 +15,15 @@ class AddPetScreen extends StatefulWidget {
 
 class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+
   String _name = '';
   String? _selectedAnimal;
-  int? _selectedBreedId;
+  String? _selectedBreedRefId;
   String? _selectedBreedName;
+  String? _breedTable;
   String? _selectedAgeRange;
+  String _allergies = '';
+  String _medicalConditions = '';
 
   bool _isLoadingBreeds = true;
   List<DogBreed> _dogBreeds = [];
@@ -116,10 +120,13 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
         final petData = {
           'name': _name,
           'breed': _selectedBreedName,
-          'breed_id': _selectedBreedId,
+          'breed_ref_id': _selectedBreedRefId,
+          'breed_table': _breedTable,
           'age': _convertAgeRangeToYears(_selectedAgeRange!),
           'owner_id': currentUser.id,
           'animal': _selectedAnimal,
+          'allergies': _allergies.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+          'medical_conditions': _medicalConditions.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
         };
 
         await Supabase.instance.client.from('pets').insert(petData);
@@ -233,8 +240,15 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                         )).toList(),
                         onChanged: (newValue) => setState(() {
                           _selectedAnimal = newValue;
-                          _selectedBreedId = null;
+                          _selectedBreedRefId = null;
                           _selectedBreedName = null;
+                          if (newValue == 'Dog') {
+                            _breedTable = 'dogs_pet_data';
+                          } else if (newValue == 'Cat') {
+                            _breedTable = 'cats_pet_data';
+                          } else {
+                            _breedTable = null;
+                          }
                         }),
                         validator: (value) => value == null ? 'Please select a pet type' : null,
                       ),
@@ -242,7 +256,7 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                       if (_selectedAnimal != null)
                         _isLoadingBreeds
                             ? const Center(child: CircularProgressIndicator())
-                            : DropdownButtonFormField<int>(
+                            : DropdownButtonFormField<String>(
                                 decoration: InputDecoration(
                                   labelText: 'Breed',
                                   hintText: 'Select your pet\'s breed',
@@ -258,25 +272,25 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                                     vertical: 14,
                                   ),
                                 ),
-                                value: _selectedBreedId,
+                                value: _selectedBreedRefId,
                                 hint: const Text('Select Breed'),
                                 isExpanded: true,
                                 items: _selectedAnimal == 'Dog'
-                                    ? _dogBreeds.map((b) => DropdownMenuItem<int>(
-                                        value: b.breedId,
+                                    ? _dogBreeds.map((b) => DropdownMenuItem<String>(
+                                        value: b.id,
                                         child: Text(b.breedName),
                                       )).toList()
-                                    : _catBreeds.map((b) => DropdownMenuItem<int>(
-                                        value: b.breedId,
+                                    : _catBreeds.map((b) => DropdownMenuItem<String>(
+                                        value: b.id,
                                         child: Text(b.breedName),
                                       )).toList(),
                                 onChanged: (v) => setState(() {
-                                  _selectedBreedId = v;
+                                  _selectedBreedRefId = v;
                                   if (v != null) {
                                     if (_selectedAnimal == 'Dog') {
-                                      _selectedBreedName = _dogBreeds.firstWhere((b) => b.breedId == v).breedName;
+                                      _selectedBreedName = _dogBreeds.firstWhere((b) => b.id == v).breedName;
                                     } else {
-                                      _selectedBreedName = _catBreeds.firstWhere((b) => b.breedId == v).breedName;
+                                      _selectedBreedName = _catBreeds.firstWhere((b) => b.id == v).breedName;
                                     }
                                   }
                                 }),
@@ -311,6 +325,34 @@ class _AddPetScreenState extends State<AddPetScreen> with SingleTickerProviderSt
                         )).toList(),
                         onChanged: (v) => setState(() => _selectedAgeRange = v),
                         validator: (v) => v == null ? 'Please select an age range' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Allergies (comma-separated)',
+                          hintText: 'e.g., chicken, grain, pollen',
+                          prefixIcon: const Icon(Icons.warning_amber),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                        onSaved: (value) => _allergies = value ?? '',
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Medical Conditions (comma-separated)',
+                          hintText: 'e.g., diabetes, arthritis, heart disease',
+                          prefixIcon: const Icon(Icons.medical_services_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                        onSaved: (value) => _medicalConditions = value ?? '',
                       ),
                       const SizedBox(height: 24),
                       SizedBox(

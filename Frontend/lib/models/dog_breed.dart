@@ -1,15 +1,15 @@
 class DogBreed {
-  final int breedId;
+  final String id;
   final String breedName;
 
   DogBreed({
-    required this.breedId,
+    required this.id,
     required this.breedName,
   });
 
   factory DogBreed.fromJson(Map<String, dynamic> json) {
     return DogBreed(
-      breedId: json['breed_id'],
+      id: json['id'],
       breedName: json['breed_name'],
     );
   }
