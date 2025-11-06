@@ -24,7 +24,7 @@ import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/my_patients_screen.dart';
 import 'package:pet_connect_app/screens/scan_pet_qr_screen.dart';
 import 'package:pet_connect_app/screens/vet_profile_screen.dart';
-import 'package:pet_connect_app/screens/manage_pets_screen.dart';
+import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/edit_profile_screen.dart';
@@ -37,6 +37,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
+import 'package:pet_connect_app/screens/profile_setup_screen.dart';
 
 import 'package:pet_connect_app/services/notification_service.dart';
 

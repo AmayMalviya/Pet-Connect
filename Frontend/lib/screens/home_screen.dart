@@ -13,7 +13,6 @@ import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
-import 'package:pet_connect_app/screens/shop_screen.dart'; // Import existing ShopScreen
 // Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {
@@ -306,25 +305,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => AdoptionScreen()));
                       } else {
                         _showAddPetDialog();
-                      }
-                    },
-                  ),
-                  PetCareCard(
-                    title: 'Shop',
-                    icon: Icons.shopping_bag_outlined,
-                    onTap: () {
-                      if (_hasPet && _selectedPet != null) {
-                        Navigator.pushNamed(
-                          context,
-                          RecommendedShopScreen.routeName,
-                          arguments: {
-                            'petId': _selectedPet!.id,
-                            'petName': _selectedPet!.name ?? 'Unknown Pet',
-                          },
-                        );
-                      } else {
-                        // Optionally navigate to general shop or show add pet dialog
-                        Navigator.pushNamed(context, ShopScreen.routeName);
                       }
                     },
                   ),

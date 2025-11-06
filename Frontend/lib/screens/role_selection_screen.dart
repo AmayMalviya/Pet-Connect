@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/shelter_verification_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/profile_setup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/utils/role_helpers.dart';
 
@@ -78,13 +79,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
         if (!mounted) return;
 
-        if (selectedRole['name'] == 'Shelter Owner') {
+        if (selectedRole['name'] == 'Pet Owner') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const ShelterVerificationScreen()),
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: 'Pet Owner'),
+            ),
           );
-        } else if (selectedRole['name'] == 'Pet Owner') {
-          Navigator.pushReplacementNamed(context, MainScreen.routeName);
+        } else if (selectedRole['name'] == 'Shelter Owner') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: 'Shelter Owner'),
+            ),
+          );
         } else {
           Navigator.pushReplacementNamed(
             context,

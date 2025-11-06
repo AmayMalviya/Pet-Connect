@@ -92,6 +92,18 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
     );
   }
 
+  Future<void> _showPetForm(BuildContext context, Pet? pet) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddEditPetScreen(pet: pet),
+      ),
+    );
+
+    if (result == true) {
+      _fetchPets(); // Refresh the list after adding/editing
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
