@@ -13,6 +13,7 @@ import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
+import 'package:pet_connect_app/screens/shop_screen.dart'; // Import existing ShopScreen
 // Import SelfCareOptionsScreen
 
 class HomeScreen extends StatefulWidget {

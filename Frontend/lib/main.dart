@@ -37,7 +37,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
-import 'package:pet_connect_app/screens/profile_setup_screen.dart';
 
 import 'package:pet_connect_app/services/notification_service.dart';
 
