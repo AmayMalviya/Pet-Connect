@@ -73,6 +73,7 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
               description: map['description'] as String,
               date: DateTime.parse(map['event_date'] as String),
               time: TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1])),
+              userId: map['user_id'] as String, // Add this line
             );
             final date = DateTime.utc(event.date.year, event.date.month, event.date.day);
             if (events[date] == null) {
@@ -276,14 +277,37 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
 
   void _deleteEvent(CalendarEvent event) async {
     final supabase = Supabase.instance.client;
+
+    // --- DEBUGGING STEP ---
+    // Print the two IDs to see if they match.
+    print("--- Deleting Event: ID Check ---");
+    print("Event's User ID: ${event.userId}");
+    print("Current Logged-in User ID: ${supabase.auth.currentUser?.id}");
+    print("---------------------------------");
+    // --- END DEBUGGING STEP ---
+
     try {
-      await supabase.from('calendar_events').delete().eq('id', event.id);
+      // By chaining .select(), we can check if the delete was successful.
+      // If the returned list is empty, it means RLS prevented the deletion.
+      final response = await supabase.from('calendar_events').delete().eq('id', event.id).select();
+
+      // The check for `mounted` ensures we don't try to use context after the widget is disposed.
+      if (response.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Error: You may not have permission to delete this event."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      // If successful, the real-time stream will automatically update the UI.
     } catch (e) {
-      // Handle error
-      print("Error deleting event: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting event: $e"), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        print("Error deleting event: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred: $e"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -362,14 +386,24 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
                     if (userId == null) return;
 
                     try {
-                      await supabase.from('calendar_events').insert({
+                      final eventData = {
                         'pet_id': widget.petId,
                         'user_id': userId,
                         'title': titleController.text,
                         'description': descriptionController.text,
                         'event_date': selectedDate.toIso8601String(),
                         'event_time': '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
-                      });
+                      };
+
+                      // Insert the event and get the created record back
+                      final newEvent = await supabase.from('calendar_events').insert(eventData).select().single();
+
+                      // Trigger the notification function
+                      await Supabase.instance.client.functions.invoke(
+                        'send-notification',
+                        body: {'record': newEvent},
+                      );
+
                       Navigator.pop(context);
                     } catch (e) {
                       // Handle error
