@@ -35,6 +35,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   late TextEditingController _coatTypeController;
   late TextEditingController _groomingNeedsController;
   late TextEditingController _preferredFoodTypeController;
+  String? _selectedStatus;
 
   bool _isLoadingBreeds = true;
   List<DogBreed> _dogBreeds = [];
@@ -76,6 +77,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _coatTypeController = TextEditingController(text: widget.pet?.coatType);
     _groomingNeedsController = TextEditingController(text: widget.pet?.groomingNeeds);
     _preferredFoodTypeController = TextEditingController(text: widget.pet?.preferredFoodType);
+    _selectedStatus = widget.pet?.status;
     _fetchBreeds();
   }
 

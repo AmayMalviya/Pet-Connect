@@ -5,8 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class EditProfileScreen extends StatefulWidget {
   static const routeName = '/edit-profile';
   final Map<String, dynamic>? initialData;
+  final bool isShelter;
 
-  const EditProfileScreen({super.key, this.initialData});
+  const EditProfileScreen({super.key, this.initialData, this.isShelter = false});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -18,6 +19,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _addressController;
 
   bool _isLoading = false;
   List<Map<String, dynamic>> _allLocations = [];
@@ -36,10 +38,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _lastNameController = TextEditingController(text: widget.initialData?['last_name'] ?? '');
     _emailController = TextEditingController(text: widget.initialData?['email'] ?? '');
     _phoneController = TextEditingController(text: widget.initialData?['phone'] ?? '');
+    _addressController = TextEditingController(text: widget.initialData?['address'] ?? '');
 
     _selectedCountry = widget.initialData?['country'];
-    _selectedState = widget.initialData?['State'];
-    _selectedCity = widget.initialData?['City'];
+    _selectedState = widget.initialData?['state'];
+    _selectedCity = widget.initialData?['city'];
 
     _fetchLocations();
   }
@@ -50,6 +53,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -57,45 +61,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await Supabase.instance.client.from('indian_cities').select();
-      print('Locations response: $response');
       _allLocations = (response as List)
           .where((item) => item != null)
           .map((item) => item as Map<String, dynamic>)
           .toList();
-      
+
       _countries = _allLocations
           .where((e) => e['country'] != null)
           .map((e) => e['country'] as String)
           .toSet()
-          .toList()..sort();
-      print('Countries: $_countries');
-      
+          .toList()
+        ..sort();
+
       if (_selectedCountry != null) {
         _states = _allLocations
             .where((e) => e['country'] == _selectedCountry && e['State'] != null)
             .map((e) => e['State'] as String)
             .toSet()
-            .toList()..sort();
-        print('States for $_selectedCountry: $_states');
-      }
-      if (_selectedState != null && !_states.contains(_selectedState)) { // Check if _selectedState is valid
-        _selectedState = null;
-      }
-      if (_selectedState != null) {
-        _cities = _allLocations
-            .where((e) => e['country'] == _selectedCountry && e['State'] == _selectedState && e['City'] != null)
-            .map((e) => e['City'] as String)
-            .toSet()
-            .toList()..sort();
-        print('Cities for $_selectedState: $_cities');
-      }
-      if (_selectedCity != null && !_cities.contains(_selectedCity)) { // Check if _selectedCity is valid
-        _selectedCity = null;
+            .toList()
+          ..sort();
       }
 
+      if (_selectedState != null) {
+        _cities = _allLocations
+            .where((e) =>
+                e['country'] == _selectedCountry &&
+                e['State'] == _selectedState &&
+                e['City'] != null)
+            .map((e) => e['City'] as String)
+            .toSet()
+            .toList()
+          ..sort();
+      }
     } catch (e) {
-      print('Error fetching locations: $e');
-      // Handle error
+      debugPrint('Error fetching locations: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -108,11 +107,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        throw Exception('User not logged in');
-      }
+      if (user == null) throw Exception('User not logged in');
 
-      final updates = {
+      final profileUpdates = {
         'user_id': user.id,
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
@@ -123,9 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'country': _selectedCountry,
       };
 
-      await Supabase.instance.client
-          .from('profiles')
-          .upsert(updates);
+      await Supabase.instance.client.from('profiles').upsert(profileUpdates);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,9 +133,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SnackBar(content: Text('Error updating profile: ${e.toString()}')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -190,12 +183,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 filled: true,
                                 fillColor: Colors.grey[200],
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your first name';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Please enter your first name'
+                                      : null,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -210,12 +201,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 filled: true,
                                 fillColor: Colors.grey[200],
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your last name';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Please enter your last name'
+                                      : null,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -254,12 +243,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 fillColor: Colors.grey[200],
                               ),
                               keyboardType: TextInputType.phone,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your phone number';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Please enter your phone number'
+                                      : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _addressController,
+                              decoration: InputDecoration(
+                                labelText: 'Address',
+                                hintText: 'Enter your address',
+                                prefixIcon: const Icon(Icons.location_on),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                              ),
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Please enter your address'
+                                      : null,
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
@@ -287,11 +292,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       .where((e) => e['country'] == newValue && e['State'] != null)
                                       .map((e) => e['State'] as String)
                                       .toSet()
-                                      .toList()..sort();
+                                      .toList()
+                                    ..sort();
                                   _cities = [];
                                 });
                               },
-                              validator: (value) => value == null ? 'Please select a country' : null,
+                              validator: (value) =>
+                                  value == null ? 'Please select a country' : null,
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
@@ -310,18 +317,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   child: Text(state),
                                 );
                               }).toList(),
-                              onChanged: _selectedCountry == null ? null : (newValue) {
-                                setState(() {
-                                  _selectedState = newValue;
-                                  _selectedCity = null;
-                                  _cities = _allLocations
-                                      .where((e) => e['country'] == _selectedCountry && e['State'] == newValue && e['City'] != null)
-                                      .map((e) => e['City'] as String)
-                                      .toSet()
-                                      .toList()..sort();
-                                });
-                              },
-                              validator: (value) => value == null ? 'Please select a state' : null,
+                              onChanged: _selectedCountry == null
+                                  ? null
+                                  : (newValue) {
+                                      setState(() {
+                                        _selectedState = newValue;
+                                        _selectedCity = null;
+                                        _cities = _allLocations
+                                            .where((e) =>
+                                                e['country'] == _selectedCountry &&
+                                                e['State'] == newValue &&
+                                                e['City'] != null)
+                                            .map((e) => e['City'] as String)
+                                            .toSet()
+                                            .toList()
+                                          ..sort();
+                                      });
+                                    },
+                              validator: (value) =>
+                                  value == null ? 'Please select a state' : null,
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
@@ -340,14 +354,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   child: Text(city),
                                 );
                               }).toList(),
-                              onChanged: _selectedState == null ? null : (newValue) {
-                                setState(() {
-                                  _selectedCity = newValue;
-                                });
-                              },
-                              validator: (value) => value == null ? 'Please select a city' : null,
+                              onChanged: _selectedState == null
+                                  ? null
+                                  : (newValue) => setState(() {
+                                        _selectedCity = newValue;
+                                      }),
+                              validator: (value) =>
+                                  value == null ? 'Please select a city' : null,
                             ),
-                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
@@ -361,10 +375,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Save Profile',
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      child: const Text('Save Profile', style: TextStyle(fontSize: 16)),
                     ),
                   ],
                 ),

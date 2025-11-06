@@ -14,16 +14,11 @@ import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
-import 'package:pet_connect_app/screens/vet_details_screen.dart';
 import 'package:pet_connect_app/screens/nutrition_advice_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
-import 'package:pet_connect_app/screens/vet_home_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 import 'package:pet_connect_app/screens/appointments_screen.dart';
-import 'package:pet_connect_app/screens/my_patients_screen.dart';
-import 'package:pet_connect_app/screens/scan_pet_qr_screen.dart';
-import 'package:pet_connect_app/screens/vet_profile_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
@@ -107,8 +102,6 @@ class PetConnectApp extends StatelessWidget {
                 // Navigate based on role.
                 if (userRole == 'Pet Owner') {
                   return const MainScreen();
-                } else if (userRole == 'Vet') {
-                  return const VetHomeScreen();
                 } else if (userRole == 'Shelter Owner') {
                   return const ShelterHomeScreen();
                 } else {
@@ -134,16 +127,11 @@ class PetConnectApp extends StatelessWidget {
         ServicesScreen.routeName: (context) => const ServicesScreen(),
         GroomingDetailsScreen.routeName: (context) => const GroomingDetailsScreen(),
         TrainingDetailsScreen.routeName: (context) => const TrainingDetailsScreen(),
-        VetDetailsScreen.routeName: (context) => const VetDetailsScreen(),
         NutritionAdviceScreen.routeName: (context) => const NutritionAdviceScreen(),
         RoleSelectionScreen.routeName: (context) => const RoleSelectionScreen(),
         KycScreen.routeName: (context) => const KycScreen(),
-        VetHomeScreen.routeName: (context) => const VetHomeScreen(),
         ShelterHomeScreen.routeName: (context) => const ShelterHomeScreen(),
         AppointmentsScreen.routeName: (context) => const AppointmentsScreen(),
-        MyPatientsScreen.routeName: (context) => const MyPatientsScreen(),
-        ScanPetQrScreen.routeName: (context) => const ScanPetQrScreen(),
-        VetProfileScreen.routeName: (context) => const VetProfileScreen(),
         ManagePetsScreen.routeName: (context) => const ManagePetsScreen(),
         AdoptionRequestsScreen.routeName: (context) => const AdoptionRequestsScreen(),
         ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),

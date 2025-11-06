@@ -9,7 +9,6 @@ import 'package:pet_connect_app/screens/register_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
-import 'package:pet_connect_app/screens/vet_home_screen.dart';
 import 'package:pet_connect_app/screens/kyc_screen.dart';
 import 'package:pet_connect_app/screens/profile_details_screen.dart';
 
@@ -59,8 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
           final role = userData!['role'] as String;
           if (role == 'Pet Owner') {
             Navigator.pushReplacementNamed(context, MainScreen.routeName);
-          } else if (role == 'Vet') {
-            Navigator.pushReplacementNamed(context, VetHomeScreen.routeName);
           } else if (role == 'Shelter Owner') {
             Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
           }

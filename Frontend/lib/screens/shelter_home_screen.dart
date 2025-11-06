@@ -15,10 +15,10 @@ class ShelterHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Shelter Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text('Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
         centerTitle: true,
-  backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
         elevation: 1,
       ),
       body: Padding(
@@ -27,8 +27,8 @@ class ShelterHomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Welcome, Shelter Owner!',
-              style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
+              'Welcome to Pet Connect!',
+              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -88,27 +88,38 @@ class ShelterHomeScreen extends StatelessWidget {
 
   Widget _buildDashboardCard(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
     return Card(
-      elevation: 4,
+      elevation: 6,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            gradient: LinearGradient(
+              colors: [Theme.of(context).primaryColor.withOpacity(0.8), Theme.of(context).primaryColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 45, color: Colors.white),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

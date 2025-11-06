@@ -1,13 +1,18 @@
+// lib/screens/manage_pets_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
+import 'package:path/path.dart' as p;
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
+import 'package:pet_connect_app/widgets/expandable_pet_card.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ManagePetsScreen extends StatefulWidget {
   static const routeName = '/manage-pets';
-
   const ManagePetsScreen({super.key});
 
   @override
@@ -16,7 +21,8 @@ class ManagePetsScreen extends StatefulWidget {
 
 class _ManagePetsScreenState extends State<ManagePetsScreen> {
   bool _isLoading = true;
-  List<Map<String, dynamic>> _pets = [];
+  List<Pet> _pets = [];
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -25,45 +31,33 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
   }
 
   Future<void> _fetchPets() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final supabase = Supabase.instance.client;
-        final response = await supabase
+        final response = await Supabase.instance.client
             .from('pets')
             .select()
-            .eq('owner_id', user.id);
-
+            .eq('owner_id', user.id)
+            .order('created_at', ascending: false);
         setState(() {
-          _pets = response as List<Map<String, dynamic>>;
+          _pets = (response as List).map((d) => Pet.fromJson(d as Map<String, dynamic>)).toList();
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load pets: $e')),
-      );
+      _showSnackBar('Failed to load pets: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _deletePet(String petId) async {
     try {
-      final supabase = Supabase.instance.client;
-      await supabase.from('pets').delete().eq('id', petId);
-      _fetchPets(); // Refresh the list
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pet deleted successfully!')),
-      );
+      await Supabase.instance.client.from('pets').delete().eq('id', petId);
+      await _fetchPets();
+      _showSnackBar('Pet deleted successfully!');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete pet: $e')),
-      );
+      _showSnackBar('Failed to delete pet: $e');
     }
   }
 
@@ -71,21 +65,25 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Are you sure?'),
-        content: const Text('Do you want to permanently delete this pet?'),
-        actions: <Widget>[
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Confirm Deletion', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Text('Do you want to permanently delete this pet?', style: GoogleFonts.poppins()),
+        actionsAlignment: MainAxisAlignment.end,
+        actions: [
           TextButton(
-            child: const Text('No'),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
+            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700])),
+            onPressed: () => Navigator.of(ctx).pop(),
           ),
-          TextButton(
-            child: const Text('Yes'),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () {
               Navigator.of(ctx).pop();
               _deletePet(petId);
             },
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
           ),
         ],
       ),
@@ -94,14 +92,102 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
 
   Future<void> _showPetForm(BuildContext context, Pet? pet) async {
     final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => AddEditPetScreen(pet: pet),
+      MaterialPageRoute(builder: (_) => AddEditPetScreen(pet: pet)),
+    );
+    if (result == true) _fetchPets();
+  }
+
+  // Upload single pet photo
+  Future<void> _uploadPetPhoto(Pet pet) async {
+    try {
+      final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (image == null) return;
+
+      final ext = p.extension(image.path);
+      final petId = pet.id?.toString();
+      if (petId == null || petId.isEmpty) {
+        _showSnackBar('Pet id missing — cannot upload photo.');
+        return;
+      }
+
+      final fileName = '$petId$ext';
+      final fileBytes = await image.readAsBytes();
+      final storagePath = 'pet_photos/$fileName';
+
+      // Upsert binary to storage (make sure your bucket 'pets_bucket' exists)
+      await Supabase.instance.client.storage
+          .from('pets_bucket')
+          .uploadBinary(storagePath, fileBytes, fileOptions: const FileOptions(upsert: true));
+
+      // getPublicUrl returns a Map with 'publicUrl' depending on library version
+     final publicUrl = Supabase.instance.client.storage
+    .from('pets_bucket')
+    .getPublicUrl(storagePath);
+
+
+      await Supabase.instance.client.from('pets').update({'photo_url': publicUrl}).eq('id', petId);
+
+      await _fetchPets();
+      _showSnackBar('Photo uploaded successfully!');
+    } catch (e) {
+      _showSnackBar('Error uploading photo: $e');
+    }
+  }
+
+  // Upload CSV (uses file_picker)
+  Future<void> _uploadCSV() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
+      if (result == null || result.files.isEmpty) return;
+
+      final filePath = result.files.single.path;
+      if (filePath == null) return;
+
+      final csvData = await File(filePath).readAsString();
+      final rows = const CsvToListConverter().convert(csvData, eol: '\n');
+
+      if (rows.isEmpty) {
+        _showSnackBar('CSV is empty.');
+        return;
+      }
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('User not logged in');
+
+      final columns = rows.first.map((e) => e.toString()).toList();
+      final petsData = rows.skip(1).map((row) {
+        final map = <String, dynamic>{};
+        for (var i = 0; i < columns.length; i++) {
+          map[columns[i]] = row.length > i ? row[i] : null;
+        }
+        map['owner_id'] = user.id;
+        return map;
+      }).toList();
+
+      // insert in batches to avoid payload issues
+      const batch = 50;
+      for (var i = 0; i < petsData.length; i += batch) {
+        final end = (i + batch < petsData.length) ? i + batch : petsData.length;
+        final chunk = petsData.sublist(i, end);
+        await Supabase.instance.client.from('pets').insert(chunk);
+      }
+
+      await _fetchPets();
+      _showSnackBar('CSV uploaded successfully!');
+    } catch (e) {
+      _showSnackBar('Error uploading CSV: $e');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(message, style: GoogleFonts.poppins()),
       ),
     );
-
-    if (result == true) {
-      _fetchPets(); // Refresh the list after adding/editing
-    }
   }
 
   @override
@@ -110,93 +196,76 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
       appBar: AppBar(
         title: Text('Manage Pets', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-  backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
-        elevation: 1,
+        elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              _showPetForm(context, null);
+          PopupMenuButton<String>(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'add') _showPetForm(context, null);
+              if (value == 'upload_csv') _uploadCSV();
             },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'add',
+                child: Row(children: [const Icon(Icons.add), const SizedBox(width: 8), Text('Add Pet', style: GoogleFonts.poppins())]),
+              ),
+              PopupMenuItem(
+                value: 'upload_csv',
+                child: Row(children: [const Icon(Icons.upload_file), const SizedBox(width: 8), Text('Upload CSV', style: GoogleFonts.poppins())]),
+              ),
+            ],
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () { /* TODO: Implement photo upload */ },
-                  icon: const Icon(Icons.photo_camera),
-                  label: const Text('Upload Photo'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () { /* TODO: Implement Excel/CSV upload */ },
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Upload Excel/CSV'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () { /* TODO: Implement photo of list upload */ },
-                  icon: const Icon(Icons.photo_album),
-                  label: const Text('Upload List Photo'),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: _pets.length,
-                    itemBuilder: (context, index) {
-                      final pet = _pets[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(15),
-                          leading: CircleAvatar(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                            child: const Icon(Icons.pets),
-                          ),
-                          title: Text(
-                            pet['name'] ?? 'No Name',
-                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            '${pet['breed'] ?? 'Unknown Breed'} - ${pet['status'] ?? 'Unknown'}',
-                            style: GoogleFonts.poppins(),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                                                      IconButton(
-                                                        icon: const Icon(Icons.edit, color: Colors.blue),
-                                                        onPressed: () {
-                                                          _showPetForm(context, Pet.fromJson(pet));
-                                                        },
-                                                      ),                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () {
-                                  _showDeleteConfirmationDialog(pet['id'].toString());
-                                },
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showPetForm(context, null),
+        icon: const Icon(Icons.add),
+        label: Text('Add Pet', style: GoogleFonts.poppins()),
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      ),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _pets.isEmpty
+                ? Center(child: Text('No pets added yet.', style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600])))
+                : RefreshIndicator(
+                    onRefresh: _fetchPets,
+                    child: ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      itemCount: _pets.length,
+                      itemBuilder: (context, index) {
+                        final pet = _pets[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Material(
+                              elevation: 2,
+                              color: Colors.white,
+                              child: ExpandablePetCard(
+                                pet: pet,
+                                onPetUpdated: _fetchPets,
+                                onDeletePet: (id) => _showDeleteConfirmationDialog(id),
+                                extraActions: [
+                                  IconButton(
+                                    icon: const Icon(Icons.photo_camera_outlined),
+                                    tooltip: 'Upload Pet Photo',
+                                    onPressed: () => _uploadPetPhoto(pet),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-          ),
-        ],
       ),
     );
   }

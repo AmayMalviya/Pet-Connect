@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import 'package:pet_connect_app/screens/vet_home_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 
 class KycScreen extends StatefulWidget {
@@ -141,9 +140,7 @@ class _KycScreenState extends State<KycScreen> {
                         const SnackBar(
                             content: Text('KYC information submitted')),
                       );
-                      if (role == 'Vet') {
-                        Navigator.of(context).pushReplacementNamed(VetHomeScreen.routeName);
-                      } else if (role == 'Shelter Owner') {
+                      if (role == 'Shelter Owner') {
                         Navigator.of(context).pushReplacementNamed(ShelterHomeScreen.routeName);
                       }
                     }

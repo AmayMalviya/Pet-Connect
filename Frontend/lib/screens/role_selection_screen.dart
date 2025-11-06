@@ -46,8 +46,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     switch (roleName) {
       case 'Pet Owner':
         return 'Manage your pets, appointments, and connect with a community of pet lovers.';
-      case 'Vet':
-        return 'Manage your clinic, appointments, and provide care for pets.';
       case 'Shelter Owner':
         return 'Manage your shelter, list pets for adoption, and connect with potential adopters.';
       default:

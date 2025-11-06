@@ -22,6 +22,13 @@ class Pet {
   final String? description;
   final String? status;
   final String? healthStatus;
+  final String? color;
+  final bool? isVaccinated;
+  final bool? isNeutered;
+  final bool? isMicrochipped;
+  final bool? goodWithKids;
+  final bool? goodWithOtherPets;
+  final String? specialNeeds;
 
   Pet({
     this.id,
@@ -47,6 +54,13 @@ class Pet {
     this.description,
     this.status,
     this.healthStatus,
+    this.color,
+    this.isVaccinated,
+    this.isNeutered,
+    this.isMicrochipped,
+    this.goodWithKids,
+    this.goodWithOtherPets,
+    this.specialNeeds,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
@@ -74,6 +88,13 @@ class Pet {
       description: json['description'],
       status: json['status'],
       healthStatus: json['health_status'],
+      color: json['color'],
+      isVaccinated: json['is_vaccinated'],
+      isNeutered: json['is_neutered'],
+      isMicrochipped: json['is_microchipped'],
+      goodWithKids: json['good_with_kids'],
+      goodWithOtherPets: json['good_with_other_pets'],
+      specialNeeds: json['special_needs'],
     );
   }
 
@@ -102,6 +123,13 @@ class Pet {
       'description': description,
       'status': status,
       'health_status': healthStatus,
+      'color': color,
+      'is_vaccinated': isVaccinated,
+      'is_neutered': isNeutered,
+      'is_microchipped': isMicrochipped,
+      'good_with_kids': goodWithKids,
+      'good_with_other_pets': goodWithOtherPets,
+      'special_needs': specialNeeds,
     };
   }
 }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:pet_connect_app/screens/pet_profile_screen.dart';
-import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/widgets/expandable_pet_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdoptionScreen extends StatefulWidget {
-  static const routeName = '/adoption';
-  const AdoptionScreen({super.key});
+  static const routeName = '/adoption-screen';
+
+  const AdoptionScreen({Key? key}) : super(key: key);
 
   @override
   State<AdoptionScreen> createState() => _AdoptionScreenState();
@@ -14,35 +15,37 @@ class AdoptionScreen extends StatefulWidget {
 
 class _AdoptionScreenState extends State<AdoptionScreen> {
   List<Pet> _pets = [];
-  List<Pet> _filteredPets = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _fetchPets();
+    _fetchPetsForAdoption();
   }
 
-  Future<void> _fetchPets() async {
+  Future<void> _fetchPetsForAdoption() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
     try {
       final response = await Supabase.instance.client
           .from('pets')
-          .select()
-          .eq('status', 'Available');
+          .select('*')
+          .eq('status', 'Available for Adoption'); // Filter for adoptable pets
 
-      final List<Pet> pets =
-          (response as List).map((data) => Pet.fromJson(data)).toList();
-      setState(() {
-        _pets = pets;
-        _filteredPets = pets;
-      });
+      if (response != null) {
+        _pets = (response as List).map((json) => Pet.fromJson(json)).toList();
+      } else {
+        _pets = [];
+      }
+    } on PostgrestException catch (e) {
+      _errorMessage = 'Error fetching pets: ${e.message}';
+      print('Supabase error: ${e.message}');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load pets: $e')),
-      );
+      _errorMessage = 'An unexpected error occurred: $e';
+      print('General error: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -50,69 +53,50 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     }
   }
 
-  void _filterPets(String query) {
-    setState(() {
-      _filteredPets = _pets
-          .where((pet) => (pet.breed ?? '').toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Adoption'),
-        backgroundColor: AppColors.primary,
+        title: Text(
+          'Adopt a Pet',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    onChanged: _filterPets,
-                    decoration: const InputDecoration(
-                      labelText: 'Search by breed',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
+          : _errorMessage != null
+              ? Center(
+                  child: Text(
+                    _errorMessage!,
+                    style: GoogleFonts.poppins(color: Colors.red),
                   ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _filteredPets.length,
-                    itemBuilder: (context, index) {
-                      final pet = _filteredPets[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(15),
-                          leading: CircleAvatar(
-                            radius: 30,
-                            backgroundImage: AssetImage('assets/images/logo.png'), // Use pet image if available
-                          ),
-                          title: Text(pet.name ?? 'Unknown Pet', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(pet.breed ?? 'Unknown Breed'),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => PetProfileScreen(pet: pet),
-                              ),
-                            );
+                )
+              : _pets.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No pets available for adoption at the moment.',
+                        style: GoogleFonts.poppins(fontSize: 16),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: _pets.length,
+                      itemBuilder: (context, index) {
+                        final pet = _pets[index];
+                        return ExpandablePetCard(
+                          pet: pet,
+                          onPetUpdated: _fetchPetsForAdoption, // Refresh list on update
+                          onDeletePet: (petId) {
+                            // Adoption screen doesn't allow deleting pets
+                            // This callback is required by ExpandablePetCard, so provide a no-op
                           },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+                        );
+                      },
+                    ),
     );
   }
 }
