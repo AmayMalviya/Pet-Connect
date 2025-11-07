@@ -3,6 +3,7 @@ import 'package:pet_connect_app/screens/shelter_verification_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/screens/profile_setup_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/utils/role_helpers.dart';
 
@@ -29,7 +30,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   Future<void> _fetchRoles() async {
     try {
-      final response = await Supabase.instance.client.from('roles').select('id, name');
+      final response = await Supabase.instance.client.from('roles').select('id, name').neq('name', 'Vet');
       setState(() {
         _roles = (response as List).map((role) => {'id': role['id'], 'name': role['name']}).toList();
         _isLoading = false;
@@ -46,7 +47,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     switch (roleName) {
       case 'Pet Owner':
         return 'Manage your pets, appointments, and connect with a community of pet lovers.';
-      case 'Shelter Owner':
+      case 'Shelter':
         return 'Manage your shelter, list pets for adoption, and connect with potential adopters.';
       default:
         return 'A general user role.';
@@ -77,18 +78,18 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
         if (!mounted) return;
 
-        if (selectedRole['name'] == 'Pet Owner') {
+        if (selectedRole['name'] == 'Admin') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => ProfileSetupScreen(role: 'Pet Owner'),
+              builder: (context) => const AdminDashboardScreen(),
             ),
           );
-        } else if (selectedRole['name'] == 'Shelter') {
+        } else if (selectedRole['name'] == 'Pet Owner' || selectedRole['name'] == 'Shelter') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => ProfileSetupScreen(role: 'Shelter'),
+              builder: (context) => ProfileSetupScreen(role: selectedRole['name']),
             ),
           );
         } else {

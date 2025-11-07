@@ -41,48 +41,56 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCJHqgPxiiQ5fz6mx86It_t5wVGlfAQszg',
-    appId: '1:978698245676:web:17ba93c8ccfdbd695e6389',
-    messagingSenderId: '978698245676',
-    projectId: 'patconnect-4251b',
-    authDomain: 'patconnect-4251b.firebaseapp.com',
-    storageBucket: 'patconnect-4251b.firebasestorage.app',
-    measurementId: 'G-E1WVRQ0F5R',
+    apiKey: 'AIzaSyBPwXrauuofvuuq_HXQS5QVyazFPf7mdiE',
+    appId: '1:543358006471:web:3fb08ee6a2240d20edbae2',
+    messagingSenderId: '543358006471',
+    projectId: 'pet-connect-7c145',
+    authDomain: 'pet-connect-7c145.firebaseapp.com',
+    databaseURL: 'https://pet-connect-7c145-default-rtdb.firebaseio.com',
+    storageBucket: 'pet-connect-7c145.firebasestorage.app',
+    measurementId: 'G-D5XKMGRGR4',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBGOS_ONge_sSKOPSuvC8t7NsvoUCLepF0',
-    appId: '1:978698245676:android:1dddf9c1ebc64d0f5e6389',
-    messagingSenderId: '978698245676',
-    projectId: 'patconnect-4251b',
-    storageBucket: 'patconnect-4251b.firebasestorage.app',
+    apiKey: 'AIzaSyDD_780NTsg_BB35rixLQhG_ebu81M6bHM',
+    appId: '1:543358006471:android:531c1987a1d01d91edbae2',
+    messagingSenderId: '543358006471',
+    projectId: 'pet-connect-7c145',
+    databaseURL: 'https://pet-connect-7c145-default-rtdb.firebaseio.com',
+    storageBucket: 'pet-connect-7c145.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB7XjNLfaRnzG5DAurpbr3WSw8NHoIOWj4',
-    appId: '1:978698245676:ios:90c899829071bcc05e6389',
-    messagingSenderId: '978698245676',
-    projectId: 'patconnect-4251b',
-    storageBucket: 'patconnect-4251b.firebasestorage.app',
+    apiKey: 'AIzaSyCGY429rhrRyapppvPHxuE2Uond6eh0AJA',
+    appId: '1:543358006471:ios:7dc9817f2970eb38edbae2',
+    messagingSenderId: '543358006471',
+    projectId: 'pet-connect-7c145',
+    databaseURL: 'https://pet-connect-7c145-default-rtdb.firebaseio.com',
+    storageBucket: 'pet-connect-7c145.firebasestorage.app',
+    iosClientId: '543358006471-n8m72rnc26nofvl9rh8s2jss5feelicq.apps.googleusercontent.com',
     iosBundleId: 'com.example.petConnectApp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB7XjNLfaRnzG5DAurpbr3WSw8NHoIOWj4',
-    appId: '1:978698245676:ios:90c899829071bcc05e6389',
-    messagingSenderId: '978698245676',
-    projectId: 'patconnect-4251b',
-    storageBucket: 'patconnect-4251b.firebasestorage.app',
+    apiKey: 'AIzaSyCGY429rhrRyapppvPHxuE2Uond6eh0AJA',
+    appId: '1:543358006471:ios:7dc9817f2970eb38edbae2',
+    messagingSenderId: '543358006471',
+    projectId: 'pet-connect-7c145',
+    databaseURL: 'https://pet-connect-7c145-default-rtdb.firebaseio.com',
+    storageBucket: 'pet-connect-7c145.firebasestorage.app',
+    iosClientId: '543358006471-n8m72rnc26nofvl9rh8s2jss5feelicq.apps.googleusercontent.com',
     iosBundleId: 'com.example.petConnectApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCJHqgPxiiQ5fz6mx86It_t5wVGlfAQszg',
-    appId: '1:978698245676:web:cff81b07604221085e6389',
-    messagingSenderId: '978698245676',
-    projectId: 'patconnect-4251b',
-    authDomain: 'patconnect-4251b.firebaseapp.com',
-    storageBucket: 'patconnect-4251b.firebasestorage.app',
-    measurementId: 'G-FGJR6G2CLV',
+    apiKey: 'AIzaSyBPwXrauuofvuuq_HXQS5QVyazFPf7mdiE',
+    appId: '1:543358006471:web:6f6c266798b75b7bedbae2',
+    messagingSenderId: '543358006471',
+    projectId: 'pet-connect-7c145',
+    authDomain: 'pet-connect-7c145.firebaseapp.com',
+    databaseURL: 'https://pet-connect-7c145-default-rtdb.firebaseio.com',
+    storageBucket: 'pet-connect-7c145.firebasestorage.app',
+    measurementId: 'G-XXW73W8X3T',
   );
+
 }

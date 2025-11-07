@@ -2,18 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CLIENT_ID</key>
+	<string>543358006471-n8m72rnc26nofvl9rh8s2jss5feelicq.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.543358006471-n8m72rnc26nofvl9rh8s2jss5feelicq</string>
 	<key>API_KEY</key>
-	<string>AIzaSyB7XjNLfaRnzG5DAurpbr3WSw8NHoIOWj4</string>
+	<string>AIzaSyCGY429rhrRyapppvPHxuE2Uond6eh0AJA</string>
 	<key>GCM_SENDER_ID</key>
-	<string>978698245676</string>
+	<string>543358006471</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.example.petConnectApp</string>
 	<key>PROJECT_ID</key>
-	<string>patconnect-4251b</string>
+	<string>pet-connect-7c145</string>
 	<key>STORAGE_BUCKET</key>
-	<string>patconnect-4251b.firebasestorage.app</string>
+	<string>pet-connect-7c145.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +29,8 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:978698245676:ios:90c899829071bcc05e6389</string>
+	<string>1:543358006471:ios:7dc9817f2970eb38edbae2</string>
+	<key>DATABASE_URL</key>
+	<string>https://pet-connect-7c145-default-rtdb.firebaseio.com</string>
 </dict>
 </plist>

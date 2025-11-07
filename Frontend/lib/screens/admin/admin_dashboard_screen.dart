@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart'; // ✅ Correct import
+import 'package:pet_connect_app/screens/login_screen.dart';
+import 'package:pet_connect_app/screens/role_selection_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   static const routeName = '/admin-dashboard';
@@ -24,6 +27,18 @@ class AdminDashboardScreen extends StatelessWidget {
         backgroundColor: primaryColor,
         centerTitle: true,
         elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+                (Route<dynamic> route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

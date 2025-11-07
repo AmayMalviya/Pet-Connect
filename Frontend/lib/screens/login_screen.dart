@@ -9,8 +9,7 @@ import 'package:pet_connect_app/screens/register_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
-import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
-
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/screens/profile_details_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -61,8 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacementNamed(context, MainScreen.routeName);
           } else if (role == 'Shelter') {
             Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
-          } else if (role == 'Admin') {
-            Navigator.pushReplacementNamed(context, AdminDashboardScreen.routeName);
           }
         } else {
           // User hasn't selected a role yet
