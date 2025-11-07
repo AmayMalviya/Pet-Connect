@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/firebase_options.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
+import 'package:pet_connect_app/screens/kyc_personal_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
@@ -10,14 +12,12 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/profile_screen.dart';
 import 'package:pet_connect_app/screens/self_care_options_screen.dart';
-import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
-import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/screens/grooming_details_screen.dart';
 import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/nutrition_advice_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
@@ -30,9 +30,11 @@ import 'package:pet_connect_app/screens/profile_details_screen.dart';
 import 'package:pet_connect_app/screens/add_edit_medical_note_screen.dart';
 import 'package:pet_connect_app/models/medical_note.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
+import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
+import 'package:pet_connect_app/screens/admin/approve_verifications_screen.dart';
 
 import 'package:pet_connect_app/services/notification_service.dart';
 
@@ -87,6 +89,11 @@ class PetConnectApp extends StatelessWidget {
                 final user = snapshot.data!.session!.user;
                 final provider = user.appMetadata['provider'];
 
+                // Admin check
+                if (user.email == 'malviyaamay501@gmail.com') {
+                  return const AdminDashboardScreen();
+                }
+
                 // For social logins, if profile is incomplete, go to setup screen.
                 if (provider != 'email' && (profile == null || profile['first_name'] == null || profile['first_name'].isEmpty)) {
                   return const SocialProfileSetupScreen();
@@ -130,7 +137,8 @@ class PetConnectApp extends StatelessWidget {
         TrainingDetailsScreen.routeName: (context) => const TrainingDetailsScreen(),
         NutritionAdviceScreen.routeName: (context) => const NutritionAdviceScreen(),
         RoleSelectionScreen.routeName: (context) => const RoleSelectionScreen(),
-        KycScreen.routeName: (context) => const KycScreen(),
+        KycDocumentScreen.routeName: (context) => const KycDocumentScreen(),
+        KycPersonalScreen.routeName: (context) => const KycPersonalScreen(),
         ShelterHomeScreen.routeName: (context) => const ShelterHomeScreen(),
         AppointmentsScreen.routeName: (context) => const AppointmentsScreen(),
         ManagePetsScreen.routeName: (context) => const ManagePetsScreen(),
@@ -138,6 +146,8 @@ class PetConnectApp extends StatelessWidget {
         ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
         EditProfileScreen.routeName: (context) => const EditProfileScreen(),
         SocialProfileSetupScreen.routeName: (context) => const SocialProfileSetupScreen(),
+        AdminDashboardScreen.routeName: (_) => const AdminDashboardScreen(),
+        AdminKycApprovalScreen.routeName: (_) => const AdminKycApprovalScreen(),
         MapScreen.routeName: (context) => const MapScreen(),
         ProfileDetailsScreen.routeName: (context) => const ProfileDetailsScreen(),
         AddEditMedicalNoteScreen.routeName: (context) {
@@ -149,6 +159,8 @@ class PetConnectApp extends StatelessWidget {
         ManageAppointmentsScreen.routeName: (context) => const ManageAppointmentsScreen(),
         ShelterAnalyticsScreen.routeName: (context) => const ShelterAnalyticsScreen(),
         ShelterAdoptionRequestsScreen.routeName: (_) => const ShelterAdoptionRequestsScreen(),
+        ManageProfilesScreen.routeName: (context) => const ManageProfilesScreen(),
+        ApproveVerificationsScreen.routeName: (context) => const ApproveVerificationsScreen(),
       },
     );
   }

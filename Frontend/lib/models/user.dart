@@ -7,6 +7,8 @@ class User {
   final String? city;
   final String? state;
   final String? country;
+  final String? idPhotoPath;
+  final String? selfiePath;
 
   User({
     required this.uid,
@@ -17,18 +19,22 @@ class User {
     this.city,
     this.state,
     this.country,
+    this.idPhotoPath,
+    this.selfiePath,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      uid: json['uid'],
-      email: json['email'],
-      displayName: json['displayName'],
+      uid: json['uid'] ?? '',
+      email: json['email'] ?? '',
+      displayName: json['displayName'] ?? 'No Display Name',
       photoUrl: json['photoUrl'],
       phone: json['phone'],
       city: json['city'],
       state: json['state'],
       country: json['country'],
+      idPhotoPath: json['id_photo_path'],
+      selfiePath: json['selfie_path'],
     );
   }
 
@@ -42,6 +48,8 @@ class User {
       'city': city,
       'state': state,
       'country': country,
+      'id_photo_path': idPhotoPath,
+      'selfie_path': selfiePath,
     };
   }
 }

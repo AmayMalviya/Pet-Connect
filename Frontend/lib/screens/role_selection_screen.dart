@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/shelter_verification_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
-import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/screens/profile_setup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/utils/role_helpers.dart';
@@ -94,7 +94,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         } else {
           Navigator.pushReplacementNamed(
             context,
-            KycScreen.routeName,
+            KycDocumentScreen.routeName,
             arguments: selectedRole['name'],
           );
         }
