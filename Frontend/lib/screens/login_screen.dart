@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
           final role = userData!['role'] as String;
           if (role == 'Pet Owner') {
             Navigator.pushReplacementNamed(context, MainScreen.routeName);
-          } else if (role == 'Shelter Owner') {
+          } else if (role == 'Shelter') {
             Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
           }
         } else {

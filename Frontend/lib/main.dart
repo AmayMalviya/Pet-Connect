@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/firebase_options.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
+import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/auth_screen.dart';
@@ -147,6 +148,7 @@ class PetConnectApp extends StatelessWidget {
         },
         ManageAppointmentsScreen.routeName: (context) => const ManageAppointmentsScreen(),
         ShelterAnalyticsScreen.routeName: (context) => const ShelterAnalyticsScreen(),
+        ShelterAdoptionRequestsScreen.routeName: (_) => const ShelterAdoptionRequestsScreen(),
       },
     );
   }

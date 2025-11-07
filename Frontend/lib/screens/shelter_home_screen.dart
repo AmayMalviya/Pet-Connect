@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
-import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
+import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
@@ -13,13 +13,19 @@ class ShelterHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+        title: Text(
+          'Shelter Dashboard',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 1,
+        backgroundColor: theme.primaryColor,
+        elevation: 2,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -28,7 +34,11 @@ class ShelterHomeScreen extends StatelessWidget {
           children: [
             Text(
               'Welcome to Pet Connect!',
-              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.primaryColor,
+              ),
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -48,9 +58,9 @@ class ShelterHomeScreen extends StatelessWidget {
                   _buildDashboardCard(
                     context,
                     title: 'Adoption Requests',
-                    icon: Icons.inbox,
+                    icon: Icons.volunteer_activism,
                     onTap: () {
-                      Navigator.pushNamed(context, AdoptionRequestsScreen.routeName);
+                      Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
                     },
                   ),
                   _buildDashboardCard(
@@ -63,7 +73,7 @@ class ShelterHomeScreen extends StatelessWidget {
                   ),
                   _buildDashboardCard(
                     context,
-                    title: 'Manage Appointments',
+                    title: 'Appointments',
                     icon: Icons.calendar_today,
                     onTap: () {
                       Navigator.pushNamed(context, ManageAppointmentsScreen.routeName);
@@ -71,7 +81,7 @@ class ShelterHomeScreen extends StatelessWidget {
                   ),
                   _buildDashboardCard(
                     context,
-                    title: 'Shelter Analytics',
+                    title: 'Analytics',
                     icon: Icons.analytics,
                     onTap: () {
                       Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
@@ -86,39 +96,49 @@ class ShelterHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDashboardCard(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildDashboardCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(15),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
             gradient: LinearGradient(
-              colors: [Theme.of(context).primaryColor.withOpacity(0.8), Theme.of(context).primaryColor],
+              colors: [
+                theme.primaryColor.withOpacity(0.85),
+                theme.primaryColor,
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 45, color: Colors.white),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 50, color: Colors.white),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

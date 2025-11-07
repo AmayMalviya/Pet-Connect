@@ -84,11 +84,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               builder: (context) => ProfileSetupScreen(role: 'Pet Owner'),
             ),
           );
-        } else if (selectedRole['name'] == 'Shelter Owner') {
+        } else if (selectedRole['name'] == 'Shelter') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => ProfileSetupScreen(role: 'Shelter Owner'),
+              builder: (context) => ProfileSetupScreen(role: 'Shelter'),
             ),
           );
         } else {
