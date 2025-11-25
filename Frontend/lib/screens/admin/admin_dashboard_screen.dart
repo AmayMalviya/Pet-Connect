@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart'; // ✅ Correct import
 import 'package:pet_connect_app/screens/login_screen.dart';
-import 'package:pet_connect_app/screens/role_selection_screen.dart';
+import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -68,11 +68,7 @@ class AdminDashboardScreen extends StatelessWidget {
               icon: Icons.groups,
               title: 'Manage Community',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Community management coming soon!'),
-                  ),
-                );
+                Navigator.pushNamed(context, ManageCommunityScreen.routeName);
               },
             ),
             _buildAdminTaskCard(

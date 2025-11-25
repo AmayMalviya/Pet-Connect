@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +8,7 @@ import 'auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/services/storage_service.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class ShelterProfileScreen extends StatefulWidget {
   static const routeName = '/shelter-profile';
@@ -20,7 +23,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
   pet_connect_user.User? _user;
   String? _shelterPhone;
   String? _shelterAddress;
-  String? _shelterWebsite; // ✅ website optional now
+  String? _shelterWebsite; // optional
   bool _isLoading = true;
   String? _error;
 
@@ -58,7 +61,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
         uid: currentUser.id,
         email: currentUser.email ?? '',
         displayName:
-            '${userProfile['first_name'] ?? ''} ${userProfile['last_name'] ?? ''}',
+            '${userProfile['first_name'] ?? ''} ${userProfile['last_name'] ?? ''}'.trim(),
         photoUrl: userProfile['photo_url'],
         phone: userProfile['phone'],
         city: userProfile['city'],
@@ -70,7 +73,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
         _user = fetchedUser;
         _shelterPhone = userProfile['phone'];
         _shelterAddress = userProfile['city'];
-        _shelterWebsite = userProfile['website']; // optional
+        _shelterWebsite = userProfile['website'];
         _isLoading = false;
       });
     } catch (e) {
@@ -123,7 +126,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Profile", style: GoogleFonts.poppins()),
+        title: Text("Profile", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
         actions: [
           IconButton(
@@ -139,8 +142,9 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
             },
           ),
         ],
-        elevation: 0,
+        elevation: 1,
         backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -161,9 +165,8 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
-    bool isNetworkUrl = _user?.photoUrl != null &&
-        (_user!.photoUrl!.startsWith('http://') ||
-            _user!.photoUrl!.startsWith('https://'));
+    final isNetworkUrl = _user?.photoUrl != null &&
+        (_user!.photoUrl!.startsWith('http://') || _user!.photoUrl!.startsWith('https://'));
 
     return Column(
       children: [
@@ -173,8 +176,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
             radius: 50,
             backgroundImage: isNetworkUrl
                 ? NetworkImage(_user!.photoUrl!)
-                : const AssetImage('assets/images/profile_avatar.png')
-                    as ImageProvider,
+                : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
             child: Stack(
               children: [
                 Positioned(
@@ -195,9 +197,7 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
         ),
         const SizedBox(height: 10),
         Text(
-          _user?.displayName?.trim().isEmpty ?? true
-              ? 'No Name Provided'
-              : _user!.displayName!,
+          (_user?.displayName ?? '').trim().isEmpty ? 'No Name Provided' : (_user?.displayName ?? ''),
           style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         Text(
@@ -221,20 +221,18 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("User / Shelter Details",
-                    style: GoogleFonts.poppins(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () async {
-                    final nameParts = _user?.displayName?.split(' ');
+                    final nameParts = (_user?.displayName ?? '').split(' ');
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => EditProfileScreen(
                           initialData: {
-                            'first_name': nameParts?.first ?? '',
-                            'last_name':
-                                (nameParts?.length ?? 0) > 1 ? nameParts?.last : '',
+                            'first_name': nameParts.isNotEmpty ? nameParts.first : '',
+                            'last_name': nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
                             'email': _user?.email,
                             'phone': _shelterPhone,
                             'city': _user?.city,

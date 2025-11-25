@@ -24,7 +24,8 @@ class _ApproveVerificationsScreenState extends State<ApproveVerificationsScreen>
     final response = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'Shelter Owner')
+        // Accept both legacy 'Shelter Owner' and canonical 'Shelter'
+        .or('role.eq.Shelter,role.eq.Shelter Owner')
         .eq('kyc_verified', false);
     return response;
   }

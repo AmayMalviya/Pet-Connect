@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class ShelterAnalyticsScreen extends StatelessWidget {
   static const routeName = '/shelter-analytics';
@@ -13,7 +14,7 @@ class ShelterAnalyticsScreen extends StatelessWidget {
         title: Text('Shelter Analytics', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.textDark,
         elevation: 1,
       ),
       body: Center(

@@ -7,8 +7,8 @@ class User {
   final String? city;
   final String? state;
   final String? country;
-  final String? idPhotoPath;
-  final String? selfiePath;
+  final String? idPhotoUrl;
+  final String? selfieUrl;
 
   User({
     required this.uid,
@@ -19,28 +19,36 @@ class User {
     this.city,
     this.state,
     this.country,
-    this.idPhotoPath,
-    this.selfiePath,
+    this.idPhotoUrl,
+    this.selfieUrl,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    String firstName = json['first_name'] ?? '';
+    String lastName = json['last_name'] ?? '';
+    String displayName = '$firstName $lastName'.trim();
+    if (displayName.isEmpty) {
+      displayName = json['displayName'] ?? 'No Display Name';
+    }
+
+
     return User(
-      uid: json['uid'] ?? '',
+      uid: json['user_id'] ?? json['uid'] ?? '',
       email: json['email'] ?? '',
-      displayName: json['displayName'] ?? 'No Display Name',
+      displayName: displayName,
       photoUrl: json['photoUrl'],
       phone: json['phone'],
       city: json['city'],
       state: json['state'],
       country: json['country'],
-      idPhotoPath: json['id_photo_path'],
-      selfiePath: json['selfie_path'],
+      idPhotoUrl: json['id_photo_url'],
+      selfieUrl: json['selfie_url'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'uid': uid,
+      'user_id': uid,
       'email': email,
       'displayName': displayName,
       'photoUrl': photoUrl,
@@ -48,8 +56,8 @@ class User {
       'city': city,
       'state': state,
       'country': country,
-      'id_photo_path': idPhotoPath,
-      'selfie_path': selfiePath,
+      'id_photo_url': idPhotoUrl,
+      'selfie_url': selfieUrl,
     };
   }
 }

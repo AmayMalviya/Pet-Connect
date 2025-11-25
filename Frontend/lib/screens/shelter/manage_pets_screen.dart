@@ -2,12 +2,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
-import 'package:path/path.dart' as p;
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/expandable_pet_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -22,7 +21,7 @@ class ManagePetsScreen extends StatefulWidget {
 class _ManagePetsScreenState extends State<ManagePetsScreen> {
   bool _isLoading = true;
   List<Pet> _pets = [];
-  final ImagePicker _picker = ImagePicker();
+  
 
   @override
   void initState() {
@@ -97,42 +96,7 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
     if (result == true) _fetchPets();
   }
 
-  // Upload single pet photo
-  Future<void> _uploadPetPhoto(Pet pet) async {
-    try {
-      final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-      if (image == null) return;
-
-      final ext = p.extension(image.path);
-      final petId = pet.id?.toString();
-      if (petId == null || petId.isEmpty) {
-        _showSnackBar('Pet id missing — cannot upload photo.');
-        return;
-      }
-
-      final fileName = '$petId$ext';
-      final fileBytes = await image.readAsBytes();
-      final storagePath = 'pet_photos/$fileName';
-
-      // Upsert binary to storage (make sure your bucket 'pets_bucket' exists)
-      await Supabase.instance.client.storage
-          .from('pets_bucket')
-          .uploadBinary(storagePath, fileBytes, fileOptions: const FileOptions(upsert: true));
-
-      // getPublicUrl returns a Map with 'publicUrl' depending on library version
-     final publicUrl = Supabase.instance.client.storage
-    .from('pets_bucket')
-    .getPublicUrl(storagePath);
-
-
-      await Supabase.instance.client.from('pets').update({'photo_url': publicUrl}).eq('id', petId);
-
-      await _fetchPets();
-      _showSnackBar('Photo uploaded successfully!');
-    } catch (e) {
-      _showSnackBar('Error uploading photo: $e');
-    }
-  }
+  
 
   // Upload CSV (uses file_picker)
   Future<void> _uploadCSV() async {
@@ -197,8 +161,8 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
         title: Text('Manage Pets', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-        elevation: 0,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
         actions: [
           PopupMenuButton<String>(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -252,13 +216,6 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
                                 pet: pet,
                                 onPetUpdated: _fetchPets,
                                 onDeletePet: (id) => _showDeleteConfirmationDialog(id),
-                                extraActions: [
-                                  IconButton(
-                                    icon: const Icon(Icons.photo_camera_outlined),
-                                    tooltip: 'Upload Pet Photo',
-                                    onPressed: () => _uploadPetPhoto(pet),
-                                  ),
-                                ],
                               ),
                             ),
                           ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/animal.dart';
 import 'package:pet_connect_app/screens/shelter/add_edit_animal_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class ManageAnimalsScreen extends StatefulWidget {
   static const String routeName = '/manage-animals';
@@ -79,7 +81,10 @@ class _ManageAnimalsScreenState extends State<ManageAnimalsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Animals for Adoption'),
+        title: Text('Manage Animals for Adoption', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
       ),
       body: StreamBuilder<List<Animal>>(
         stream: _animalsStream,

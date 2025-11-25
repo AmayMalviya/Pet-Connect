@@ -8,7 +8,7 @@ import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 class ProfileSetupScreen extends StatefulWidget {
   static const routeName = '/profile-setup';
 
-  final String role; // 'Pet Owner' or 'Shelter Owner'
+  final String role; // 'Pet Owner' or 'Shelter'
 
   const ProfileSetupScreen({super.key, required this.role});
 
@@ -88,8 +88,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         'role': widget.role,
       };
 
-      // Add shelter-specific fields if shelter owner
-      if (widget.role == 'Shelter Owner') {
+      // Add shelter-specific fields if shelter
+      if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') {
         profileData['first_name'] = _shelterNameController.text.trim();
         profileData['website'] = _websiteController.text.trim();
         profileData['capacity'] = _capacityController.text.trim();
@@ -105,7 +105,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       );
 
       // Navigate based on role
-      if (widget.role == 'Shelter Owner') {
+      if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') {
         Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
       } else {
         Navigator.pushReplacementNamed(context, MainScreen.routeName);
@@ -159,7 +159,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 32),
               if (widget.role == 'Pet Owner') _buildPetOwnerForm(),
-              if (widget.role == 'Shelter Owner') _buildShelterOwnerForm(),
+              if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') _buildShelterOwnerForm(),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,

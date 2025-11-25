@@ -43,6 +43,14 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null) {
+        if (!mounted) return;
+        
+        // For admin, let the StreamBuilder in main.dart handle routing
+        if (response.user!.email == 'malviyaamay501@gmail.com') {
+          // Admin user - StreamBuilder will handle routing
+          return;
+        }
+
         final userData = await Supabase.instance.client
             .from('profiles')
             .select()
@@ -55,10 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, ProfileDetailsScreen.routeName);
         } else if (userData['role'] != null) {
           // User has already selected a role
-          final role = userData!['role'] as String;
+          final role = userData['role'] as String;
           if (role == 'Pet Owner') {
             Navigator.pushReplacementNamed(context, MainScreen.routeName);
-          } else if (role == 'Shelter') {
+          } else if (role == 'Shelter' || role == 'Shelter Owner') {
             Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
           }
         } else {

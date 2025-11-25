@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/animal.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class AddEditAnimalScreen extends StatefulWidget {
   static const String routeName = '/add-edit-animal';
@@ -124,7 +126,11 @@ class _AddEditAnimalScreenState extends State<AddEditAnimalScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Animal' : 'Add Animal'),
+        title: Text(_isEditing ? 'Edit Animal' : 'Add Animal', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        leading: const BackButton(),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

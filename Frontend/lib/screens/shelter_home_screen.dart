@@ -5,140 +5,228 @@ import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
   static const routeName = '/shelter-home';
 
   const ShelterHomeScreen({super.key});
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else if (hour < 21) {
+      return 'Good Evening';
+    } else {
+      return 'Good Night';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Shelter Dashboard',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+        title: Text('Home', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {},
           ),
-        ),
-        centerTitle: true,
-        backgroundColor: theme.primaryColor,
-        elevation: 2,
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            Text(
-              'Welcome to Pet Connect!',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: theme.primaryColor,
-              ),
+            DrawerHeader(
+              decoration: BoxDecoration(color: AppColors.primary),
+              child: Text('Shelter', style: GoogleFonts.poppins(color: Colors.white, fontSize: 18)),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                children: [
-                  _buildDashboardCard(
-                    context,
-                    title: 'Manage Pets',
-                    icon: Icons.pets,
-                    onTap: () {
-                      Navigator.pushNamed(context, ManagePetsScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
-                    title: 'Adoption Requests',
-                    icon: Icons.volunteer_activism,
-                    onTap: () {
-                      Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
-                    title: 'Manage Profile',
-                    icon: Icons.person,
-                    onTap: () {
-                      Navigator.pushNamed(context, ShelterProfileScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
-                    title: 'Appointments',
-                    icon: Icons.calendar_today,
-                    onTap: () {
-                      Navigator.pushNamed(context, ManageAppointmentsScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
-                    title: 'Analytics',
-                    icon: Icons.analytics,
-                    onTap: () {
-                      Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
-                    },
-                  ),
-                ],
-              ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: Text('Home', style: GoogleFonts.poppins()),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.pets),
+              title: Text('Manage Pets', style: GoogleFonts.poppins()),
+              onTap: () => Navigator.pushNamed(context, ManagePetsScreen.routeName),
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: Text('Logout', style: GoogleFonts.poppins()),
+              onTap: () async {
+                await Supabase.instance.client.auth.signOut();
+                Navigator.pushReplacementNamed(context, '/');
+              },
             ),
           ],
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_getGreeting()}, Shelter!',
+                style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search for pets, requests...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSectionTitle('Management'),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 120,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _buildPetCareCard(
+                      context,
+                      title: 'Manage Pets',
+                      icon: Icons.pets,
+                      onTap: () {
+                        Navigator.pushNamed(context, ManagePetsScreen.routeName);
+                      },
+                    ),
+                    _buildPetCareCard(
+                      context,
+                      title: 'Adoption Requests',
+                      icon: Icons.volunteer_activism,
+                      onTap: () {
+                        Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
+                      },
+                    ),
+                    _buildPetCareCard(
+                      context,
+                      title: 'Appointments',
+                      icon: Icons.calendar_today,
+                      onTap: () {
+                        Navigator.pushNamed(context, ManageAppointmentsScreen.routeName);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSectionTitle('Shelter'),
+              const SizedBox(height: 10),
+              _buildVetCard(
+                context,
+                title: 'Manage Profile',
+                icon: Icons.person,
+                onTap: () {
+                  Navigator.pushNamed(context, ShelterProfileScreen.routeName);
+                },
+              ),
+              _buildVetCard(
+                context,
+                title: 'Analytics',
+                icon: Icons.analytics,
+                onTap: () {
+                  Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDashboardCard(
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+    );
+  }
+
+  Widget _buildPetCareCard(
     BuildContext context, {
     required String title,
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
     return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      margin: const EdgeInsets.only(right: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.primaryColor.withOpacity(0.85),
-                theme.primaryColor,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 120,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 40, color: Theme.of(context).primaryColor),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 50, color: Colors.white),
-                const SizedBox(height: 12),
-                Text(
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVetCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                child: Icon(icon, size: 30, color: AppColors.primary),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
                   title,
-                  textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+            ],
           ),
         ),
       ),

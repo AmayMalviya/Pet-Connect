@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
-import 'package:pet_connect_app/services/storage_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExpandablePetCard extends StatefulWidget {
   final Pet pet;
   final VoidCallback onPetUpdated;
   final Function(String) onDeletePet;
-  final List<Widget>? extraActions; // ✅ Added
+  // final List<Widget>? extraActions; // Removed
 
   const ExpandablePetCard({
     Key? key,
     required this.pet,
     required this.onPetUpdated,
     required this.onDeletePet,
-    this.extraActions, // ✅ Added
+  // this.extraActions, // Removed
   }) : super(key: key);
 
   @override
@@ -27,25 +24,7 @@ class ExpandablePetCard extends StatefulWidget {
 
 class _ExpandablePetCardState extends State<ExpandablePetCard> {
   bool _isExpanded = false;
-
-  Future<void> _pickAndUploadPetImage() async {
-    if (widget.pet.id == null) return;
-    final ImagePicker picker = ImagePicker();
-    final XFile? image =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
-
-    if (image != null) {
-      final storageService = StorageService();
-      final imageUrl =
-          await storageService.uploadPetPicture(widget.pet.id!, image);
-      if (imageUrl != null) {
-        await Supabase.instance.client
-            .from('pets')
-            .update({'photo_url': imageUrl}).eq('id', widget.pet.id!);
-        widget.onPetUpdated();
-      }
-    }
-  }
+  // Removed image picker/upload responsibilities
 
   @override
   Widget build(BuildContext context) {
@@ -63,38 +42,41 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
           children: [
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              leading: GestureDetector(
-                onTap: _pickAndUploadPetImage,
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundImage: isNetworkUrl
-                      ? NetworkImage(widget.pet.photoUrl!)
-                      : const AssetImage('assets/images/logo.png')
-                          as ImageProvider,
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(Icons.camera_alt,
-                              size: 15, color: Colors.white),
+              leading: CircleAvatar(
+                radius: 30,
+                backgroundImage: isNetworkUrl
+                    ? NetworkImage(widget.pet.photoUrl!)
+                    : const AssetImage('assets/images/logo.png') as ImageProvider,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(20),
                         ),
+                        child: const Icon(Icons.camera_alt,
+                            size: 15, color: Colors.white),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              title: Text(widget.pet.name ?? 'Unknown Pet',
-                  style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
-              subtitle: Text(widget.pet.breed ?? 'Unknown Breed',
-                  style: GoogleFonts.poppins(fontSize: 13)),
+              title: Text(
+                widget.pet.name ?? 'Unknown Pet',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                widget.pet.breed ?? 'Unknown Breed',
+                style: GoogleFonts.poppins(fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -121,7 +103,7 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                       }
                     },
                   ),
-                  if (widget.extraActions != null) ...widget.extraActions!, // ✅ Custom actions from ManagePetsScreen
+                  // Extra actions moved to Edit screen; removed from card
                   IconButton(
                     icon: Icon(
                         _isExpanded ? Icons.expand_less : Icons.expand_more,

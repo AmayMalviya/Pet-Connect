@@ -18,6 +18,7 @@ import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/nutrition_advice_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:pet_connect_app/screens/kyc_document_screen.dart';
+import 'package:pet_connect_app/screens/kyc_pending_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
@@ -35,6 +36,7 @@ import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
 import 'package:pet_connect_app/screens/admin/approve_verifications_screen.dart';
+import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
 
 import 'package:pet_connect_app/services/notification_service.dart';
 
@@ -79,21 +81,22 @@ class PetConnectApp extends StatelessWidget {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
           if (snapshot.hasData && snapshot.data?.session != null) {
+            final user = snapshot.data!.session!.user;
+            
+            // Admin check - do this immediately without waiting for profile
+            if (user.email == 'malviyaamay501@gmail.com') {
+              return const AdminDashboardScreen();
+            }
+
             return FutureBuilder<Map<String, dynamic>?>(
-              future: _getProfileData(snapshot.data!.session!.user.id),
+              future: _getProfileData(user.id),
               builder: (context, userSnapshot) {
                 if (userSnapshot.connectionState == ConnectionState.waiting) {
                   return const Scaffold(body: Center(child: CircularProgressIndicator()));
                 }
 
                 final profile = userSnapshot.data;
-                final user = snapshot.data!.session!.user;
                 final provider = user.appMetadata['provider'];
-
-                // Admin check
-                if (user.email == 'malviyaamay501@gmail.com') {
-                  return const AdminDashboardScreen();
-                }
 
                 // For social logins, if profile is incomplete, go to setup screen.
                 if (provider != 'email' && (profile == null || profile['first_name'] == null || profile['first_name'].isEmpty)) {
@@ -111,8 +114,14 @@ class PetConnectApp extends StatelessWidget {
                 // Navigate based on role.
                 if (userRole == 'Pet Owner') {
                   return const MainScreen();
-                } else if (userRole == 'Shelter Owner') {
-                  return const ShelterHomeScreen();
+                } else if (userRole == 'Shelter' || userRole == 'Shelter Owner') {
+                  // Enforce KYC for shelter users. If not verified, send to KYC flow first.
+                  final kycVerified = profile['kyc_verified'] == true;
+                  if (kycVerified) {
+                    return const ShelterHomeScreen();
+                  } else {
+                    return const KycDocumentScreen();
+                  }
                 } else {
                   // Default fallback
                   return const RoleSelectionScreen();
@@ -139,6 +148,7 @@ class PetConnectApp extends StatelessWidget {
         NutritionAdviceScreen.routeName: (context) => const NutritionAdviceScreen(),
         RoleSelectionScreen.routeName: (context) => const RoleSelectionScreen(),
         KycDocumentScreen.routeName: (context) => const KycDocumentScreen(),
+        KycPendingScreen.routeName: (context) => const KycPendingScreen(),
         KycPersonalScreen.routeName: (context) => const KycPersonalScreen(),
         ShelterHomeScreen.routeName: (context) => const ShelterHomeScreen(),
         AppointmentsScreen.routeName: (context) => const AppointmentsScreen(),
@@ -161,6 +171,7 @@ class PetConnectApp extends StatelessWidget {
         ShelterAnalyticsScreen.routeName: (context) => const ShelterAnalyticsScreen(),
         ShelterAdoptionRequestsScreen.routeName: (_) => const ShelterAdoptionRequestsScreen(),
         ManageProfilesScreen.routeName: (context) => const ManageProfilesScreen(),
+        ManageCommunityScreen.routeName: (context) => const ManageCommunityScreen(),
         ApproveVerificationsScreen.routeName: (context) => const ApproveVerificationsScreen(),
       },
     );

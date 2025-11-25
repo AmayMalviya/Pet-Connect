@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/kyc_personal_screen.dart';
 import 'package:pet_connect_app/services/storage_service.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class KycDocumentScreen extends StatefulWidget {
   static const routeName = '/kyc-document';
@@ -107,8 +108,8 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
         title: Text("Level 1: Document Verification",
             style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-        elevation: 0,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
       ),
       body: Padding(
         padding: const EdgeInsets.all(18),

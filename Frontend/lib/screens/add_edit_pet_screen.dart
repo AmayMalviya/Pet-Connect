@@ -4,6 +4,8 @@ import 'package:pet_connect_app/models/cat_breed.dart';
 import 'package:pet_connect_app/models/dog_breed.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/services/breed_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddEditPetScreen extends StatefulWidget {
@@ -35,7 +37,9 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   late TextEditingController _coatTypeController;
   late TextEditingController _groomingNeedsController;
   late TextEditingController _preferredFoodTypeController;
-  String? _selectedStatus;
+  String? _photoUrl;
+  final ImagePicker _picker = ImagePicker();
+  // status not currently used; remove to avoid unused-field lint
 
   bool _isLoadingBreeds = true;
   List<DogBreed> _dogBreeds = [];
@@ -77,7 +81,8 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _coatTypeController = TextEditingController(text: widget.pet?.coatType);
     _groomingNeedsController = TextEditingController(text: widget.pet?.groomingNeeds);
     _preferredFoodTypeController = TextEditingController(text: widget.pet?.preferredFoodType);
-    _selectedStatus = widget.pet?.status;
+  _photoUrl = widget.pet?.photoUrl;
+  // status not used currently
     _fetchBreeds();
   }
 
@@ -173,12 +178,87 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Pet saved successfully!')),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save pet: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _uploadPetPhoto() async {
+    if (widget.pet?.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Save the pet first, then upload a photo.')),
+      );
+      return;
+    }
+
+    try {
+      final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (image == null) return;
+
+      final ext = p.extension(image.path);
+      final petId = widget.pet!.id!;
+      final fileName = '$petId$ext';
+      final fileBytes = await image.readAsBytes();
+      final storagePath = 'pet_photos/$fileName';
+
+      await Supabase.instance.client.storage
+          .from('pets_bucket')
+          .uploadBinary(storagePath, fileBytes, fileOptions: const FileOptions(upsert: true));
+
+      final publicUrl = Supabase.instance.client.storage.from('pets_bucket').getPublicUrl(storagePath);
+      await Supabase.instance.client.from('pets').update({'photo_url': publicUrl}).eq('id', petId);
+
+      setState(() {
+        _photoUrl = publicUrl;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo uploaded successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading photo: $e')),
+      );
+    }
+  }
+
+  Future<void> _deletePetPhoto() async {
+    if (widget.pet?.id == null || _photoUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No photo to delete.')),
+      );
+      return;
+    }
+
+    try {
+      final petId = widget.pet!.id!;
+      // try to extract filename after 'pet_photos/'
+      String? storagePath;
+      final url = _photoUrl!;
+      final idx = url.indexOf('pet_photos/');
+      if (idx != -1) {
+        final filename = url.substring(idx + 'pet_photos/'.length);
+        storagePath = 'pet_photos/$filename';
+      }
+
+      if (storagePath != null) {
+        await Supabase.instance.client.storage.from('pets_bucket').remove([storagePath]);
+      }
+
+      await Supabase.instance.client.from('pets').update({'photo_url': null}).eq('id', petId);
+
+      setState(() => _photoUrl = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo deleted successfully.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting photo: $e')),
+      );
     }
   }
 
@@ -194,7 +274,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-                              child: Card(
+          child: Card(
                                 elevation: 2,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -212,6 +292,45 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 16),
+                                      // Photo upload / delete moved to Edit screen
+                                      if (widget.pet?.id != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 12.0),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 30,
+                                                backgroundImage: _photoUrl != null && (_photoUrl!.startsWith('http') || _photoUrl!.startsWith('https'))
+                                                    ? NetworkImage(_photoUrl!) as ImageProvider
+                                                    : const AssetImage('assets/images/logo.png') as ImageProvider,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    ElevatedButton.icon(
+                                                      onPressed: _uploadPetPhoto,
+                                                      icon: const Icon(Icons.photo_camera_outlined),
+                                                      label: Text('Upload Photo', style: GoogleFonts.poppins()),
+                                                    ),
+                                                    if (_photoUrl != null)
+                                                      TextButton.icon(
+                                                        onPressed: _deletePetPhoto,
+                                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                                        label: Text('Delete Photo', style: GoogleFonts.poppins(color: Colors.redAccent)),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 12.0),
+                                          child: Text('Save the pet first to upload a photo.', style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[700])),
+                                        ),
                                       // Pet Name
                                       TextFormField(
                                         controller: _nameController,
@@ -229,6 +348,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                       const SizedBox(height: 16),
                                       // Animal Type
                                       DropdownButtonFormField<String>(
+                                        isExpanded: true,
                                         decoration: InputDecoration(
                                           labelText: 'Animal',
                                           border: OutlineInputBorder(
@@ -241,7 +361,11 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                         items: ['Dog', 'Cat']
                                             .map((animal) => DropdownMenuItem<String>(
                                                   value: animal,
-                                                  child: Text(animal),
+                                                  child: Text(
+                                                    animal,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: GoogleFonts.poppins(),
+                                                  ),
                                                 ))
                                             .toList(),
                                         onChanged: (v) => setState(() {
@@ -264,6 +388,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                         const Center(child: CircularProgressIndicator())
                                       else
                                         DropdownButtonFormField<String>(
+                                          isExpanded: true,
                                           decoration: InputDecoration(
                                             labelText: 'Breed',
                                             border: OutlineInputBorder(
@@ -303,6 +428,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                       const SizedBox(height: 16),
                                       // Age
                                       DropdownButtonFormField<String>(
+                                        isExpanded: true,
                                         decoration: InputDecoration(
                                           labelText: 'Age',
                                           border: OutlineInputBorder(
@@ -495,7 +621,8 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                     ],
                                   ),
                                 ),
-                              ),        ),
+                              ),
+        ),
       ),
     );
   }

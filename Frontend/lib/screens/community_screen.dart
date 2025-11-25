@@ -81,19 +81,43 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 radius: 20,
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${post.user.firstName ?? ''} ${post.user.lastName ?? ''}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '@${post.user.firstName?.toLowerCase() ?? ''}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${post.user.firstName ?? ''} ${post.user.lastName ?? ''}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '@${post.user.firstName?.toLowerCase() ?? ''}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
+              // If current user is the owner, show delete menu
+              Builder(builder: (context) {
+                final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+                if (currentUserId != null && currentUserId == post.userId) {
+                  return PopupMenuButton<String>(
+                    onSelected: (v) async {
+                      if (v == 'delete') {
+                        final ok = await showDialog<bool>(context: context, builder: (dctx) => AlertDialog(
+                          title: const Text('Delete post?'),
+                          content: const Text('This will permanently remove your post and related captions.'),
+                          actions: [TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('Cancel')), TextButton(onPressed: () => Navigator.pop(dctx, true), child: const Text('Delete'))],
+                        ));
+                        if (ok == true) {
+                          await _deletePostWithDependencies(post.id);
+                        }
+                      }
+                    },
+                    itemBuilder: (ctx) => const [PopupMenuItem(value: 'delete', child: Text('Delete Post'))],
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
             ],
           ),
           const SizedBox(height: 10),
@@ -133,6 +157,76 @@ class _CommunityScreenState extends State<CommunityScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _deletePostWithDependencies(String postId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      await supabase.from('comments').delete().eq('post_id', postId);
+      await supabase.from('likes').delete().eq('post_id', postId);
+
+      // Fetch media rows for the post to delete storage files
+      final mediaRes = await supabase.from('media').select().eq('post_id', postId) as List<dynamic>?;
+      if (mediaRes != null) {
+        for (final m in mediaRes) {
+          try {
+            final map = Map<String, dynamic>.from(m as Map);
+            final url = map['url'] as String? ?? map['file_path'] as String?;
+            await _deleteStorageFile(url);
+          } catch (err) {
+            debugPrint('Error deleting media file for post: $err');
+          }
+        }
+      }
+
+      await supabase.from('media').delete().eq('post_id', postId);
+      await supabase.from('posts').delete().eq('id', postId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post and related data deleted')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting post: $e')));
+    }
+  }
+
+  Future<void> _deleteStorageFile(String? urlOrPath) async {
+    if (urlOrPath == null || urlOrPath.isEmpty) return;
+    try {
+      String bucket = 'posts';
+      String path = urlOrPath;
+      try {
+        final uri = Uri.parse(urlOrPath);
+        final segments = uri.pathSegments;
+        final idx = segments.indexOf('public');
+        if (idx != -1 && idx + 1 < segments.length) {
+          bucket = segments[idx + 1];
+          path = segments.sublist(idx + 2).join('/');
+        } else {
+          if (segments.isNotEmpty) {
+            if (segments.first == bucket) {
+              path = segments.sublist(1).join('/');
+            } else {
+              path = segments.join('/');
+            }
+          }
+        }
+      } catch (_) {
+        final parts = urlOrPath.split('/');
+        if (parts.length > 1) {
+          bucket = parts.first;
+          path = parts.sublist(1).join('/');
+        }
+      }
+      if (path.isEmpty) return;
+      final storage = Supabase.instance.client.storage;
+      try {
+        await storage.from(bucket).remove([path]);
+      } catch (storageErr) {
+        debugPrint('Storage remove error: $storageErr');
+      }
+    } catch (e) {
+      debugPrint('Error deleting storage file: $e');
+    }
   }
 }
 
