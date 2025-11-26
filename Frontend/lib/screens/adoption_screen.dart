@@ -96,20 +96,24 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   }
 
   Future<void> _sendAdoptionRequest(Pet pet) async {
+    debugPrint('🔵 [ADOPTION] Starting adoption request for pet: ${pet.name}');
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
+      debugPrint('❌ [ADOPTION] No user logged in');
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please login to send requests.')));
       return;
     }
 
     if (pet.id == null || pet.ownerId == null) {
+      debugPrint('❌ [ADOPTION] Invalid pet.id=${pet.id} or ownerId=${pet.ownerId}');
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Invalid pet or shelter information.')));
       return;
     }
 
     try {
+      debugPrint('📝 [ADOPTION] Inserting adoption request for pet=${pet.id}, requester=${user.id}, shelter=${pet.ownerId}');
       // 1️⃣ Insert into adoption_requests
       await Supabase.instance.client.from('adoption_requests').insert({
     'pet_id': pet.id,
@@ -117,22 +121,25 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     'shelter_owner_id': pet.ownerId,
     'status': 'Pending',
     });
+      debugPrint('✅ [ADOPTION] Adoption request inserted successfully');
 
       // 2️⃣ Insert in notifications table
       try {
+        debugPrint('📬 [ADOPTION] Inserting notification for recipient=${pet.ownerId}');
         await Supabase.instance.client.from('notifications').insert({
           'recipient_id': pet.ownerId,
           'title': 'New Adoption Request',
           'body':
               'Someone is interested in adopting ${pet.name ?? 'your pet'}.',
           'type': 'adoption_request',
-          'metadata': {'pet_id': pet.id, 'requester_id': user.id},
         });
+        debugPrint('✅ [ADOPTION] Notification inserted successfully');
       } catch (e) {
-        debugPrint('Optional: failed to insert notification: $e');
+        debugPrint('⚠️ [ADOPTION] Optional: failed to insert notification: $e');
       }
 
       // 3️⃣ Fetch shelter FCM token
+      debugPrint('🔍 [ADOPTION] Fetching FCM token for shelter user=${pet.ownerId}');
       final shelterProfile = await Supabase.instance.client
           .from('profiles')
           .select('fcm_token')
@@ -140,19 +147,26 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           .maybeSingle();
 
       final fcmToken = shelterProfile?['fcm_token'] as String?;
+      debugPrint('🔑 [ADOPTION] FCM token: ${fcmToken != null ? 'Found (${fcmToken.substring(0, 20)}...)' : 'NOT FOUND'}');
       if (fcmToken != null && fcmToken.isNotEmpty) {
+        debugPrint('📲 [ADOPTION] Sending push notification to shelter');
         await _sendPushNotification(
           token: fcmToken,
           title: '🐾 New Adoption Request',
           body: 'Someone wants to adopt ${pet.name ?? 'your pet'}!',
         );
+        debugPrint('✅ [ADOPTION] Push notification sent');
+      } else {
+        debugPrint('⚠️ [ADOPTION] No FCM token found for shelter, skipping push');
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Adoption request sent successfully!')),
       );
+      debugPrint('✅ [ADOPTION] Request completed successfully');
     } catch (e) {
+      debugPrint('❌ [ADOPTION] Error: $e');
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Failed to send request: $e')));
     }
@@ -165,6 +179,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     required String body,
   }) async {
     try {
+      debugPrint('🚀 [FCM] Invoking send_fcm Edge Function with token=${token.substring(0, 20)}...');
       final response = await Supabase.instance.client.functions.invoke(
         'send_fcm',
         body: {
@@ -176,13 +191,14 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
       );
 
       final data = response.data;
+      debugPrint('📨 [FCM] Response: $data');
       if (data != null && data['success'] == true) {
-        debugPrint('✅ Push notification sent successfully!');
+        debugPrint('✅ [FCM] Push notification sent successfully!');
       } else {
-        debugPrint('⚠️ Failed to send push: $data');
+        debugPrint('⚠️ [FCM] Failed to send push: $data');
       }
     } catch (e) {
-      debugPrint('❌ Error invoking send_fcm function: $e');
+      debugPrint('❌ [FCM] Error invoking send_fcm function: $e');
     }
   }
 

@@ -28,8 +28,8 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
     try {
       final response = await Supabase.instance.client
           .from('adoption_requests')
-          .select('id, pet_id, status, message, created_at, profiles:requester_id(first_name, last_name, email), pets(name)')
-          .eq('shelter_owner_id', user.id)
+          .select('id, pet_id, status, message, created_at, profiles:user_id(full_name, email), pets(name)')
+          .eq('shelter_id', user.id)
           .order('created_at', ascending: false);
 
       setState(() {

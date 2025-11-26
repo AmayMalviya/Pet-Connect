@@ -15,6 +15,8 @@ class AnimalDetailsScreen extends StatefulWidget {
 
 class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
   String? _shelterName;
+  String? _shelterAddress;
+  String? _shelterPhone;
 
   @override
   void initState() {
@@ -26,11 +28,13 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
     try {
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('full_name')
+          .select('full_name, address, phone')
           .eq('user_id', widget.animal.shelterId)
           .single();
       setState(() {
-        _shelterName = response['full_name'] as String;
+        _shelterName = response['full_name'] as String?;
+        _shelterAddress = response['address'] as String?;
+        _shelterPhone = response['phone'] as String?;
       });
     } catch (e) {
       print('Error fetching shelter details: $e');
@@ -38,6 +42,71 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
         _shelterName = 'Unknown Shelter';
       });
     }
+  }
+
+  Future<void> _sendAdoptionRequest() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      await Supabase.instance.client.from('adoption_requests').insert({
+        'pet_id': widget.animal.id,
+        'user_id': userId,
+        'shelter_id': widget.animal.shelterId,
+        'status': 'pending',
+        'message': 'Request !',
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Adoption request sent successfully!')),
+      );
+    } catch (e) {
+      print('Error sending adoption request: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send adoption request.')),
+      );
+    }
+  }
+
+  void _showAdoptionInterestDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Adoption Interest'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                const Text('You are expressing interest in adopting:'),
+                const SizedBox(height: 10),
+                Text('Pet Name: ${widget.animal.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('Breed: ${widget.animal.breed ?? 'N/A'}'),
+                Text('Age: ${widget.animal.age ?? 'N/A'} years'),
+                const Divider(height: 20),
+                const Text('Shelter Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Name: ${_shelterName ?? 'Loading...'}'),
+                Text('Address: ${_shelterAddress ?? 'N/A'}'),
+                Text('Phone: ${_shelterPhone ?? 'N/A'}'),
+                const Divider(height: 20),
+                const Text('A "Request !" notification will be sent to the shelter.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _sendAdoptionRequest();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -105,9 +174,24 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             ),
             const SizedBox(height: 5),
             if (_shelterName != null)
-              Text(
-                'Name: $_shelterName',
-                style: const TextStyle(fontSize: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Name: $_shelterName',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  if (_shelterAddress != null)
+                    Text(
+                      'Address: $_shelterAddress',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  if (_shelterPhone != null)
+                    Text(
+                      'Phone: $_shelterPhone',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                ],
               )
             else
               const Text(
@@ -117,13 +201,8 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Implement contact shelter functionality (e.g., call, email, chat)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Contact Shelter functionality not yet implemented.')),
-                  );
-                },
-                child: const Text('Contact Shelter'),
+                onPressed: _showAdoptionInterestDialog,
+                child: const Text('I am interested'),
               ),
             ),
           ],

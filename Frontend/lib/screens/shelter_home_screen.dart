@@ -77,7 +77,7 @@ class ShelterHomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${_getGreeting()}, Shelter!',
+                '${_getGreeting()}',
                 style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
@@ -117,14 +117,7 @@ class ShelterHomeScreen extends StatelessWidget {
                         Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
                       },
                     ),
-                    _buildPetCareCard(
-                      context,
-                      title: 'Appointments',
-                      icon: Icons.calendar_today,
-                      onTap: () {
-                        Navigator.pushNamed(context, ManageAppointmentsScreen.routeName);
-                      },
-                    ),
+                    
                   ],
                 ),
               ),
