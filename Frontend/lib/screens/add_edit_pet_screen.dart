@@ -26,11 +26,11 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   String? _selectedBreedRefId;
   String? _breedTable;
   String? _selectedAgeRange;
+  String? _selectedGender;
   late TextEditingController _allergiesController;
   late TextEditingController _medicalConditionsController;
   late TextEditingController _weightController;
   late TextEditingController _heightController;
-  late TextEditingController _genderController;
   late TextEditingController _dietTypeController;
   late TextEditingController _feedingFrequencyController;
   late TextEditingController _activityLevelController;
@@ -74,7 +74,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _medicalConditionsController = TextEditingController(text: widget.pet?.medicalConditions?.join(', '));
     _weightController = TextEditingController(text: widget.pet?.weightKg?.toString());
     _heightController = TextEditingController(text: widget.pet?.heightCm?.toString());
-    _genderController = TextEditingController(text: widget.pet?.gender);
+    _selectedGender = widget.pet?.gender;
     _dietTypeController = TextEditingController(text: widget.pet?.dietType);
     _feedingFrequencyController = TextEditingController(text: widget.pet?.feedingFrequency?.toString());
     _activityLevelController = TextEditingController(text: widget.pet?.activityLevel);
@@ -93,7 +93,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _medicalConditionsController.dispose();
     _weightController.dispose();
     _heightController.dispose();
-    _genderController.dispose();
     _dietTypeController.dispose();
     _feedingFrequencyController.dispose();
     _activityLevelController.dispose();
@@ -156,7 +155,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
           'medical_conditions': _medicalConditionsController.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
           'weight_kg': double.tryParse(_weightController.text),
           'height_cm': double.tryParse(_heightController.text),
-          'gender': _genderController.text.isNotEmpty ? _genderController.text : null,
+          'gender': _selectedGender,
           'diet_type': _dietTypeController.text.isNotEmpty ? _dietTypeController.text : null,
           'feeding_frequency': int.tryParse(_feedingFrequencyController.text),
           'activity_level': _activityLevelController.text.isNotEmpty ? _activityLevelController.text : null,
@@ -517,8 +516,8 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                       ),
                                       const SizedBox(height: 16),
                                       // Gender
-                                      TextFormField(
-                                        controller: _genderController,
+                                      DropdownButtonFormField<String>(
+                                        isExpanded: true,
                                         decoration: InputDecoration(
                                           labelText: 'Gender',
                                           border: OutlineInputBorder(
@@ -527,6 +526,15 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                           filled: true,
                                           fillColor: Colors.grey[200],
                                         ),
+                                        value: _selectedGender,
+                                        items: ['Male', 'Female']
+                                            .map((g) => DropdownMenuItem<String>(
+                                                  value: g,
+                                                  child: Text(g, style: GoogleFonts.poppins()),
+                                                ))
+                                            .toList(),
+                                        onChanged: (v) => setState(() => _selectedGender = v),
+                                        validator: (v) => v == null ? 'Please select a gender' : null,
                                       ),
                                       const SizedBox(height: 16),
                                       // Diet Type

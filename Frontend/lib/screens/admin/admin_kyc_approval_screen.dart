@@ -22,6 +22,7 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
   }
 
   /// Fetch pending KYC requests with full details from profiles, kyc_documents, and kyc_personal
+  /// Only includes users who have SUBMITTED KYC documents AND personal details (filters out dummy/incomplete submissions)
   Future<List<Map<String, dynamic>>> _fetchPendingKyc() async {
     try {
       // Fetch unverified shelter profiles
@@ -36,27 +37,31 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
       for (var profile in profiles) {
         final userId = profile['user_id'];
 
-        // Fetch associated KYC documents
+        // Fetch the most recent KYC document for this user
         final docs = await Supabase.instance.client
             .from('kyc_documents')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', ascending: false)
-            .maybeSingle();
+            .limit(1);
 
-        // Fetch associated KYC personal details
+        // Fetch the most recent KYC personal details for this user
         final personal = await Supabase.instance.client
             .from('kyc_personal')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', ascending: false)
-            .maybeSingle();
+            .limit(1);
 
-        result.add({
-          'profile': profile,
-          'kyc_documents': docs,
-          'kyc_personal': personal,
-        });
+        // Only include users who have BOTH kyc_documents AND kyc_personal records
+        // This filters out unverified users without any submitted KYC data
+        if (docs.isNotEmpty && personal.isNotEmpty) {
+          result.add({
+            'profile': profile,
+            'kyc_documents': docs.first,
+            'kyc_personal': personal.first,
+          });
+        }
       }
 
       return result;
@@ -66,17 +71,17 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
     }
   }
 
-  /// Fetch pets for a shelter user
+  /// Fetch animals for a shelter user from animals_for_adoption table
   Future<List<Map<String, dynamic>>> _fetchShelterPets(String userId) async {
     try {
-      final pets = await Supabase.instance.client
-          .from('pets')
+      final animals = await Supabase.instance.client
+          .from('animals_for_adoption')
           .select('*')
           .eq('shelter_id', userId)
           .order('created_at', ascending: false);
-      return pets;
+      return animals;
     } catch (e) {
-      debugPrint('Error fetching shelter pets: $e');
+      debugPrint('Error fetching shelter animals: $e');
       return [];
     }
   }
@@ -84,10 +89,8 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
   /// Approve KYC and set kyc_verified to true
   Future<void> _approveKyc(String userId) async {
     try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'kyc_verified': true})
-          .eq('user_id', userId);
+      // Call the database function to approve the KYC
+      await Supabase.instance.client.rpc('approve_kyc', params: {'target_user_id': userId});
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,6 +99,7 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        // Refresh the pending KYC list
         setState(() {
           _pendingKycFuture = _fetchPendingKyc();
         });
@@ -109,6 +113,7 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
           ),
         );
       }
+      debugPrint('Error in _approveKyc: $e');
     }
   }
 

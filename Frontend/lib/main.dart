@@ -68,6 +68,37 @@ class PetConnectApp extends StatelessWidget {
     return profileResponse;
   }
 
+  /// Guard for Shelter-specific routes: ensure user is Shelter role AND kyc_verified = true.
+  /// If not, redirect to appropriate screen (role selection or KYC flow).
+  Widget _guardShelterRoute(Widget page) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _getProfileData(Supabase.instance.client.auth.currentUser!.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        final profile = snapshot.data;
+        final userRole = profile?['role'] as String?;
+        final kycVerified = profile?['kyc_verified'] == true;
+
+        // If not a Shelter, redirect back.
+        if (userRole == null || (userRole != 'Shelter' && userRole != 'Shelter Owner')) {
+          Future.microtask(() => Navigator.of(context).pushReplacementNamed(RoleSelectionScreen.routeName));
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        // If Shelter but not KYC verified, redirect to KYC flow.
+        if (!kycVerified) {
+          Future.microtask(() => Navigator.of(context).pushReplacementNamed(KycDocumentScreen.routeName));
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        // Otherwise, allow access to the page.
+        return page;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -150,11 +181,11 @@ class PetConnectApp extends StatelessWidget {
         KycDocumentScreen.routeName: (context) => const KycDocumentScreen(),
         KycPendingScreen.routeName: (context) => const KycPendingScreen(),
         KycPersonalScreen.routeName: (context) => const KycPersonalScreen(),
-        ShelterHomeScreen.routeName: (context) => const ShelterHomeScreen(),
-        AppointmentsScreen.routeName: (context) => const AppointmentsScreen(),
-        ManagePetsScreen.routeName: (context) => const ManagePetsScreen(),
-        AdoptionRequestsScreen.routeName: (context) => const AdoptionRequestsScreen(),
-        ShelterProfileScreen.routeName: (context) => const ShelterProfileScreen(),
+        ShelterHomeScreen.routeName: (context) => _guardShelterRoute(const ShelterHomeScreen()),
+        AppointmentsScreen.routeName: (context) => _guardShelterRoute(const AppointmentsScreen()),
+        ManagePetsScreen.routeName: (context) => _guardShelterRoute(const ManagePetsScreen()),
+        AdoptionRequestsScreen.routeName: (context) => _guardShelterRoute(const AdoptionRequestsScreen()),
+        ShelterProfileScreen.routeName: (context) => _guardShelterRoute(const ShelterProfileScreen()),
         EditProfileScreen.routeName: (context) => const EditProfileScreen(),
         SocialProfileSetupScreen.routeName: (context) => const SocialProfileSetupScreen(),
         AdminDashboardScreen.routeName: (_) => const AdminDashboardScreen(),
@@ -167,9 +198,9 @@ class PetConnectApp extends StatelessWidget {
           final note = args?['note'] as MedicalNote?;
           return AddEditMedicalNoteScreen(petId: petId, note: note);
         },
-        ManageAppointmentsScreen.routeName: (context) => const ManageAppointmentsScreen(),
-        ShelterAnalyticsScreen.routeName: (context) => const ShelterAnalyticsScreen(),
-        ShelterAdoptionRequestsScreen.routeName: (_) => const ShelterAdoptionRequestsScreen(),
+        ManageAppointmentsScreen.routeName: (context) => _guardShelterRoute(const ManageAppointmentsScreen()),
+        ShelterAnalyticsScreen.routeName: (context) => _guardShelterRoute(const ShelterAnalyticsScreen()),
+        ShelterAdoptionRequestsScreen.routeName: (_) => _guardShelterRoute(const ShelterAdoptionRequestsScreen()),
         ManageProfilesScreen.routeName: (context) => const ManageProfilesScreen(),
         ManageCommunityScreen.routeName: (context) => const ManageCommunityScreen(),
         ApproveVerificationsScreen.routeName: (context) => const ApproveVerificationsScreen(),

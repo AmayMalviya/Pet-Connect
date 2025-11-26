@@ -34,7 +34,7 @@ class _ManageAnimalsScreenState extends State<ManageAnimalsScreen> {
     return supabase
         .from('animals_for_adoption')
         .stream(primaryKey: ['id'])
-        .eq('shelter_id', userId)
+        .eq('user_id', userId)
         .map((maps) => maps.map((map) => Animal.fromJson(map)).toList());
   }
 

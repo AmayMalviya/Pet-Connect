@@ -64,12 +64,12 @@ class _AddEditAnimalScreenState extends State<AddEditAnimalScreen> {
     final storagePath = 'animal_photos/$fileName';
 
     try {
-      await supabase.storage.from('pet_photos').upload(
+      await supabase.storage.from('pet-pictures').upload(
             storagePath,
             _imageFile!,
             fileOptions: const FileOptions(upsert: true),
           );
-      return supabase.storage.from('pet_photos').getPublicUrl(storagePath);
+      return supabase.storage.from('pet-pictures').getPublicUrl(storagePath);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error uploading image: $e'), backgroundColor: Colors.red),
@@ -96,7 +96,7 @@ class _AddEditAnimalScreenState extends State<AddEditAnimalScreen> {
       }
 
       final data = {
-        'shelter_id': userId,
+        'user_id': userId,
         'name': _nameController.text,
         'type': _selectedType,
         'breed': _breedController.text.isEmpty ? null : _breedController.text,

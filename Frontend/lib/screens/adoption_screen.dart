@@ -218,6 +218,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                               pet: pet,
                               onPetUpdated: _fetchPetsForAdoption,
                               onDeletePet: (_) {},
+                              showActions: false,
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton.icon(

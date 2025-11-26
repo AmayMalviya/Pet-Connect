@@ -2,8 +2,13 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
-// ✅ Get Firebase Server Key securely from environment
-const FIREBASE_SERVER_KEY = Deno.env.get("AIzaSyC6FUq2HsQPZicGKijt1xEh4fuo_19vBb4");
+// ✅ Get Firebase Server Key securely from environment. Set the env var
+// `FIREBASE_SERVER_KEY` when deploying this function (do NOT commit keys).
+const FIREBASE_SERVER_KEY = Deno.env.get("FIREBASE_SERVER_KEY");
+
+if (!FIREBASE_SERVER_KEY) {
+  console.error('FIREBASE_SERVER_KEY is not set in the environment');
+}
 
 serve(async (req) => {
   try {

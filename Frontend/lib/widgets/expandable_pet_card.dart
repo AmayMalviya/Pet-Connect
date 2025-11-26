@@ -8,6 +8,7 @@ class ExpandablePetCard extends StatefulWidget {
   final Pet pet;
   final VoidCallback onPetUpdated;
   final Function(String) onDeletePet;
+  final bool showActions;
   // final List<Widget>? extraActions; // Removed
 
   const ExpandablePetCard({
@@ -15,6 +16,7 @@ class ExpandablePetCard extends StatefulWidget {
     required this.pet,
     required this.onPetUpdated,
     required this.onDeletePet,
+    this.showActions = true,
   // this.extraActions, // Removed
   }) : super(key: key);
 
@@ -80,29 +82,31 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                    tooltip: 'Edit Pet',
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              AddEditPetScreen(pet: widget.pet),
-                        ),
-                      );
-                      widget.onPetUpdated();
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    tooltip: 'Delete Pet',
-                    onPressed: () {
-                      if (widget.pet.id != null) {
-                        widget.onDeletePet(widget.pet.id!);
-                      }
-                    },
-                  ),
+                  if (widget.showActions) ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                      tooltip: 'Edit Pet',
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                AddEditPetScreen(pet: widget.pet),
+                          ),
+                        );
+                        widget.onPetUpdated();
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      tooltip: 'Delete Pet',
+                      onPressed: () {
+                        if (widget.pet.id != null) {
+                          widget.onDeletePet(widget.pet.id!);
+                        }
+                      },
+                    ),
+                  ],
                   // Extra actions moved to Edit screen; removed from card
                   IconButton(
                     icon: Icon(
