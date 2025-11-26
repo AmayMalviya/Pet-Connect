@@ -33,13 +33,18 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
     try {
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('full_name, address, phone')
+          .select('first_name, last_name, phone, city, state, country')
           .eq('user_id', widget.pet.ownerId!)
           .single();
       if (mounted) {
         setState(() {
-          _shelterName = response['full_name'] as String?;
-          _shelterAddress = response['address'] as String?;
+          final firstName = response['first_name'] as String?;
+          final lastName = response['last_name'] as String?;
+          _shelterName = [firstName, lastName].where((n) => n != null).join(' ');
+          final city = response['city'] as String?;
+          final state = response['state'] as String?;
+          final country = response['country'] as String?;
+          _shelterAddress = [city, state, country].where((a) => a != null && a.isNotEmpty).join(', ');
           _shelterPhone = response['phone'] as String?;
         });
       }
@@ -186,28 +191,6 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.calendar_today_outlined, size: 18),
-              label: Text('Health Calendar',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                elevation: 1,
-              ),
-              onPressed: () {
-                if (widget.pet.id != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          HealthDetailsScreen(petId: widget.pet.id!),
-                    ),
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 20),
             const Text(
               'Shelter Information:',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -235,7 +218,7 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      if (_shelterAddress != null)
+                      if (_shelterAddress != null && _shelterAddress!.isNotEmpty)
                         Row(
                           children: [
                             Icon(Icons.location_on, color: Theme.of(context).primaryColor),
