@@ -39,8 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    setState(() => _isLoading = true);
-    
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
@@ -58,21 +60,27 @@ class _HomeScreenState extends State<HomeScreen> {
             .eq('owner_id', user.id)
             .limit(1); // Get only the first pet for now
 
-        setState(() {
-          _userName = (profile != null)
-            ? '${profile['first_name'] ?? 'User'}'
-            : 'User';
-          _hasPet = (petsResponse as List).isNotEmpty;
-          if (_hasPet) {
-            _selectedPet = Pet.fromJson(petsResponse[0]);
-          }
-          _error = null;
-        });
+        if (mounted) {
+          setState(() {
+            _userName = (profile != null)
+              ? '${profile['first_name'] ?? 'User'}'
+              : 'User';
+            _hasPet = (petsResponse as List).isNotEmpty;
+            if (_hasPet) {
+              _selectedPet = Pet.fromJson(petsResponse[0]);
+            }
+            _error = null;
+          });
+        }
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

@@ -9,6 +9,7 @@ class ExpandablePetCard extends StatefulWidget {
   final VoidCallback onPetUpdated;
   final Function(String) onDeletePet;
   final bool showActions;
+  final bool showHealthCalendar;
   // final List<Widget>? extraActions; // Removed
 
   const ExpandablePetCard({
@@ -17,6 +18,7 @@ class ExpandablePetCard extends StatefulWidget {
     required this.onPetUpdated,
     required this.onDeletePet,
     this.showActions = true,
+    this.showHealthCalendar = true,
   // this.extraActions, // Removed
   }) : super(key: key);
 
@@ -148,27 +150,28 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                     _buildDetailRow('Status', widget.pet.status ?? 'Unknown'),
                     _buildDetailRow('Color', widget.pet.color ?? 'N/A'),
                     const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                      label: Text('Health Calendar',
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        elevation: 1,
+                    if (widget.showHealthCalendar)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                        label: Text('Health Calendar',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          elevation: 1,
+                        ),
+                        onPressed: () {
+                          if (widget.pet.id != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    HealthDetailsScreen(petId: widget.pet.id!),
+                              ),
+                            );
+                          }
+                        },
                       ),
-                      onPressed: () {
-                        if (widget.pet.id != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  HealthDetailsScreen(petId: widget.pet.id!),
-                            ),
-                          );
-                        }
-                      },
-                    ),
                   ],
                 ),
               ),

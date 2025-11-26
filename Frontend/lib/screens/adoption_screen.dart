@@ -1,3 +1,4 @@
+import 'package:pet_connect_app/screens/adoption_pet_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/models/pet.dart';
@@ -95,113 +96,6 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     }
   }
 
-  Future<void> _sendAdoptionRequest(Pet pet) async {
-    debugPrint('🔵 [ADOPTION] Starting adoption request for pet: ${pet.name}');
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      debugPrint('❌ [ADOPTION] No user logged in');
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please login to send requests.')));
-      return;
-    }
-
-    if (pet.id == null || pet.ownerId == null) {
-      debugPrint('❌ [ADOPTION] Invalid pet.id=${pet.id} or ownerId=${pet.ownerId}');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Invalid pet or shelter information.')));
-      return;
-    }
-
-    try {
-      debugPrint('📝 [ADOPTION] Inserting adoption request for pet=${pet.id}, requester=${user.id}, shelter=${pet.ownerId}');
-      // 1️⃣ Insert into adoption_requests
-      await Supabase.instance.client.from('adoption_requests').insert({
-    'pet_id': pet.id,
-    'requester_id': user.id,
-    'shelter_owner_id': pet.ownerId,
-    'status': 'Pending',
-    });
-      debugPrint('✅ [ADOPTION] Adoption request inserted successfully');
-
-      // 2️⃣ Insert in notifications table
-      try {
-        debugPrint('📬 [ADOPTION] Inserting notification for recipient=${pet.ownerId}');
-        await Supabase.instance.client.from('notifications').insert({
-          'recipient_id': pet.ownerId,
-          'title': 'New Adoption Request',
-          'body':
-              'Someone is interested in adopting ${pet.name ?? 'your pet'}.',
-          'type': 'adoption_request',
-        });
-        debugPrint('✅ [ADOPTION] Notification inserted successfully');
-      } catch (e) {
-        debugPrint('⚠️ [ADOPTION] Optional: failed to insert notification: $e');
-      }
-
-      // 3️⃣ Fetch shelter FCM token
-      debugPrint('🔍 [ADOPTION] Fetching FCM token for shelter user=${pet.ownerId}');
-      final shelterProfile = await Supabase.instance.client
-          .from('profiles')
-          .select('fcm_token')
-          .eq('user_id', pet.ownerId!)
-          .maybeSingle();
-
-      final fcmToken = shelterProfile?['fcm_token'] as String?;
-      debugPrint('🔑 [ADOPTION] FCM token: ${fcmToken != null ? 'Found (${fcmToken.substring(0, 20)}...)' : 'NOT FOUND'}');
-      if (fcmToken != null && fcmToken.isNotEmpty) {
-        debugPrint('📲 [ADOPTION] Sending push notification to shelter');
-        await _sendPushNotification(
-          token: fcmToken,
-          title: '🐾 New Adoption Request',
-          body: 'Someone wants to adopt ${pet.name ?? 'your pet'}!',
-        );
-        debugPrint('✅ [ADOPTION] Push notification sent');
-      } else {
-        debugPrint('⚠️ [ADOPTION] No FCM token found for shelter, skipping push');
-      }
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Adoption request sent successfully!')),
-      );
-      debugPrint('✅ [ADOPTION] Request completed successfully');
-    } catch (e) {
-      debugPrint('❌ [ADOPTION] Error: $e');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to send request: $e')));
-    }
-  }
-
-  /// ✅ Send push notification securely using Supabase Edge Function
-  Future<void> _sendPushNotification({
-    required String token,
-    required String title,
-    required String body,
-  }) async {
-    try {
-      debugPrint('🚀 [FCM] Invoking send_fcm Edge Function with token=${token.substring(0, 20)}...');
-      final response = await Supabase.instance.client.functions.invoke(
-        'send_fcm',
-        body: {
-          'token': token,
-          'title': title,
-          'body': body,
-          'data': {'type': 'adoption_request'},
-        },
-      );
-
-      final data = response.data;
-      debugPrint('📨 [FCM] Response: $data');
-      if (data != null && data['success'] == true) {
-        debugPrint('✅ [FCM] Push notification sent successfully!');
-      } else {
-        debugPrint('⚠️ [FCM] Failed to send push: $data');
-      }
-    } catch (e) {
-      debugPrint('❌ [FCM] Error invoking send_fcm function: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -235,6 +129,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                               onPetUpdated: _fetchPetsForAdoption,
                               onDeletePet: (_) {},
                               showActions: false,
+                              showHealthCalendar: false,
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton.icon(
@@ -246,7 +141,15 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              onPressed: () => _sendAdoptionRequest(pet),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        AdoptionPetDetailsScreen(pet: pet),
+                                  ),
+                                );
+                              },
                             ),
                             const Divider(height: 30),
                           ],
