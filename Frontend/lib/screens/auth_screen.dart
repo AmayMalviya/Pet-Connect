@@ -81,11 +81,17 @@ class AuthScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 24),
                           PrimaryButton(
-                            label: "Login",
-                            icon: Icons.login_rounded,
                             onPressed: () => Navigator.pushReplacementNamed(
                               context,
                               LoginScreen.routeName,
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.login_rounded),
+                                SizedBox(width: 8),
+                                Text("Login", style: TextStyle(fontWeight: FontWeight.w700)),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 16),

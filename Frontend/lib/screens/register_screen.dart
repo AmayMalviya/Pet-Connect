@@ -150,18 +150,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text('Sign up to get started', style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54)),
                   const SizedBox(height: 18),
 
-                  PetTextField(controller: firstName, hint: 'First name', icon: Icons.person_outline_rounded),
+                  PetTextField(controller: firstName, hintText: 'First name'),
                   const SizedBox(height: 12),
-                  PetTextField(controller: lastName, hint: 'Last name', icon: Icons.person_outline_rounded),
+                  PetTextField(controller: lastName, hintText: 'Last name'),
                   const SizedBox(height: 12),
-                  PetTextField(controller: email, hint: 'Email', icon: Icons.alternate_email_rounded),
+                  PetTextField(controller: email, hintText: 'Email'),
                   const SizedBox(height: 12),
-                  PetTextField(controller: password, hint: 'Create Password', icon: Icons.lock_outline_rounded, obscure: true),
+                  PetTextField(controller: password, hintText: 'Create Password', isPassword: true),
                   const SizedBox(height: 12),
-                  PetTextField(controller: confirmPassword, hint: 'Confirm Password', icon: Icons.lock_outline_rounded, obscure: true),
+                  PetTextField(controller: confirmPassword, hintText: 'Confirm Password', isPassword: true),
 
                   const SizedBox(height: 18),
-                  _isLoading ? const Center(child: CircularProgressIndicator()) : PrimaryButton(label: 'Sign Up', icon: Icons.check_circle_rounded, onPressed: _submit),
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : PrimaryButton(
+                          onPressed: _submit,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_rounded),
+                              SizedBox(width: 8),
+                              Text('Sign Up', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
 
                   const SizedBox(height: 12),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [

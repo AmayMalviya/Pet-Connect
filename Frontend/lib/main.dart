@@ -38,6 +38,10 @@ import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
 import 'package:pet_connect_app/screens/admin/approve_verifications_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
 
+import 'package:pet_connect_app/screens/adoption_screen.dart';
+import 'package:pet_connect_app/screens/health_details_screen.dart';
+import 'package:pet_connect_app/screens/reset_password_screen.dart';
+
 import 'package:pet_connect_app/services/notification_service.dart';
 
 
@@ -99,12 +103,42 @@ class PetConnectApp extends StatelessWidget {
     );
   }
 
+  /// Handle deep links for password reset and other routes
+  Route<dynamic>? _handleDeepLink(RouteSettings settings) {
+    try {
+      // Parse the URI from the route name
+      final uri = Uri.parse(settings.name ?? '');
+      
+      // Handle password reset deep link from email
+      if (uri.scheme == 'io.supabase.petconnect' && uri.host == 'reset-password') {
+        final accessToken = uri.queryParameters['access_token'];
+        final refreshToken = uri.queryParameters['refresh_token'];
+        
+        if (accessToken != null && refreshToken != null) {
+          return MaterialPageRoute(
+            builder: (_) => ResetPasswordScreen(
+              accessToken: accessToken,
+              refreshToken: refreshToken,
+            ),
+          );
+        }
+      }
+      
+      // Return null to let the normal route handling take over
+      return null;
+    } catch (e) {
+      // If there's an error parsing deep link, return null
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Pet Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      onGenerateRoute: _handleDeepLink,
       home: StreamBuilder<AuthState>(
         stream: Supabase.instance.client.auth.onAuthStateChange,
         builder: (context, snapshot) {
@@ -168,6 +202,15 @@ class PetConnectApp extends StatelessWidget {
         AuthScreen.routeName: (context) => const AuthScreen(),
         LoginScreen.routeName: (context) => const LoginScreen(),
         RegisterScreen.routeName: (context) => const RegisterScreen(),
+        ResetPasswordScreen.routeName: (context) {
+          final uri = ModalRoute.of(context)!.settings.arguments as Uri?;
+          final accessToken = uri?.queryParameters['access_token'];
+          final refreshToken = uri?.queryParameters['refresh_token'];
+          return ResetPasswordScreen(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          );
+        },
         ProfileScreen.routeName: (context) => const ProfileScreen(),
         MainScreen.routeName: (context) => const MainScreen(),
         AddPetScreen.routeName: (context) => const AddPetScreen(),
@@ -192,6 +235,12 @@ class PetConnectApp extends StatelessWidget {
         AdminKycApprovalScreen.routeName: (_) => const AdminKycApprovalScreen(),
         MapScreen.routeName: (context) => const MapScreen(),
         ProfileDetailsScreen.routeName: (context) => const ProfileDetailsScreen(),
+        AdoptionScreen.routeName: (context) => const AdoptionScreen(),
+        HealthDetailsScreen.routeName: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+          final petId = args?['petId'] as String?;
+          return HealthDetailsScreen(petId: petId);
+        },
         AddEditMedicalNoteScreen.routeName: (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
           final petId = args?['petId'] as String;

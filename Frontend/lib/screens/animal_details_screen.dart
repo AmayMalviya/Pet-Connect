@@ -29,18 +29,21 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
       final response = await Supabase.instance.client
           .from('profiles')
           .select('full_name, address, phone')
-          .eq('user_id', widget.animal.shelterId)
+          .eq('user_id', widget.animal.userId)
           .single();
-      setState(() {
-        _shelterName = response['full_name'] as String?;
-        _shelterAddress = response['address'] as String?;
-        _shelterPhone = response['phone'] as String?;
-      });
+      if (mounted) {
+        setState(() {
+          _shelterName = response['full_name'] as String?;
+          _shelterAddress = response['address'] as String?;
+          _shelterPhone = response['phone'] as String?;
+        });
+      }
     } catch (e) {
-      print('Error fetching shelter details: $e');
-      setState(() {
-        _shelterName = 'Unknown Shelter';
-      });
+      if (mounted) {
+        setState(() {
+          _shelterName = 'Unknown Shelter';
+        });
+      }
     }
   }
 
@@ -50,18 +53,21 @@ class _AnimalDetailsScreenState extends State<AnimalDetailsScreen> {
       await Supabase.instance.client.from('adoption_requests').insert({
         'pet_id': widget.animal.id,
         'user_id': userId,
-        'shelter_id': widget.animal.shelterId,
+        'shelter_id': widget.animal.userId,
         'status': 'pending',
         'message': 'Request !',
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Adoption request sent successfully!')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Adoption request sent successfully!')),
+        );
+      }
     } catch (e) {
-      print('Error sending adoption request: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send adoption request.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send adoption request.')),
+        );
+      }
     }
   }
 

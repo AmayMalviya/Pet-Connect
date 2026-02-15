@@ -108,7 +108,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
               Text('Tell us a little more', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.primary)),
               const SizedBox(height: 12),
 
-              PetTextField(controller: phone, hint: 'Phone', icon: Icons.phone_outlined),
+              PetTextField(controller: phone, hintText: 'Phone'),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedCountry,
@@ -200,7 +200,17 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : PrimaryButton(label: 'Save & Continue', icon: Icons.save_outlined, onPressed: _saveProfile),
+                  : PrimaryButton(
+                      onPressed: _saveProfile,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.save_outlined),
+                          SizedBox(width: 8),
+                          Text('Save & Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
             ],
           ),
         ),

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:csv/csv.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
@@ -108,7 +107,7 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
       if (filePath == null) return;
 
       final csvData = await File(filePath).readAsString();
-      final rows = const CsvToListConverter().convert(csvData, eol: '\n');
+      final rows = csvData.split('\n').map((line) => line.split(',')).toList();
 
       if (rows.isEmpty) {
         _showSnackBar('CSV is empty.');

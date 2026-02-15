@@ -42,10 +42,16 @@ class NotificationService {
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings();
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsDarwin);
-    await _localNotifications.initialize(initializationSettings);
+    final IOSInitializationSettings initializationSettingsIOS = IOSInitializationSettings();
+    final InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
+    await _localNotifications.initialize(
+      initializationSettings,
+      onSelectNotification: (String? payload) async {
+        // Handle notification tap
+        print('Notification tapped: $payload');
+      },
+    );
 
     // Handle messages when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -92,12 +98,12 @@ class NotificationService {
         notification.body,
         NotificationDetails(
           android: AndroidNotificationDetails(
-            'your_channel_id', // id
-            'Your Channel Name', // title
-            channelDescription: 'your channel description', // description
+            'your_channel_id',
+            'Your Channel Name',
+            channelDescription: 'your channel description',
             icon: android.smallIcon,
-            // other properties...
           ),
+          iOS: IOSNotificationDetails(),
         ),
       );
     }

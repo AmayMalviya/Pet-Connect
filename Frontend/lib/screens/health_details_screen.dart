@@ -9,10 +9,10 @@ import 'package:pet_connect_app/models/calendar_event.dart';
 class HealthDetailsScreen extends StatefulWidget {
   static const String routeName = '/health-details';
 
-  // The petId is now required
-  final String petId;
+  // The petId is now optional
+  final String? petId;
 
-  const HealthDetailsScreen({super.key, required this.petId});
+  const HealthDetailsScreen({super.key, this.petId});
 
   @override
   State<HealthDetailsScreen> createState() => _HealthDetailsScreenState();
@@ -32,9 +32,11 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay;
-    _eventsStream = _getEventsStream();
-    _medicalNotesStream = _getMedicalNotesStream();
+    if (widget.petId != null) {
+      _selectedDay = _focusedDay;
+      _eventsStream = _getEventsStream();
+      _medicalNotesStream = _getMedicalNotesStream();
+    }
   }
 
   Stream<List<MedicalNote>> _getMedicalNotesStream() {
@@ -42,7 +44,7 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
     return supabase
         .from('medical_notes')
         .stream(primaryKey: ['id'])
-        .eq('pet_id', widget.petId)
+        .eq('pet_id', widget.petId!)
         .map((maps) {
           final notes = maps.map((map) => MedicalNote(
             id: map['id'] as int,
@@ -62,7 +64,7 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
     return supabase
         .from('calendar_events')
         .stream(primaryKey: ['id'])
-        .eq('pet_id', widget.petId) // We now filter by the real petId
+        .eq('pet_id', widget.petId!) // We now filter by the real petId
         .map((maps) {
           final events = <DateTime, List<CalendarEvent>>{};
           for (var map in maps) {
@@ -104,6 +106,13 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.petId == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('No pet selected'),
+        ),
+      );
+    }
     final selectedEvents = _getEventsForDay(_selectedDay!);
 
     return Scaffold(

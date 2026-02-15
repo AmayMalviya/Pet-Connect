@@ -11,6 +11,7 @@ import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/screens/profile_details_screen.dart';
+import 'package:pet_connect_app/screens/reset_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -103,16 +104,60 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email.text);
+      // Call Supabase password reset - uses Brevo SMTP configured in Supabase
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email.text,
+        redirectTo: 'io.supabase.petconnect://reset-password', // Your app's reset callback
+      );
       
       if (!mounted) return;
       
-      // Show a dialog with instructions
+      // Show a detailed dialog with instructions
       await showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Password Reset Email Sent'),
-          content: Text('A password reset link has been sent to ${email.text}. Please check your email to reset your password.'),
+          title: const Text('Password Reset Email Sent ✓'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('A password reset link has been sent to:'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  email.text,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Instructions:'),
+              const SizedBox(height: 8),
+              const Text('1. Check your email (including spam folder)'),
+              const SizedBox(height: 8),
+              const Text('2. Click the "Reset Password" link in the email'),
+              const SizedBox(height: 8),
+              const Text('3. Enter your new password'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Text(
+                  'Note: The reset link expires in 24 hours',
+                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -123,8 +168,28 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on AuthException catch (e) {
       if (!mounted) return;
+      
+      // Provide helpful error messages
+      String errorMessage = e.message;
+      if (e.message.toLowerCase().contains('user not found')) {
+        errorMessage = 'No account found with this email address.';
+      } else if (e.message.toLowerCase().contains('over_email_send_rate_limit')) {
+        errorMessage = 'Too many reset attempts. Please try again later.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red.shade600,
+        ),
       );
     } finally {
       if (mounted) {
@@ -205,15 +270,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 48),
                   PetTextField(
                     controller: email,
-                    hint: "Email",
-                    icon: Icons.alternate_email_rounded,
+                    hintText: "Email",
                   ),
                   const SizedBox(height: 16),
                   PetTextField(
                     controller: password,
-                    hint: "Password",
-                    icon: Icons.lock_outline_rounded,
-                    obscure: true,
+                    hintText: "Password",
+                    isPassword: true,
                   ),
                   Align(
                     alignment: Alignment.centerRight,
@@ -229,9 +292,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : PrimaryButton(
-                          label: "Login",
-                          icon: Icons.login_rounded,
                           onPressed: _submit,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.login_rounded),
+                              SizedBox(width: 8),
+                              Text("Login", style: TextStyle(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
                         ),
                   const SizedBox(height: 24),
                   Row(

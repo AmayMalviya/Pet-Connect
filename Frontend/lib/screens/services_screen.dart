@@ -3,11 +3,54 @@ import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:pet_connect_app/screens/grooming_details_screen.dart';
+import 'package:pet_connect_app/models/pet.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ServicesScreen extends StatelessWidget {
+class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
 
   static const String routeName = '/services';
+
+  @override
+  State<ServicesScreen> createState() => _ServicesScreenState();
+}
+
+class _ServicesScreenState extends State<ServicesScreen> {
+  List<Pet> _pets = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPets();
+  }
+
+  Future<void> _loadPets() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final petsResponse = await Supabase.instance.client
+            .from('pets')
+            .select()
+            .eq('owner_id', user.id);
+        setState(() {
+          _pets = petsResponse.map((pet) => Pet.fromJson(pet)).toList();
+          _isLoading = false;
+        });
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading pets: $e')),
+        );
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +112,12 @@ class ServicesScreen extends StatelessWidget {
                   title: 'Health Track',
                   icon: Icons.medical_services_outlined,
                   onTap: () {
-                  Navigator.pushNamed(context, HealthDetailsScreen.routeName);
-                },
+                    if (_pets.isNotEmpty) {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => HealthDetailsScreen(petId: _pets.first.id!)));
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No pets found. Please add a pet first.')));
+                    }
+                  },
                   cardHeight: 120,
                   iconSize: 30,
                   textSize: 14,
@@ -78,7 +125,7 @@ class ServicesScreen extends StatelessWidget {
                 ServiceCard(
                   title: 'Adoption',
                   icon: Icons.pets,
-                  onTap: () => Navigator.pushNamed(context, AdoptionScreen.routeName),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
                   cardHeight: 120,
                   iconSize: 30,
                   textSize: 14,
