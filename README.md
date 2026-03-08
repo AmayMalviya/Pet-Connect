@@ -102,6 +102,6 @@ This project is licensed under the **MIT License**.
 Pull requests are welcome! Please open an issue first to discuss any changes.
 
 ## 📬 Contact
-- **Email**: amaymalviya4@gmail.com
+- **Email**: amaymalviya2@gmail.com
 - **GitHub**: (https://github.com/AmayMalviya)
 - **LinkedIn**: (www.linkedin.com/in/amay-malviya-837061256)
