@@ -7,13 +7,11 @@ import '../widgets/primary_button.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   static const String routeName = '/reset-password';
-  final String? accessToken;
-  final String? refreshToken;
+  final Session session;
 
   const ResetPasswordScreen({
     super.key,
-    this.accessToken,
-    this.refreshToken,
+    required this.session,
   });
 
   @override
@@ -36,6 +34,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   Future<void> _resetPassword() async {
+    print('_resetPassword called');
     // Validate inputs
     if (newPassword.text.isEmpty || confirmPassword.text.isEmpty) {
       setState(() {
@@ -64,26 +63,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     });
 
     try {
-      // Check if we have a valid session
-      final session = Supabase.instance.client.auth.currentSession;
-      
-      if (session == null && (widget.accessToken == null || widget.refreshToken == null)) {
-        setState(() {
-          _errorMessage = 'No valid session. Please use the reset link from the email again.';
-        });
-        return;
-      }
-
-      // If we have tokens from the reset link, set the session
-      if (widget.accessToken != null && widget.refreshToken != null) {
-        await Supabase.instance.client.auth.setSession(widget.refreshToken!);
-      }
-
+      print('Updating user password');
       // Update password
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(password: newPassword.text),
       );
 
+      print('Password updated successfully');
       if (!mounted) return;
 
       // Show success message
@@ -99,10 +85,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
     } on AuthException catch (e) {
+      print('AuthException: ${e.message}');
       setState(() {
         _errorMessage = e.message;
       });
     } catch (e) {
+      print('Exception: ${e.toString()}');
       setState(() {
         _errorMessage = 'An error occurred: ${e.toString()}';
       });

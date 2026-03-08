@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_connect_app/firebase_options.dart';
 import 'package:pet_connect_app/screens/add_pet_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
+import 'package:pet_connect_app/screens/auth_state_handler.dart';
 import 'package:pet_connect_app/screens/kyc_personal_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
@@ -37,13 +38,10 @@ import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
 import 'package:pet_connect_app/screens/admin/approve_verifications_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
-
 import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:pet_connect_app/screens/reset_password_screen.dart';
-
 import 'package:pet_connect_app/services/notification_service.dart';
-
 
 final notificationService = NotificationService();
 
@@ -72,8 +70,6 @@ class PetConnectApp extends StatelessWidget {
     return profileResponse;
   }
 
-  /// Guard for Shelter-specific routes: ensure user is Shelter role AND kyc_verified = true.
-  /// If not, redirect to appropriate screen (role selection or KYC flow).
   Widget _guardShelterRoute(Widget page) {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _getProfileData(Supabase.instance.client.auth.currentUser!.id),
@@ -85,51 +81,19 @@ class PetConnectApp extends StatelessWidget {
         final userRole = profile?['role'] as String?;
         final kycVerified = profile?['kyc_verified'] == true;
 
-        // If not a Shelter, redirect back.
         if (userRole == null || (userRole != 'Shelter' && userRole != 'Shelter Owner')) {
           Future.microtask(() => Navigator.of(context).pushReplacementNamed(RoleSelectionScreen.routeName));
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // If Shelter but not KYC verified, redirect to KYC flow.
         if (!kycVerified) {
           Future.microtask(() => Navigator.of(context).pushReplacementNamed(KycDocumentScreen.routeName));
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // Otherwise, allow access to the page.
         return page;
       },
     );
-  }
-
-  /// Handle deep links for password reset and other routes
-  Route<dynamic>? _handleDeepLink(RouteSettings settings) {
-    try {
-      // Parse the URI from the route name
-      final uri = Uri.parse(settings.name ?? '');
-      
-      // Handle password reset deep link from email
-      if (uri.scheme == 'io.supabase.petconnect' && uri.host == 'reset-password') {
-        final accessToken = uri.queryParameters['access_token'];
-        final refreshToken = uri.queryParameters['refresh_token'];
-        
-        if (accessToken != null && refreshToken != null) {
-          return MaterialPageRoute(
-            builder: (_) => ResetPasswordScreen(
-              accessToken: accessToken,
-              refreshToken: refreshToken,
-            ),
-          );
-        }
-      }
-      
-      // Return null to let the normal route handling take over
-      return null;
-    } catch (e) {
-      // If there's an error parsing deep link, return null
-      return null;
-    }
   }
 
   @override
@@ -138,77 +102,68 @@ class PetConnectApp extends StatelessWidget {
       title: 'Pet Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      onGenerateRoute: _handleDeepLink,
-      home: StreamBuilder<AuthState>(
-        stream: Supabase.instance.client.auth.onAuthStateChange,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          if (snapshot.hasData && snapshot.data?.session != null) {
-            final user = snapshot.data!.session!.user;
-            
-            // Admin check - do this immediately without waiting for profile
-            if (user.email == 'malviyaamay501@gmail.com') {
-              return const AdminDashboardScreen();
+      home: AuthStateHandler(
+        child: StreamBuilder<AuthState>(
+          stream: Supabase.instance.client.auth.onAuthStateChange,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
+            if (snapshot.hasData && snapshot.data?.session != null) {
+              final user = snapshot.data!.session!.user;
+              
+              if (user.email == 'malviyaamay501@gmail.com') {
+                return const AdminDashboardScreen();
+              }
 
-            return FutureBuilder<Map<String, dynamic>?>(
-              future: _getProfileData(user.id),
-              builder: (context, userSnapshot) {
-                if (userSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                }
-
-                final profile = userSnapshot.data;
-                final provider = user.appMetadata['provider'];
-
-                // For social logins, if profile is incomplete, go to setup screen.
-                if (provider != 'email' && (profile == null || profile['first_name'] == null || profile['first_name'].isEmpty)) {
-                  return const SocialProfileSetupScreen();
-                }
-
-                // For all users, if role is not set, go to role selection.
-                if (profile == null || profile['role'] == null || (profile['role'] as String).isEmpty) {
-                  return const RoleSelectionScreen();
-                }
-
-                final userRole = profile['role'];
-
-
-                // Navigate based on role.
-                if (userRole == 'Pet Owner') {
-                  return const MainScreen();
-                } else if (userRole == 'Shelter' || userRole == 'Shelter Owner') {
-                  // Enforce KYC for shelter users. If not verified, send to KYC flow first.
-                  final kycVerified = profile['kyc_verified'] == true;
-                  if (kycVerified) {
-                    return const ShelterHomeScreen();
-                  } else {
-                    return const KycDocumentScreen();
+              return FutureBuilder<Map<String, dynamic>?>(
+                future: _getProfileData(user.id),
+                builder: (context, userSnapshot) {
+                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(body: Center(child: CircularProgressIndicator()));
                   }
-                } else {
-                  // Default fallback
-                  return const RoleSelectionScreen();
-                }
-              },
-            );
-          } else {
-            return const AuthScreen();
-          }
-        },
+
+                  final profile = userSnapshot.data;
+                  final provider = user.appMetadata['provider'];
+
+                  if (provider != 'email' && (profile == null || profile['first_name'] == null || profile['first_name'].isEmpty)) {
+                    return const SocialProfileSetupScreen();
+                  }
+
+                  if (profile == null || profile['role'] == null || (profile['role'] as String).isEmpty) {
+                    return const RoleSelectionScreen();
+                  }
+
+                  final userRole = profile['role'];
+
+                  if (userRole == 'Pet Owner') {
+                    return const MainScreen();
+                  } else if (userRole == 'Shelter' || userRole == 'Shelter Owner') {
+                    final kycVerified = profile['kyc_verified'] == true;
+                    if (kycVerified) {
+                      return const ShelterHomeScreen();
+                    } else {
+                      return const KycDocumentScreen();
+                    }
+                  } else {
+                    return const RoleSelectionScreen();
+                  }
+                },
+              );
+            } else {
+              return const AuthScreen();
+            }
+          },
+        ),
       ),
       routes: {
         AuthScreen.routeName: (context) => const AuthScreen(),
         LoginScreen.routeName: (context) => const LoginScreen(),
         RegisterScreen.routeName: (context) => const RegisterScreen(),
         ResetPasswordScreen.routeName: (context) {
-          final uri = ModalRoute.of(context)!.settings.arguments as Uri?;
-          final accessToken = uri?.queryParameters['access_token'];
-          final refreshToken = uri?.queryParameters['refresh_token'];
+          final session = ModalRoute.of(context)!.settings.arguments as Session;
           return ResetPasswordScreen(
-            accessToken: accessToken,
-            refreshToken: refreshToken,
+            session: session,
           );
         },
         ProfileScreen.routeName: (context) => const ProfileScreen(),
