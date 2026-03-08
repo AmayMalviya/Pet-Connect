@@ -41,9 +41,6 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-# Java / Maven
-/backend_java/target/
-
 # Flutter / Dart
 /Frontend/.dart_tool/
 /Frontend/build/
