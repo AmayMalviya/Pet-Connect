@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
-import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart'; // ✅ Correct import
+import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_analytics_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -12,24 +13,16 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9DF),
       appBar: AppBar(
         title: Text(
           'Admin Dashboard',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: primaryColor,
         centerTitle: true,
-        elevation: 1,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.logout),
             onPressed: () async {
               await Supabase.instance.client.auth.signOut();
               Navigator.of(context).pushAndRemoveUntil(
@@ -76,11 +69,7 @@ class AdminDashboardScreen extends StatelessWidget {
               icon: Icons.bar_chart_rounded,
               title: 'App Analytics',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('App analytics dashboard coming soon!'),
-                  ),
-                );
+                Navigator.pushNamed(context, AdminAnalyticsScreen.routeName);
               },
             ),
           ],

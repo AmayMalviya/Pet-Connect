@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ApproveVerificationsScreen extends StatefulWidget {
@@ -60,10 +61,11 @@ class _ApproveVerificationsScreenState extends State<ApproveVerificationsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Approve Verifications'),
+        title: Text(
+          'Approve Verifications',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _pendingVerificationsFuture,

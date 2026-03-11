@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/models/pet.dart';
-import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AdoptionPetDetailsScreen extends StatefulWidget {
   static const String routeName = '/adoption-pet-details';
@@ -67,16 +65,52 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
     }
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
+
+      // Fetch the requester's name for the notification
+      final requesterProfile = await Supabase.instance.client
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', userId)
+          .maybeSingle();
+      final requesterName = [
+        requesterProfile?['first_name'] as String?,
+        requesterProfile?['last_name'] as String?,
+      ].where((n) => n != null && n.isNotEmpty).join(' ');
+
       await Supabase.instance.client.from('adoption_requests').insert({
         'pet_id': widget.pet.id,
         'requester_id': userId,
         'shelter_owner_id': widget.pet.ownerId,
         'status': 'Pending',
       });
+
+      // Notify shelter via FCM (non-fatal)
+      try {
+        final shelterProfile = await Supabase.instance.client
+            .from('profiles')
+            .select('fcm_token')
+            .eq('user_id', widget.pet.ownerId!)
+            .maybeSingle();
+        final shelterToken = shelterProfile?['fcm_token'] as String?;
+        if (shelterToken != null && shelterToken.isNotEmpty) {
+          await Supabase.instance.client.functions.invoke(
+            'send_fcm',
+            body: {
+              'token': shelterToken,
+              'title': '🐾 New Adoption Interest!',
+              'body': '${requesterName.isNotEmpty ? requesterName : 'Someone'} is interested in adopting ${widget.pet.name ?? 'your pet'}.'
+            },
+          );
+        }
+      } catch (fcmErr) {
+        debugPrint('FCM notification error (non-fatal): $fcmErr');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Adoption request sent successfully!')),
+          const SnackBar(content: Text('Adoption request sent! The shelter has been notified.')),
         );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       debugPrint('Error sending adoption request: $e');

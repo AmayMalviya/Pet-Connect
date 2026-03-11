@@ -65,10 +65,6 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shop'),
-        leading: const BackButton(),
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(

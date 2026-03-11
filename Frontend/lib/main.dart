@@ -38,6 +38,7 @@ import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
 import 'package:pet_connect_app/screens/admin/approve_verifications_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_analytics_screen.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:pet_connect_app/screens/health_details_screen.dart';
 import 'package:pet_connect_app/screens/reset_password_screen.dart';
@@ -208,6 +209,7 @@ class PetConnectApp extends StatelessWidget {
         ManageProfilesScreen.routeName: (context) => const ManageProfilesScreen(),
         ManageCommunityScreen.routeName: (context) => const ManageCommunityScreen(),
         ApproveVerificationsScreen.routeName: (context) => const ApproveVerificationsScreen(),
+        AdminAnalyticsScreen.routeName: (context) => const AdminAnalyticsScreen(),
       },
     );
   }

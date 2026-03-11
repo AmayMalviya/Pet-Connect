@@ -88,6 +88,76 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
     }
   }
 
+  /// Toggle restriction status for a user
+  Future<void> _toggleRestrictStatus(String userId, bool currentlyRestricted) async {
+    try {
+      final newStatus = !currentlyRestricted;
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'is_restricted': newStatus})
+          .eq('user_id', userId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'User restricted successfully!' : 'User restriction removed!'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        setState(() => _profilesFuture = _fetchProfiles());
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating restriction status: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _sendWarning(String userId, String userName) {
+    final TextEditingController warningController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (wCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text('Warn $userName', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter a warning message for this user:', style: GoogleFonts.poppins(fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: warningController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Warning reason...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(wCtx), child: Text('Cancel', style: GoogleFonts.poppins())),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(wCtx);
+              // In a real implementation this would store a warning record in DB
+              // For now log and show confirmation
+              debugPrint('Warning sent to $userId: ${warningController.text}');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Warning issued to user.'), backgroundColor: Colors.amber),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+            child: Text('Send Warning', style: GoogleFonts.poppins()),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showProfileDetails(Map<String, dynamic> profile) {
     final isBanned = profile['is_banned'] == true;
     final userRole = profile['role'] ?? 'N/A';
@@ -176,40 +246,86 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
                   ),
                 const SizedBox(height: 16),
 
-                // Action buttons - Fixed layout
-                SizedBox(
-                  width: double.infinity,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            _toggleBanStatus(profile['user_id'], isBanned);
-                            Navigator.pop(ctx);
-                          },
-                          icon: Icon(isBanned ? Icons.lock_open : Icons.lock),
-                          label: Text(isBanned ? 'Unban' : 'Ban'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isBanned ? Colors.green : Colors.red,
-                            foregroundColor: Colors.white,
+                // Action buttons - grid layout for 4 actions
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              _toggleBanStatus(profile['user_id'], isBanned);
+                              Navigator.pop(ctx);
+                            },
+                            icon: Icon(isBanned ? Icons.lock_open : Icons.lock, size: 16),
+                            label: Text(isBanned ? 'Unban' : 'Ban', style: GoogleFonts.poppins(fontSize: 13)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isBanned ? Colors.green : Colors.red,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 40),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pop(ctx),
-                          icon: const Icon(Icons.close),
-                          label: const Text('Close'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey,
-                            foregroundColor: Colors.white,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final isRestricted = profile['is_restricted'] == true;
+                              _toggleRestrictStatus(profile['user_id'], isRestricted);
+                              Navigator.pop(ctx);
+                            },
+                            icon: Icon(
+                              (profile['is_restricted'] == true) ? Icons.radio_button_checked : Icons.do_not_disturb,
+                              size: 16,
+                            ),
+                            label: Text(
+                              (profile['is_restricted'] == true) ? 'Unrestrict' : 'Restrict',
+                              style: GoogleFonts.poppins(fontSize: 13),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 40),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final name = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
+                              _sendWarning(profile['user_id'], name.isNotEmpty ? name : 'User');
+                            },
+                            icon: const Icon(Icons.warning_amber, size: 16),
+                            label: Text('Warn', style: GoogleFonts.poppins(fontSize: 13)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber[700],
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 40),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: const Icon(Icons.close, size: 16),
+                            label: Text('Close', style: GoogleFonts.poppins(fontSize: 13)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 40),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -42,14 +42,14 @@ class NotificationService {
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    final IOSInitializationSettings initializationSettingsIOS = IOSInitializationSettings();
+    final DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings();
     final InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
     await _localNotifications.initialize(
       initializationSettings,
-      onSelectNotification: (String? payload) async {
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
         // Handle notification tap
-        print('Notification tapped: $payload');
+        print('Notification tapped: ${response.payload}');
       },
     );
 
@@ -103,7 +103,7 @@ class NotificationService {
             channelDescription: 'your channel description',
             icon: android.smallIcon,
           ),
-          iOS: IOSNotificationDetails(),
+          iOS: DarwinNotificationDetails(),
         ),
       );
     }

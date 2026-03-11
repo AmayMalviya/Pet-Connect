@@ -50,7 +50,7 @@ dependencies:
   # Firebase & Notifications
   firebase_core: 
   firebase_messaging: 
-  flutter_local_notifications: ^9.0.0
+  flutter_local_notifications: ^17.0.0
 
   csv: ^7.1.0
   file_picker: ^10.3.3
