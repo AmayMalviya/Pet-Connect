@@ -7,19 +7,15 @@ import 'package:pet_connect_app/screens/health_details_screen.dart';
 class ExpandablePetCard extends StatefulWidget {
   final Pet pet;
   final VoidCallback onPetUpdated;
-  final Function(String) onDeletePet;
   final bool showActions;
   final bool showHealthCalendar;
-  // final List<Widget>? extraActions; // Removed
 
   const ExpandablePetCard({
     Key? key,
     required this.pet,
     required this.onPetUpdated,
-    required this.onDeletePet,
     this.showActions = true,
     this.showHealthCalendar = true,
-  // this.extraActions, // Removed
   }) : super(key: key);
 
   @override
@@ -85,9 +81,12 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (widget.showActions) ...[
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                      tooltip: 'Edit Pet',
+                    TextButton.icon(
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: Text('Edit', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context).primaryColor,
+                      ),
                       onPressed: () async {
                         await Navigator.push(
                           context,
@@ -97,15 +96,6 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
                           ),
                         );
                         widget.onPetUpdated();
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      tooltip: 'Delete Pet',
-                      onPressed: () {
-                        if (widget.pet.id != null) {
-                          widget.onDeletePet(widget.pet.id!);
-                        }
                       },
                     ),
                   ],

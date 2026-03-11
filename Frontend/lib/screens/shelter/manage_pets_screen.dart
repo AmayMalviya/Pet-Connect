@@ -49,44 +49,7 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
     }
   }
 
-  Future<void> _deletePet(String petId) async {
-    try {
-      await Supabase.instance.client.from('pets').delete().eq('id', petId);
-      await _fetchPets();
-      _showSnackBar('Pet deleted successfully!');
-    } catch (e) {
-      _showSnackBar('Failed to delete pet: $e');
-    }
-  }
 
-  void _showDeleteConfirmationDialog(String petId) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Confirm Deletion', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        content: Text('Do you want to permanently delete this pet?', style: GoogleFonts.poppins()),
-        actionsAlignment: MainAxisAlignment.end,
-        actions: [
-          TextButton(
-            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700])),
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _deletePet(petId);
-            },
-            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _showPetForm(BuildContext context, Pet? pet) async {
     final result = await Navigator.of(context).push(
@@ -214,7 +177,6 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
                               child: ExpandablePetCard(
                                 pet: pet,
                                 onPetUpdated: _fetchPets,
-                                onDeletePet: (id) => _showDeleteConfirmationDialog(id),
                               ),
                             ),
                           ),

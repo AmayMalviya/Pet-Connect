@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
-import 'package:pet_connect_app/screens/add_pet_screen.dart';
+
 import 'package:pet_connect_app/screens/edit_profile_screen.dart';
 import 'auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -177,7 +177,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final result = await Navigator.of(context).pushNamed(AddPetScreen.routeName);
+          final result = await Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const AddEditPetScreen()),
+          );
           if (result == true) {
             _fetchProfileData();
           }

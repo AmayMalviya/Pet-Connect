@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/firebase_options.dart';
-import 'package:pet_connect_app/screens/add_pet_screen.dart';
+
 import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
 import 'package:pet_connect_app/screens/auth_state_handler.dart';
 import 'package:pet_connect_app/screens/kyc_personal_screen.dart';
@@ -170,7 +170,7 @@ class PetConnectApp extends StatelessWidget {
         },
         ProfileScreen.routeName: (context) => const ProfileScreen(),
         MainScreen.routeName: (context) => const MainScreen(),
-        AddPetScreen.routeName: (context) => const AddPetScreen(),
+
         SelfCareOptionsScreen.routeName: (context) => const SelfCareOptionsScreen(),
 
         ServicesScreen.routeName: (context) => const ServicesScreen(),

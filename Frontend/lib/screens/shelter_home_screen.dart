@@ -4,6 +4,7 @@ import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
+import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/screens/notifications_screen.dart';
 import 'package:pet_connect_app/widgets/notification_bell.dart';
@@ -14,17 +15,15 @@ class ShelterHomeScreen extends StatelessWidget {
 
   const ShelterHomeScreen({super.key});
 
- 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9DF),
+      backgroundColor: Colors.grey[50], // Premium off-white background
       appBar: AppBar(
         title: Text('Home', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textDark,
-        elevation: 1,
+        elevation: 0,
         actions: [
           const NotificationBell(),
         ],
@@ -60,14 +59,98 @@ class ShelterHomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
- 
-              Container(
+      body: CustomScrollView(
+        slivers: [
+          // Custom Premium Banner
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    spreadRadius: 2,
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Shelter Hub',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Manage your rescues\n& connect with adopters.',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AddEditPetScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.primary,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Add a Pet',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    right: -20,
+                    bottom: -40,
+                    child: Opacity(
+                      opacity: 0.15,
+                      child: const Icon(Icons.pets, size: 140, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Search Bar
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -93,94 +176,126 @@ class ShelterHomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
-              _buildSectionTitle('Management'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPetCareCard(
-                      context,
-                      title: 'Manage Pets',
-                      icon: Icons.pets,
-                      color: Colors.blueAccent,
-                      onTap: () {
-                        Navigator.pushNamed(context, ManagePetsScreen.routeName);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildPetCareCard(
-                      context,
-                      title: 'Adoption Requests',
-                      icon: Icons.volunteer_activism,
-                      color: Colors.pinkAccent,
-                      onTap: () {
-                        Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
-                      },
-                    ),
-                  ),
-                ],
+            ),
+          ),
+          
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+          // Explore Tools Title
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Text(
+                'Explore Tools',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
               ),
-              const SizedBox(height: 30),
-              _buildSectionTitle('Shelter'),
-              const SizedBox(height: 12),
-              _buildVetCard(
-                context,
-                title: 'Manage Profile',
-                icon: Icons.person_outline,
-                color: Colors.green,
-                onTap: () {
-                  Navigator.pushNamed(context, ShelterProfileScreen.routeName);
-                },
-              ),
-              _buildVetCard(
-                context,
+            ),
+          ),
+
+          // Tools Grid
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            sliver: SliverGrid.count(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 0.85,
+              children: [
+                _PremiumShelterCard(
+                  title: 'Manage Pets',
+                  subtitle: 'View and update rescues',
+                  icon: Icons.pets,
+                  color: Colors.blueAccent.shade100,
+                  onTap: () {
+                    Navigator.pushNamed(context, ManagePetsScreen.routeName);
+                  },
+                ),
+                _PremiumShelterCard(
+                  title: 'Adoption Requests',
+                  subtitle: 'Review incoming requests',
+                  icon: Icons.volunteer_activism_outlined,
+                  color: Colors.pinkAccent.shade100,
+                  onTap: () {
+                    Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Wide Bottom Cards
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: _PremiumShelterCard(
                 title: 'Analytics',
+                subtitle: 'Track your shelter\'s performance',
                 icon: Icons.analytics_outlined,
-                color: Colors.purpleAccent,
+                color: Colors.purpleAccent.shade100,
+                isWide: true,
                 onTap: () {
                   Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
                 },
               ),
-            ],
+            ),
           ),
-        ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              child: _PremiumShelterCard(
+                title: 'Manage Profile',
+                subtitle: 'Update shelter details and contacts',
+                icon: Icons.person_outline,
+                color: Colors.greenAccent.shade100,
+                isWide: true,
+                onTap: () {
+                  Navigator.pushNamed(context, ShelterProfileScreen.routeName);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title,
-        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark),
-      ),
-    );
-  }
+class _PremiumShelterCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final bool isWide;
 
-  Widget _buildPetCareCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  const _PremiumShelterCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.isWide = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      height: isWide ? 130 : null,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
+            color: Colors.grey.withOpacity(0.08),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
         ],
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -188,84 +303,81 @@ class ShelterHomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    shape: BoxShape.circle,
+            padding: const EdgeInsets.all(20),
+            child: isWide
+                ? Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color.withAlpha(255), size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              title,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitle,
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios, color: Colors.grey[300], size: 16),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color.withAlpha(255), size: 28),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  child: Icon(icon, size: 32, color: color),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textDark),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVetCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
-        ],
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, size: 28, color: color),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
-              ],
-            ),
           ),
         ),
       ),

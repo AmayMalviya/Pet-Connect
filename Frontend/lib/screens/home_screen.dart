@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pet_connect_app/screens/add_pet_screen.dart';
+import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
@@ -209,7 +209,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openAddPetAndSave() async {
-    final result = await Navigator.of(context).pushNamed(AddPetScreen.routeName);
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AddEditPetScreen()),
+    );
     if (result == true) {
       if (!mounted) return;
       setState(() {

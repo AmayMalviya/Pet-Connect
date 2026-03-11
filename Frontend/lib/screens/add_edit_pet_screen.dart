@@ -7,6 +7,7 @@ import 'package:pet_connect_app/services/breed_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class AddEditPetScreen extends StatefulWidget {
   static const routeName = '/add-edit-pet';
@@ -39,7 +40,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   late TextEditingController _preferredFoodTypeController;
   String? _photoUrl;
   final ImagePicker _picker = ImagePicker();
-  // status not currently used; remove to avoid unused-field lint
 
   bool _isLoadingBreeds = true;
   List<DogBreed> _dogBreeds = [];
@@ -81,8 +81,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _coatTypeController = TextEditingController(text: widget.pet?.coatType);
     _groomingNeedsController = TextEditingController(text: widget.pet?.groomingNeeds);
     _preferredFoodTypeController = TextEditingController(text: widget.pet?.preferredFoodType);
-  _photoUrl = widget.pet?.photoUrl;
-  // status not used currently
+    _photoUrl = widget.pet?.photoUrl;
     _fetchBreeds();
   }
 
@@ -186,6 +185,51 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     }
   }
 
+  Future<void> _deletePet() async {
+    try {
+      if (widget.pet?.id != null) {
+        await Supabase.instance.client.from('pets').delete().eq('id', widget.pet!.id!);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pet deleted successfully!')),
+        );
+        Navigator.of(context).pop(true); // Return back simulating an update loop trigger
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete pet: $e')),
+      );
+    }
+  }
+
+  void _showDeleteConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Confirm Deletion', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Text('Do you want to permanently delete this pet?', style: GoogleFonts.poppins()),
+        actionsAlignment: MainAxisAlignment.end,
+        actions: [
+          TextButton(
+            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700])),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _deletePet();
+            },
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _uploadPetPhoto() async {
     if (widget.pet?.id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -235,7 +279,6 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
 
     try {
       final petId = widget.pet!.id!;
-      // try to extract filename after 'pet_photos/'
       String? storagePath;
       final url = _photoUrl!;
       final idx = url.indexOf('pet_photos/');
@@ -261,375 +304,321 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     }
   }
 
+  Widget _buildTextField(TextEditingController controller, String label, String hint, {TextInputType? type}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: type,
+        validator: label == 'Name' ? (v) => v!.isEmpty ? 'Please enter a name' : null : null,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          fillColor: Colors.grey[50], // Soft fill
+          filled: true,
+          labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
+          hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!, width: 2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.primary, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required String label,
+    required void Function(T?) onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: DropdownButtonFormField<T>(
+        isExpanded: true,
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        validator: (v) => v == null ? 'Please select $label' : null,
+        decoration: InputDecoration(
+          labelText: label,
+          fillColor: Colors.grey[50], 
+          filled: true,
+          labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!, width: 2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.primary, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHead(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard({required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(widget.pet == null ? 'Add Pet' : 'Edit Pet',
             style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        leading: const BackButton(),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Form(
           key: _formKey,
-          child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Text(
-                                        'Pet Details',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Photo upload / delete moved to Edit screen
-                                      if (widget.pet?.id != null)
-                                        Padding(
-                                          padding: const EdgeInsets.only(bottom: 12.0),
-                                          child: Row(
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 30,
-                                                backgroundImage: _photoUrl != null && (_photoUrl!.startsWith('http') || _photoUrl!.startsWith('https'))
-                                                    ? NetworkImage(_photoUrl!) as ImageProvider
-                                                    : const AssetImage('assets/images/logo.png') as ImageProvider,
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    ElevatedButton.icon(
-                                                      onPressed: _uploadPetPhoto,
-                                                      icon: const Icon(Icons.photo_camera_outlined),
-                                                      label: Text('Upload Photo', style: GoogleFonts.poppins()),
-                                                    ),
-                                                    if (_photoUrl != null)
-                                                      TextButton.icon(
-                                                        onPressed: _deletePetPhoto,
-                                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                                        label: Text('Delete Photo', style: GoogleFonts.poppins(color: Colors.redAccent)),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      else
-                                        Padding(
-                                          padding: const EdgeInsets.only(bottom: 12.0),
-                                          child: Text('Save the pet first to upload a photo.', style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[700])),
-                                        ),
-                                      // Pet Name
-                                      TextFormField(
-                                        controller: _nameController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Name',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        validator: (value) =>
-                                            value!.isEmpty ? 'Please enter a name' : null,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Animal Type
-                                      DropdownButtonFormField<String>(
-                                        isExpanded: true,
-                                        decoration: InputDecoration(
-                                          labelText: 'Animal',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        value: _selectedAnimal,
-                                        items: ['Dog', 'Cat']
-                                            .map((animal) => DropdownMenuItem<String>(
-                                                  value: animal,
-                                                  child: Text(
-                                                    animal,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: GoogleFonts.poppins(),
-                                                  ),
-                                                ))
-                                            .toList(),
-                                        onChanged: (v) => setState(() {
-                                          _selectedAnimal = v;
-                                          _selectedBreed = null;
-                                          _selectedBreedRefId = null;
-                                          if (v == 'Dog') {
-                                            _breedTable = 'dogs_pet_data';
-                                          } else if (v == 'Cat') {
-                                            _breedTable = 'cats_pet_data';
-                                          } else {
-                                            _breedTable = null;
-                                          }
-                                        }),
-                                        validator: (v) => v == null ? 'Please select an animal' : null,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Breed
-                                      if (_isLoadingBreeds)
-                                        const Center(child: CircularProgressIndicator())
-                                      else
-                                        DropdownButtonFormField<String>(
-                                          isExpanded: true,
-                                          decoration: InputDecoration(
-                                            labelText: 'Breed',
-                                            border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            filled: true,
-                                            fillColor: Colors.grey[200],
-                                          ),
-                                          value: _selectedBreedRefId,
-                                          items: _selectedAnimal == 'Dog'
-                                              ? _dogBreeds
-                                                  .map((b) => DropdownMenuItem<String>(
-                                                        value: b.id,
-                                                        child: Text(b.breedName, overflow: TextOverflow.ellipsis),
-                                                      ))
-                                                  .toList()
-                                              : _catBreeds
-                                                  .map((b) => DropdownMenuItem<String>(
-                                                        value: b.id,
-                                                        child: Text(b.breedName, overflow: TextOverflow.ellipsis),
-                                                      ))
-                                                  .toList(),
-                                          onChanged: (v) => setState(() {
-                                            _selectedBreedRefId = v;
-                                            if (v != null) {
-                                              if (_selectedAnimal == 'Dog') {
-                                                _selectedBreed = _dogBreeds.firstWhere((b) => b.id == v).breedName;
-                                              } else {
-                                                _selectedBreed = _catBreeds.firstWhere((b) => b.id == v).breedName;
-                                              }
-                                            } else {
-                                              _selectedBreed = null;
-                                            }
-                                          }),
-                                          validator: (v) => v == null ? 'Please select a breed' : null,
-                                        ),
-                                      const SizedBox(height: 16),
-                                      // Age
-                                      DropdownButtonFormField<String>(
-                                        isExpanded: true,
-                                        decoration: InputDecoration(
-                                          labelText: 'Age',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        value: _selectedAgeRange,
-                                        items: _ageRanges
-                                            .map((age) => DropdownMenuItem<String>(
-                                                  value: age,
-                                                  child: Text(age, overflow: TextOverflow.ellipsis),
-                                                ))
-                                            .toList(),
-                                        onChanged: (v) => setState(() => _selectedAgeRange = v),
-                                        validator: (v) => v == null ? 'Please select an age' : null,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Allergies
-                                      TextFormField(
-                                        controller: _allergiesController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Allergies (comma-separated)',
-                                          hintText: 'e.g., chicken, grain, pollen',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Medical Conditions
-                                      TextFormField(
-                                        controller: _medicalConditionsController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Medical Conditions (comma-separated)',
-                                          hintText: 'e.g., diabetes, arthritis, heart disease',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Weight
-                                      TextFormField(
-                                        controller: _weightController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Weight (kg)',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        keyboardType: TextInputType.number,
-                                        validator: (value) {
-                                          if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
-                                            return 'Please enter a valid number';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Height
-                                      TextFormField(
-                                        controller: _heightController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Height (cm)',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        keyboardType: TextInputType.number,
-                                        validator: (value) {
-                                          if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
-                                            return 'Please enter a valid number';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Gender
-                                      DropdownButtonFormField<String>(
-                                        isExpanded: true,
-                                        decoration: InputDecoration(
-                                          labelText: 'Gender',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        value: _selectedGender,
-                                        items: ['Male', 'Female']
-                                            .map((g) => DropdownMenuItem<String>(
-                                                  value: g,
-                                                  child: Text(g, style: GoogleFonts.poppins()),
-                                                ))
-                                            .toList(),
-                                        onChanged: (v) => setState(() => _selectedGender = v),
-                                        validator: (v) => v == null ? 'Please select a gender' : null,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Diet Type
-                                      TextFormField(
-                                        controller: _dietTypeController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Diet Type',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Feeding Frequency
-                                      TextFormField(
-                                        controller: _feedingFrequencyController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Feeding Frequency (per day)',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                        keyboardType: TextInputType.number,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Activity Level
-                                      TextFormField(
-                                        controller: _activityLevelController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Activity Level',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Coat Type
-                                      TextFormField(
-                                        controller: _coatTypeController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Coat Type',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Grooming Needs
-                                      TextFormField(
-                                        controller: _groomingNeedsController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Grooming Needs',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // Preferred Food Type
-                                      TextFormField(
-                                        controller: _preferredFoodTypeController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Preferred Food Type',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[200],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      ElevatedButton(
-                                        onPressed: _savePet,
-                                        style: ElevatedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                        child: const Text('Save Pet'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Photo Upload Centerpiece
+              Container(
+                alignment: Alignment.center,
+                margin: const EdgeInsets.only(bottom: 24),
+                child: Column(
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              )
+                            ],
+                            image: DecorationImage(
+                              image: _photoUrl != null &&
+                                      (_photoUrl!.startsWith('http') ||
+                                          _photoUrl!.startsWith('https'))
+                                  ? NetworkImage(_photoUrl!) as ImageProvider
+                                  : const AssetImage('assets/images/logo.png'),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _uploadPetPhoto,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
                               ),
+                              child: const Icon(Icons.camera_alt,
+                                  size: 20, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (widget.pet == null)
+                      Text('Save the pet first to upload a photo.',
+                          style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 13))
+                    else if (_photoUrl != null)
+                      TextButton.icon(
+                        onPressed: _deletePetPhoto,
+                        icon: const Icon(Icons.delete_outline, size: 16),
+                        label: Text('Remove Photo', style: GoogleFonts.poppins()),
+                        style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Basic Information Section
+              _buildCard(
+                children: [
+                  _buildSectionHead('Core Details'),
+                  _buildTextField(_nameController, 'Name', 'Enter pet\'s name'),
+                  _buildDropdown<String>(
+                    label: 'Animal',
+                    value: _selectedAnimal,
+                    items: ['Dog', 'Cat'].map((animal) => DropdownMenuItem<String>(
+                      value: animal,
+                      child: Text(animal, overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins()),
+                    )).toList(),
+                    onChanged: (v) => setState(() {
+                      _selectedAnimal = v;
+                      _selectedBreed = null;
+                      _selectedBreedRefId = null;
+                      if (v == 'Dog') {
+                        _breedTable = 'dogs_pet_data';
+                      } else if (v == 'Cat') {
+                        _breedTable = 'cats_pet_data';
+                      } else {
+                        _breedTable = null;
+                      }
+                    }),
+                  ),
+                  if (_isLoadingBreeds)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.only(bottom: 16.0),
+                      child: CircularProgressIndicator(),
+                    ))
+                  else
+                    _buildDropdown<String>(
+                      label: 'Breed',
+                      value: _selectedBreedRefId,
+                      items: _selectedAnimal == 'Dog'
+                          ? _dogBreeds.map((b) => DropdownMenuItem<String>(
+                                value: b.id,
+                                child: Text(b.breedName, overflow: TextOverflow.ellipsis),
+                              )).toList()
+                          : _catBreeds.map((b) => DropdownMenuItem<String>(
+                                value: b.id,
+                                child: Text(b.breedName, overflow: TextOverflow.ellipsis),
+                              )).toList(),
+                      onChanged: (v) => setState(() {
+                        _selectedBreedRefId = v;
+                        if (v != null) {
+                          if (_selectedAnimal == 'Dog') {
+                            _selectedBreed = _dogBreeds.firstWhere((b) => b.id == v).breedName;
+                          } else {
+                            _selectedBreed = _catBreeds.firstWhere((b) => b.id == v).breedName;
+                          }
+                        } else {
+                          _selectedBreed = null;
+                        }
+                      }),
+                    ),
+                  _buildDropdown<String>(
+                    label: 'Age',
+                    value: _selectedAgeRange,
+                    items: _ageRanges.map((age) => DropdownMenuItem<String>(
+                      value: age,
+                      child: Text(age, overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                    onChanged: (v) => setState(() => _selectedAgeRange = v),
+                  ),
+                  _buildDropdown<String>(
+                    label: 'Gender',
+                    value: _selectedGender,
+                    items: ['Male', 'Female'].map((g) => DropdownMenuItem<String>(
+                      value: g,
+                      child: Text(g, style: GoogleFonts.poppins()),
+                    )).toList(),
+                    onChanged: (v) => setState(() => _selectedGender = v),
+                  ),
+                ],
+              ),
+
+              // Health & Physical Profile
+              _buildCard(
+                children: [
+                  _buildSectionHead('Health & Medical'),
+                  _buildTextField(_weightController, 'Weight (kg)', 'e.g. 15', type: TextInputType.number),
+                  _buildTextField(_heightController, 'Height (cm)', 'e.g. 40', type: TextInputType.number),
+                  _buildTextField(_allergiesController, 'Allergies', 'e.g. pollen, chicken (comma-separated)'),
+                  _buildTextField(_medicalConditionsController, 'Medical Conditions', 'e.g. arthritis (comma-separated)'),
+                ],
+              ),
+
+              // Diet & Lifestyle
+              _buildCard(
+                children: [
+                  _buildSectionHead('Daily Needs'),
+                  _buildTextField(_activityLevelController, 'Activity Level', 'e.g. High, Moderate'),
+                  _buildTextField(_dietTypeController, 'Diet Type', 'e.g. Dry kibble, Raw'),
+                  _buildTextField(_feedingFrequencyController, 'Feeding Frequency (per day)', 'e.g. 2', type: TextInputType.number),
+                  _buildTextField(_preferredFoodTypeController, 'Preferred Food', 'e.g. Chicken based'),
+                  _buildTextField(_coatTypeController, 'Coat Type', 'e.g. Short, Curly'),
+                  _buildTextField(_groomingNeedsController, 'Grooming Needs', 'e.g. Weekly brushing'),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              
+              ElevatedButton(
+                onPressed: _savePet,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text('Save Pet Profile', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              
+              if (widget.pet != null) ...[
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: _showDeleteConfirmationDialog,
+                  icon: const Icon(Icons.delete_forever),
+                  label: Text('Delete Pet', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
