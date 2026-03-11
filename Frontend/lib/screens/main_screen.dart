@@ -6,6 +6,7 @@ import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/app_drawer.dart';
+import 'package:pet_connect_app/screens/notifications_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainScreen extends StatefulWidget {
@@ -75,7 +76,7 @@ class _MainScreenState extends State<MainScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_none),
             onPressed: () {
-              // TODO: Implement notification functionality
+              Navigator.pushNamed(context, NotificationsScreen.routeName);
             },
           ),
           IconButton(

@@ -30,7 +30,7 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
       // Query using `shelter_owner_id` (the column name used when inserting adoption requests)
       final response = await Supabase.instance.client
           .from('adoption_requests')
-          .select('id, pet_id, status, created_at, pets(name, animal, breed), profiles!requester_id(first_name, last_name, email, phone, city, state)')
+          .select('id, pet_id, status, message, created_at, pets(name, animal, breed), profiles!requester_id(first_name, last_name, email, phone, city, state)')
           .eq('shelter_owner_id', user.id)
           .order('created_at', ascending: false);
 
@@ -59,6 +59,19 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
           .eq('id', requestId);
 
       if (request != null) {
+        final petName = request['pets'] != null ? request['pets']['name'] ?? 'your pet' : 'your pet';
+        
+        // Insert into notifications table
+        try {
+          await Supabase.instance.client.from('notifications').insert({
+            'recipient_id': request['requester_id'],
+            'title': 'Adoption ${status == 'Approved' ? 'Approved 🎉' : 'Rejected ❌'}',
+            'body': 'Your adoption request for $petName was $status.',
+            'type': 'system',
+          });
+        } catch (dbErr) {
+          debugPrint('Error inserting notification to DB: $dbErr');
+        }
         try {
           final requesterProfile = await Supabase.instance.client
               .from('profiles')
@@ -67,7 +80,6 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
               .maybeSingle();
 
           if (requesterProfile?['fcm_token'] != null) {
-            final petName = request['pets'] != null ? request['pets']['name'] ?? 'your pet' : 'your pet';
             await Supabase.instance.client.functions.invoke(
               'send_fcm',
               body: {
@@ -253,8 +265,33 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              const SizedBox(height: 8),
+                              if ((req['message'] as String?) != null && (req['message'] as String).isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Message from owner:',
+                                        style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '💬 "${req['message']}"',
+                                        style: GoogleFonts.poppins(fontSize: 13, fontStyle: FontStyle.italic),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
                               Text(
                                 '🕒 ${DateTime.parse(req['created_at']).toLocal().toString().substring(0, 16)}',
                                 style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 12),

@@ -56,7 +56,7 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
     }
   }
 
-  Future<void> _sendAdoptionRequest() async {
+  Future<void> _sendAdoptionRequest(String message) async {
     if (widget.pet.id == null || widget.pet.ownerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cannot send request: Missing pet or owner information.')),
@@ -82,7 +82,20 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
         'requester_id': userId,
         'shelter_owner_id': widget.pet.ownerId,
         'status': 'Pending',
+        'message': message.isNotEmpty ? message : null, // Save the custom message
       });
+
+      // Insert into notifications table
+      try {
+        await Supabase.instance.client.from('notifications').insert({
+          'recipient_id': widget.pet.ownerId,
+          'title': 'New Adoption Interest',
+          'body': '${requesterName.isNotEmpty ? requesterName : 'Someone'} is interested in adopting ${widget.pet.name ?? 'your pet'}.',
+          'type': 'adoption',
+        });
+      } catch (dbErr) {
+        debugPrint('Error inserting notification to DB: $dbErr');
+      }
 
       // Notify shelter via FCM (non-fatal)
       try {
@@ -123,6 +136,8 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
   }
 
   void _showAdoptionInterestDialog() {
+    final TextEditingController messageController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -142,7 +157,18 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
                 Text('Address: ${_shelterAddress ?? 'N/A'}'),
                 Text('Phone: ${_shelterPhone ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
                 const Divider(height: 20),
-                const Text('A notification will be sent to the shelter to review your request.'),
+                const Text('Message to Shelter (Optional):', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: messageController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Tell the shelter why you\'d be a great match...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text('A notification will be sent to the shelter to review your request.', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
@@ -157,7 +183,7 @@ class _AdoptionPetDetailsScreenState extends State<AdoptionPetDetailsScreen> {
               child: const Text('Confirm'),
               onPressed: () {
                 Navigator.of(context).pop();
-                _sendAdoptionRequest();
+                _sendAdoptionRequest(messageController.text.trim());
               },
             ),
           ],

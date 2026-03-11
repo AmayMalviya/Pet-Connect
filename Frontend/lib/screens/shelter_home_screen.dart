@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
 import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
-import 'package:pet_connect_app/screens/shelter/manage_appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/screens/notifications_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
@@ -37,7 +37,9 @@ class ShelterHomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, NotificationsScreen.routeName);
+            },
           ),
         ],
       ),
