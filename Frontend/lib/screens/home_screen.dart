@@ -9,12 +9,8 @@ import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
-import 'package:pet_connect_app/screens/grooming_details_screen.dart';
-import 'package:pet_connect_app/screens/training_details_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
-import 'package:pet_connect_app/screens/recommended_shop_screen.dart';
-import 'package:pet_connect_app/screens/shop_screen.dart'; // Import existing ShopScreen
-// Import SelfCareOptionsScreen
+import 'package:pet_connect_app/screens/pet_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,73 +25,113 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasPet = false;
   bool _isLoading = true;
   String? _userName;
+  String? _firstName;
   String? _error;
-  Pet? _selectedPet; // To store the currently selected pet for recommendations
+  List<Pet> _myPets = [];
+  List<String> _petNames = [];
+  String _currentGreeting = 'Welcome back! 🐾';
+
+  final List<String> _baseGreetings = [
+    // General
+    'Welcome back! Your pets are happy to see you. 🐾',
+    'Hello again! Ready to check on your pets?',
+    "Good to see you! Let's care for some happy pets.",
+    'Welcome back to Pet Connect!',
+    'Your pet world is waiting for you.',
+    // Playful
+    'A wagging tail is waiting somewhere! 🐶',
+    'Your furry friends say hello!',
+    'Someone just wagged their tail thinking about you.',
+    'Time to spread some pawsitive vibes. 🐾',
+    "Your pets' happiness starts here.",
+    // Care & Health
+    "Let's keep your pets happy and healthy today.",
+    "Your pets' care journey continues.",
+    "A happy pet is a healthy pet. Let's begin.",
+    'Check in on your pets today.',
+    'Small care today, big happiness tomorrow.',
+    // Community
+    "Let's see what the pet community is sharing today.",
+    'Pet lovers are connecting right now.',
+    'Your pet community is waiting.',
+    'Discover stories from fellow pet parents.',
+    "Let's connect with the pet world.",
+    // Adoption
+    'Some pets are waiting for a loving home today.',
+    'Maybe today you meet your new best friend. 🐕',
+    'Every pet deserves love.',
+    "Let's help more pets find homes.",
+    'Adoption stories start here.',
+    // Minimal
+    'Hello, pet parent!',
+    'Welcome back. 🐾',
+    'Ready for some pawsitive moments?',
+    'Your pets await.',
+    "Let's begin the pet journey.",
+  ];
 
   @override
   void initState() {
     super.initState();
+    _currentGreeting = _baseGreetings[Random().nextInt(_baseGreetings.length)];
     _loadUserData();
   }
 
   Future<void> _loadUserData() async {
-    if (mounted) {
-      setState(() => _isLoading = true);
-    }
+    if (mounted) setState(() => _isLoading = true);
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        // Load user profile
         final profile = await Supabase.instance.client
           .from('profiles')
           .select('first_name, last_name')
           .eq('user_id', user.id)
           .maybeSingle();
         
-        // Check if user has any pets and fetch the first one
         final petsResponse = await Supabase.instance.client
-            .from('pet_breed_info')
+            .from('pets')
             .select()
-            .eq('owner_id', user.id)
-            .limit(1); // Get only the first pet for now
+            .eq('owner_id', user.id);
 
         if (mounted) {
           setState(() {
-            _userName = (profile != null)
-              ? '${profile['first_name'] ?? 'User'}'
-              : 'User';
+            _firstName = profile?['first_name'] ?? 'User';
+            _userName = _firstName;
             _hasPet = (petsResponse as List).isNotEmpty;
             if (_hasPet) {
-              _selectedPet = Pet.fromJson(petsResponse[0]);
+              _myPets = petsResponse.map((p) => Pet.fromJson(p)).toList();
             }
             _error = null;
+            // Re-generate greeting now that we have pet names
+            _generateGreeting();
           });
         }
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = e.toString());
-      }
+      if (mounted) setState(() => _error = e.toString());
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Good Morning';
-    } else if (hour < 17) {
-      return 'Good Afternoon';
-    } else if (hour < 21) {
-      return 'Good Evening';
+  void _generateGreeting() {
+    final random = Random();
+    if (_petNames.isNotEmpty && random.nextDouble() > 0.55) {
+      final petName = _petNames[random.nextInt(_petNames.length)];
+      final dynamicOptions = [
+        'Welcome back, $_firstName! How is $petName doing today?',
+        '$petName hasn\'t had a check-in today 🐾',
+        'Ready for some playtime with $petName? 🐶',
+        '$petName is waiting for you! 🐾',
+        'Time to check in on $petName today 💛',
+      ];
+      _currentGreeting = dynamicOptions[random.nextInt(dynamicOptions.length)];
     } else {
-      return 'Good Night';
+      _currentGreeting = _baseGreetings[random.nextInt(_baseGreetings.length)];
     }
   }
+
 
   final List<String> _vetNames = [
     'Dr. Aarav Sharma',
@@ -203,11 +239,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${_getGreeting()}, ${_userName ?? 'User'}!',
-              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+            Container(
+              constraints: const BoxConstraints(minHeight: 48),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _currentGreeting,
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, height: 1.3),
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             if (!_hasPet)
               Card(
                 elevation: 3,
@@ -277,56 +317,66 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildSectionTitle('Pet care'),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 120,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  PetCareCard(
-                    title: 'Grooming',
-                    icon: Icons.cut,
-                    onTap: () {
-                      if (_hasPet) {
-                        Navigator.pushNamed(context, GroomingDetailsScreen.routeName);
-                      } else {
-                        _showAddPetDialog();
-                      }
-                    },
-                  ),
-                  PetCareCard(
-                    title: 'Training',
-                    icon: Icons.school,
-                    onTap: () {
-                      if (_hasPet) {
-                        Navigator.pushNamed(context, TrainingDetailsScreen.routeName);
-                      } else {
-                        _showAddPetDialog();
-                      }
-                    },
-                  ),
-                  PetCareCard(
-                    title: 'Adoption',
-                    icon: Icons.favorite_border,
-                    onTap: () {
-                      if (_hasPet) {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => AdoptionScreen()));
-                      } else {
-                        _showAddPetDialog();
-                      }
-                    },
-                  ),
-                  PetCareCard(
-                    title: 'Nearby Services',
-                    icon: Icons.location_on,
-                    onTap: () {
-                      Navigator.pushNamed(context, MapScreen.routeName);
-                    },
-                  ),
-                ],
+            _buildSectionTitle('My Pets'),
+            const SizedBox(height: 12),
+            if (_myPets.isEmpty)
+              Text('No pets added yet.', style: GoogleFonts.poppins(color: Colors.grey)),
+            if (_myPets.isNotEmpty)
+              SizedBox(
+                height: 130,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _myPets.length,
+                  itemBuilder: (context, index) {
+                    final pet = _myPets[index];
+                    final isNetworkUrl = pet.photoUrl != null &&
+                        (pet.photoUrl!.startsWith('http') || pet.photoUrl!.startsWith('https'));
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) => PetProfileScreen(pet: pet),
+                        ));
+                      },
+                      child: Container(
+                        width: 110,
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundImage: isNetworkUrl
+                                  ? NetworkImage(pet.photoUrl!)
+                                  : const AssetImage('assets/images/logo.png') as ImageProvider,
+                              backgroundColor: AppColors.background,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              pet.name ?? 'Unknown',
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
             const SizedBox(height: 20),
             _buildSectionTitle('Nearby Vets'),
             const SizedBox(height: 10),
@@ -358,37 +408,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class PetCareCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const PetCareCard({super.key, required this.title, required this.icon, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(right: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: 100,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 40, color: Theme.of(context).primaryColor),
-              const SizedBox(height: 10),
-              Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class VetCard extends StatelessWidget {
   final String name;

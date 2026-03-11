@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class PetTextField extends StatelessWidget {
+class PetTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
   final bool isPassword;
@@ -15,13 +15,28 @@ class PetTextField extends StatelessWidget {
   });
 
   @override
+  State<PetTextField> createState() => _PetTextFieldState();
+}
+
+class _PetTextFieldState extends State<PetTextField> {
+  bool _obscureText = true;
+
+  @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller,
-      obscureText: isPassword,
+      controller: widget.controller,
+      obscureText: widget.isPassword ? _obscureText : false,
       decoration: InputDecoration(
-        hintText: hintText,
-        suffixIcon: suffixIcon,
+        hintText: widget.hintText,
+        suffixIcon: widget.isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _obscureText = !_obscureText),
+              )
+            : widget.suffixIcon,
       ),
       textInputAction: TextInputAction.next,
     );

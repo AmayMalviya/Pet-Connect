@@ -9,8 +9,8 @@ import 'auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/services/storage_service.dart';
-
 import 'package:pet_connect_app/screens/health_details_screen.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -137,9 +137,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text("Your Profile", style: GoogleFonts.poppins()),
-        leading: const BackButton(),
+        title: Text("Your Profile", style: GoogleFonts.poppins(color: AppColors.textDark, fontWeight: FontWeight.w600)),
+        leading: BackButton(color: AppColors.textDark),
         actions: [
           IconButton(
             tooltip: "Logout",
@@ -356,95 +357,181 @@ class _ExpandablePetCardState extends State<ExpandablePetCard> {
     bool isNetworkUrl = widget.pet.photoUrl != null &&
         (widget.pet.photoUrl!.startsWith('http://') ||
             widget.pet.photoUrl!.startsWith('https://'));
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: [
-          ListTile(
-            leading: GestureDetector(
-              onTap: _pickAndUploadPetImage,
-              child: CircleAvatar(
-                radius: 30,
-                backgroundImage: isNetworkUrl
-                    ? NetworkImage(widget.pet.photoUrl!)
-                    : const AssetImage('assets/images/logo.png') as ImageProvider,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
-                          borderRadius: BorderRadius.circular(20),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _pickAndUploadPetImage,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          ),
+                          child: CircleAvatar(
+                            radius: 34,
+                            backgroundImage: isNetworkUrl
+                                ? NetworkImage(widget.pet.photoUrl!)
+                                : const AssetImage('assets/images/logo.png') as ImageProvider,
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: const Icon(Icons.camera_alt, size: 15, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.pet.name ?? 'Unknown Pet', 
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textDark)
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.pet.breed ?? 'Unknown Breed', 
+                              style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14)
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            AnimatedCrossFade(
+              firstChild: const SizedBox(height: 0, width: double.infinity),
+              secondChild: Container(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Divider(color: Colors.grey[200]),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.orangeAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Age: ${widget.pet.age} yrs', 
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.orange[800])
+                          ),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: Text('Edit Info', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(context).primaryColor,
+                          ),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddEditPetScreen(pet: widget.pet),
+                              ),
+                            );
+                            widget.onPetUpdated();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.monitor_heart_outlined, color: Colors.white),
+                        label: Text('Health Calendar', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pinkAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HealthDetailsScreen(petId: widget.pet.id!),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
+              crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 300),
             ),
-            title: Text(widget.pet.name ?? 'Unknown Pet', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-            subtitle: Text(widget.pet.breed ?? 'Unknown Breed', style: GoogleFonts.poppins()),
-            trailing: IconButton(
-              icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
-              onPressed: () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              },
-            ),
-          ),
-          AnimatedCrossFade(
-            firstChild: Container(),
-            secondChild: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Age: ${widget.pet.age} years', style: GoogleFonts.poppins()),
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddEditPetScreen(pet: widget.pet),
-                            ),
-                          );
-                          widget.onPetUpdated();
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.calendar_today),
-                    label: const Text('Health Calendar'),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HealthDetailsScreen(petId: widget.pet.id!),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 300),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

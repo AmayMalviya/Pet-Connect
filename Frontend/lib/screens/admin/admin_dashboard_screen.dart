@@ -5,6 +5,8 @@ import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_analytics_screen.dart';
+import 'package:pet_connect_app/widgets/notification_bell.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -14,13 +16,17 @@ class AdminDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           'Admin Dashboard',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppColors.textDark),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         centerTitle: true,
         actions: [
+          const NotificationBell(iconColor: Colors.black87),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -44,6 +50,7 @@ class AdminDashboardScreen extends StatelessWidget {
               context,
               icon: Icons.people_alt_outlined,
               title: 'Manage Profiles',
+              color: Colors.blueAccent,
               onTap: () {
                 Navigator.pushNamed(context, ManageProfilesScreen.routeName);
               },
@@ -52,6 +59,7 @@ class AdminDashboardScreen extends StatelessWidget {
               context,
               icon: Icons.verified_user,
               title: 'KYC Approvals',
+              color: Colors.orangeAccent,
               onTap: () {
                 Navigator.pushNamed(context, AdminKycApprovalScreen.routeName);
               },
@@ -60,6 +68,7 @@ class AdminDashboardScreen extends StatelessWidget {
               context,
               icon: Icons.groups,
               title: 'Manage Community',
+              color: Colors.green,
               onTap: () {
                 Navigator.pushNamed(context, ManageCommunityScreen.routeName);
               },
@@ -68,6 +77,7 @@ class AdminDashboardScreen extends StatelessWidget {
               context,
               icon: Icons.bar_chart_rounded,
               title: 'App Analytics',
+              color: Colors.purpleAccent,
               onTap: () {
                 Navigator.pushNamed(context, AdminAnalyticsScreen.routeName);
               },
@@ -82,60 +92,53 @@ class AdminDashboardScreen extends StatelessWidget {
     BuildContext context, {
     required IconData icon,
     required String title,
+    required Color color,
     required VoidCallback onTap,
   }) {
-    final primaryColor = Theme.of(context).primaryColor;
-
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        splashColor: primaryColor.withOpacity(0.2),
-        highlightColor: primaryColor.withOpacity(0.1),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                primaryColor.withOpacity(0.9),
-                primaryColor.withOpacity(0.7),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Center(
-  child: Padding(
-    padding: const EdgeInsets.all(20.0),
-    child: FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.2),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Icon(icon, size: 48, color: Colors.white),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
         ],
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
       ),
-    ),
-  ),
-),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 36, color: color),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

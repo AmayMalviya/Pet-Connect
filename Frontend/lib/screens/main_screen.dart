@@ -7,6 +7,7 @@ import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/app_drawer.dart';
 import 'package:pet_connect_app/screens/notifications_screen.dart';
+import 'package:pet_connect_app/widgets/notification_bell.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainScreen extends StatefulWidget {
@@ -73,12 +74,7 @@ class _MainScreenState extends State<MainScreen> {
         foregroundColor: AppColors.textDark,
         elevation: 1,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {
-              Navigator.pushNamed(context, NotificationsScreen.routeName);
-            },
-          ),
+          const NotificationBell(),
           IconButton(
             icon: CircleAvatar(
               radius: 18,
@@ -116,3 +112,4 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+
