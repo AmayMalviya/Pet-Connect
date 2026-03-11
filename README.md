@@ -1,107 +1,44 @@
-# Pet-Connect
-## 📌 Project Overview
-The **Pet-Connect App** is a Flutter-based mobile application designed to help pet owners manage their pets' health, locate pet-friendly services, facilitate adoption, and build a pet-loving community. The app integrates **Firebase** for authentication, database, and storage, ensuring a seamless experience for users.
+# 🐾 Pet Connect
 
-## 🎯 Features
-### 1️⃣ **Simplify Pet Care**
-- Maintain pet medical records
-- Track vaccinations & health history
-- Set reminders for vet visits
+Welcome to **Pet Connect**, a premium platform linking pet owners, adoption shelters, and veterinary services seamlessly. Built to unify and elevate pet management, this app provides dedicated workflows uniquely tailored for community engagement, daily health tracking, and professional adoption logistics.
 
-### 2️⃣ **Enhance Community Engagement**
-- Connect with other pet owners
-- Join forums & discussions
-- Schedule & attend pet meetups
+---
 
-### 3️⃣ **Improve Pet Adoption**
-- Connect adopters with shelters & rescues
-- View pet adoption listings
-- Contact shelters directly
+## ✨ Features
 
-### 4️⃣ **Promote Pet-Friendly Services**
-- Find nearby vets, trainers, parks, and pet stores
-- Access ratings & reviews
+- **Premium Interface (`Phase 3 Polished`)**: An elegant, dynamic, and glassmorphic UI driven heavily by responsive `CustomScrollView` cards and `SliverAppBar` transitions for an effortless, delightful user experience.
+- **Centralized Pet Profiles**: Keep robust, expandable cards detailing age, diet, preferred traits, weight, and vaccination history via unified Add/Edit gateways.
+- **Live Notification Hub**: An active, WebSocket-subscribed bell keeps Shelters and Users in sync with real-time adoption and query alerts.
+- **Shelter Operations**: Dedicated shelter hubs allow instantaneous listing of animals and robust analytics viewing without sacrificing architectural cleanliness.
+- **Unified Health Calendars**: Granular tracking grids to log wellness metrics right out of your pocket.
 
-### 5️⃣ **Provide Pet Products**
-- Buy pet food, accessories, and essentials
-- Browse products from verified sellers
+---
 
-## 🛠️ Tech Stack
-- **Flutter** (UI Development)
-- **Firebase** (Authentication, Firestore Database, Storage, Messaging) and Java SPRING BOOT.
-- **Google Maps API** (Pet service locator)
-- **Cloud Functions** (Business logic & automation)
-- **VS Code** (Development Environment)
+## 🛠 Tech Stack
 
-## 📲 Installation & Setup
-### 1️⃣ Prerequisites
-- Install [Flutter](https://flutter.dev/docs/get-started/install)
-- Install [VS Code](https://code.visualstudio.com/)
-- Install Flutter & Dart extensions in VS Code
-- Install [Firebase CLI](https://firebase.google.com/docs/cli) (for Firebase setup)
-- Create a Firebase project ([Firebase Console](https://console.firebase.google.com/))
+- **Frontend Environment**: [Flutter](https://flutter.dev/) & Dart
+- **Backend & State Architecture**: [Supabase](https://supabase.com/) (PostgreSQL, DB Subscriptions, Cloud Buckets, Edge Functions)
+- **Aesthetic Core**: High-fidelity Google `Poppins` Font styling & integrated modern pastel shadows.
 
-### 2️⃣ Clone the Repository
-```bash
-  git clone https://github.com/AmayMalviya/Pet-Connect.git
-  cd Pet-Connect
-```
+---
 
-### 3️⃣ Install Dependencies
-```bash
-  flutter pub get
-```
+## 🚀 Environment Setup
 
-### 4️⃣ Configure Firebase
-- Install Firebase CLI:  
-  ```bash
-  npm install -g firebase-tools
-  ```
-- Login to Firebase:  
-  ```bash
-  firebase login
-  ```
-- Initialize Firebase:  
-  ```bash
-  firebase init
-  ```
-- Add `google-services.json` (Android) inside `android/app/`
-- Add `GoogleService-Info.plist` (iOS) inside `ios/Runner/`
-- Enable Firestore, Authentication, and Storage in Firebase
+If cloning locally, configure your workspace:
 
-### 5️⃣ Run the App in VS Code
-- Open VS Code and navigate to the project folder
-- Open a new terminal and run:
-  ```bash
-  flutter run
-  ```
+1. Validate you are working from the `main` or `Amay` branch (`main` is a fast-forward replica of `Amay`).
+2. Run standard initialization:
+   ```bash
+   flutter clean
+   flutter pub get
+   ```
+3. Establish your secrets. Inside `lib/utils` or equivalent environment configs, store your Supabase keys (`supabaseUrl`, `supabaseAnonKey`).
+4. Boot the simulator:
+   ```bash
+   flutter build ios # or android, flutter run
+   ```
 
-## 📂 Folder Structure
-```
-lib/
-│── main.dart                # App Entry Point
-│── screens/                 # UI Screens
-│── widgets/                 # Reusable UI Components
-│── services/                # Firebase & API Services
-│── models/                  # Data Models
-│── utils/                   # Helper Functions
-```
+---
 
-## 🚀 Roadmap
-- [x] Firebase Authentication (Email, Google Login)
-- [x] MySql Database (Relational Data Storage)
-- [ ] Pet Service Locator (Google Maps API)
-- [ ] Pet Adoption Module
-- [ ] E-commerce Integration for Pet Products
-- [ ] Push Notifications & Reminders
-
-## 📜 License
-This project is licensed under the **MIT License**.
-
-## 🤝 Contributing
-Pull requests are welcome! Please open an issue first to discuss any changes.
-
-## 📬 Contact
-- **Email**: amaymalviya2@gmail.com
-- **GitHub**: (https://github.com/AmayMalviya)
-- **LinkedIn**: (www.linkedin.com/in/amay-malviya-837061256)
+## 🤝 Project State
+`main` operates as the primary stable branch and accurately reflects the completion of all **Phase 3 UI Overhauls** (including proper Edit/Delete flows and premium widget consolidations).
