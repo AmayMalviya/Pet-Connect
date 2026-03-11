@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pet_connect_app/screens/manage_pets_screen.dart';
-import 'package:pet_connect_app/screens/adoption_requests_screen.dart';
+import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
+import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
+import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
+import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/screens/notifications_screen.dart';
+import 'package:pet_connect_app/widgets/notification_bell.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
   static const routeName = '/shelter-home';
@@ -12,85 +18,367 @@ class ShelterHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50], // Premium off-white background
       appBar: AppBar(
-        title: Text('Shelter Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
+        title: Text('Home', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        actions: [
+          const NotificationBell(),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            Text(
-              'Welcome, Shelter Owner!',
-              style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
+            DrawerHeader(
+              decoration: BoxDecoration(color: AppColors.primary),
+              child: Text('Shelter', style: GoogleFonts.poppins(color: Colors.white, fontSize: 18)),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                children: [
-                  _buildDashboardCard(
-                    context,
-                    title: 'Manage Pets',
-                    icon: Icons.pets,
-                    onTap: () {
-                      Navigator.pushNamed(context, ManagePetsScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
-                    title: 'Adoption Requests',
-                    icon: Icons.inbox,
-                    onTap: () {
-                      Navigator.pushNamed(context, AdoptionRequestsScreen.routeName);
-                    },
-                  ),
-                  _buildDashboardCard(
-                    context,
-                    title: 'Manage Profile',
-                    icon: Icons.person,
-                    onTap: () {
-                      Navigator.pushNamed(context, ShelterProfileScreen.routeName);
-                    },
-                  ),
-                ],
-              ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: Text('Home', style: GoogleFonts.poppins()),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.pets),
+              title: Text('Manage Pets', style: GoogleFonts.poppins()),
+              onTap: () => Navigator.pushNamed(context, ManagePetsScreen.routeName),
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: Text('Logout', style: GoogleFonts.poppins()),
+              onTap: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (context.mounted) {
+                  Navigator.pushReplacementNamed(context, '/');
+                }
+              },
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDashboardCard(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+      body: CustomScrollView(
+        slivers: [
+          // Custom Premium Banner
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    spreadRadius: 2,
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Shelter Hub',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Manage your rescues\n& connect with adopters.',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AddEditPetScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.primary,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Add a Pet',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    right: -20,
+                    bottom: -40,
+                    child: Opacity(
+                      opacity: 0.15,
+                      child: const Icon(Icons.pets, size: 140, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+          
+          // Search Bar
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search for pets, requests...',
+                    hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+          // Explore Tools Title
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Text(
+                'Explore Tools',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+          ),
+
+          // Tools Grid
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            sliver: SliverGrid.count(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 0.85,
+              children: [
+                _PremiumShelterCard(
+                  title: 'Manage Pets',
+                  subtitle: 'View and update rescues',
+                  icon: Icons.pets,
+                  color: Colors.blueAccent.shade100,
+                  onTap: () {
+                    Navigator.pushNamed(context, ManagePetsScreen.routeName);
+                  },
+                ),
+                _PremiumShelterCard(
+                  title: 'Adoption Requests',
+                  subtitle: 'Review incoming requests',
+                  icon: Icons.volunteer_activism_outlined,
+                  color: Colors.pinkAccent.shade100,
+                  onTap: () {
+                    Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName);
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Wide Bottom Cards
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: _PremiumShelterCard(
+                title: 'Analytics',
+                subtitle: 'Track your shelter\'s performance',
+                icon: Icons.analytics_outlined,
+                color: Colors.purpleAccent.shade100,
+                isWide: true,
+                onTap: () {
+                  Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
+                },
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              child: _PremiumShelterCard(
+                title: 'Manage Profile',
+                subtitle: 'Update shelter details and contacts',
+                icon: Icons.person_outline,
+                color: Colors.greenAccent.shade100,
+                isWide: true,
+                onTap: () {
+                  Navigator.pushNamed(context, ShelterProfileScreen.routeName);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumShelterCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final bool isWide;
+
+  const _PremiumShelterCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.isWide = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: isWide ? 130 : null,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: isWide
+                ? Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color.withAlpha(255), size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              title,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitle,
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios, color: Colors.grey[300], size: 16),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color.withAlpha(255), size: 28),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

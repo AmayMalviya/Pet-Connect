@@ -40,3 +40,9 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Flutter / Dart
+/Frontend/.dart_tool/
+/Frontend/build/
+/Frontend/.flutter-plugins-dependencies
+/Frontend/pubspec.lock

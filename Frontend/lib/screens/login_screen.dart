@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pet_connect_app/services/api_service.dart';
-import 'package:pet_connect_app/screens/register_screen.dart'; // Added import
+import 'package:pet_connect_app/screens/register_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pet_connect_app/screens/main_screen.dart';
+import 'package:pet_connect_app/screens/shelter_home_screen.dart';
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
+import 'package:pet_connect_app/screens/profile_details_screen.dart';
+import 'package:pet_connect_app/screens/reset_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -34,43 +38,57 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final response = await Supabase.instance.client.auth.signInWithPassword(
         email: email.text,
         password: password.text,
       );
-      String? idToken = await userCredential.user?.getIdToken();
 
-      if (idToken != null) {
-        await ApiService.loginUser(idToken);
-        Navigator.pushReplacementNamed(
-          context,
-          RoleSelectionScreen.routeName,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get ID token.')),
-        );
+      if (response.user != null) {
+        if (!mounted) return;
+        
+        // For admin, let the StreamBuilder in main.dart handle routing
+        if (response.user!.email == 'malviyaamay501@gmail.com') {
+          // Admin user - StreamBuilder will handle routing
+          return;
+        }
+
+        final userData = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('user_id', response.user!.id)
+            .maybeSingle();
+
+        if (!mounted) return;
+
+        if (userData == null || userData['phone'] == null || (userData['phone'] as String).isEmpty) {
+          Navigator.pushReplacementNamed(context, ProfileDetailsScreen.routeName);
+        } else if (userData['role'] != null) {
+          // User has already selected a role
+          final role = userData['role'] as String;
+          if (role == 'Pet Owner') {
+            Navigator.pushReplacementNamed(context, MainScreen.routeName);
+          } else if (role == 'Shelter' || role == 'Shelter Owner') {
+            Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
+          }
+        } else {
+          // User hasn't selected a role yet
+          Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
+        }
       }
-    } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Wrong password provided for that user.';
-      } else {
-        message = e.message ?? 'An unknown error occurred.';
-      }
+    } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(content: Text(e.message)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _resetPassword() async {
@@ -80,67 +98,142 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+    
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.text);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent.')),
+      // Call Supabase password reset - uses Brevo SMTP configured in Supabase
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email.text,
+        redirectTo: 'io.supabase.petconnect://reset-password', // Your app's reset callback
       );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'An unknown error occurred.')),
+      
+      if (!mounted) return;
+      
+      // Show a detailed dialog with instructions
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Password Reset Email Sent ✓'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('A password reset link has been sent to:'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  email.text,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Instructions:'),
+              const SizedBox(height: 8),
+              const Text('1. Check your email (including spam folder)'),
+              const SizedBox(height: 8),
+              const Text('2. Click the "Reset Password" link in the email'),
+              const SizedBox(height: 8),
+              const Text('3. Enter your new password'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Text(
+                  'Note: The reset link expires in 24 hours',
+                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      
+      // Provide helpful error messages
+      String errorMessage = e.message;
+      if (e.message.toLowerCase().contains('user not found')) {
+        errorMessage = 'No account found with this email address.';
+      } else if (e.message.toLowerCase().contains('over_email_send_rate_limit')) {
+        errorMessage = 'Too many reset attempts. Please try again later.';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _googleSignIn() async {
-  try {
-    final GoogleSignIn googleSignIn = GoogleSignIn(
-      scopes: ['email'], // optional, you can add more scopes if needed
-    );
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-    if (googleUser == null) {
-      // User canceled the sign-in
-      return;
-    }
-
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
-    // ✅ accessToken is no longer needed or available
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-    );
-
-    final UserCredential userCredential =
-        await FirebaseAuth.instance.signInWithCredential(credential);
-
-    final String? idToken = await userCredential.user?.getIdToken();
-
-    if (idToken != null) {
-      await ApiService.loginUser(idToken);
-      Navigator.pushReplacementNamed(
-        context,
-        RoleSelectionScreen.routeName,
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.petconnect://login-callback',
       );
-    } else {
+    } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to get ID token.')),
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.toString()}')),
-    );
   }
-}
+
+  Future<void> _appleSignIn() async {
+    // TODO: Implement Apple Sign In with Supabase
+    // You will need to configure this in your Supabase dashboard and Apple Developer account.
+    // It uses the `sign_in_with_apple` package.
+  }
+
+  Future<void> _facebookSignIn() async {
+    // TODO: Implement Facebook Sign In with Supabase
+    // You will need to configure this in your Supabase dashboard and Facebook Developer account.
+  }
 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(), // Added back button
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -159,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 60), // Adjusted spacing
                   Text(
-                    "Welcome back 👋",
+                    "Welcome!",
                     style: GoogleFonts.poppins(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
@@ -177,15 +270,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 48),
                   PetTextField(
                     controller: email,
-                    hint: "Email",
-                    icon: Icons.alternate_email_rounded,
+                    hintText: "Email",
                   ),
                   const SizedBox(height: 16),
                   PetTextField(
                     controller: password,
-                    hint: "Password",
-                    icon: Icons.lock_outline_rounded,
-                    obscure: true,
+                    hintText: "Password",
+                    isPassword: true,
                   ),
                   Align(
                     alignment: Alignment.centerRight,
@@ -201,9 +292,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : PrimaryButton(
-                          label: "Login",
-                          icon: Icons.login_rounded,
                           onPressed: _submit,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.login_rounded),
+                              SizedBox(width: 8),
+                              Text("Login", style: TextStyle(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
                         ),
                   const SizedBox(height: 24),
                   Row(
@@ -232,9 +329,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),  // placeholder
                       const SizedBox(width: 10),
-                      _SocialIcon(child: const Icon(Icons.facebook)),
+                      _SocialIcon(onTap: _facebookSignIn, child: const Icon(Icons.facebook)),
                       const SizedBox(width: 10),
-                      _SocialIcon(child: const Icon(Icons.apple)),
+                      _SocialIcon(onTap: _appleSignIn, child: const Icon(Icons.apple)),
                     ],
                   ),
                 ],
@@ -302,13 +399,21 @@ class _WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final p = Path();
-    p.lineTo(0, size.height * 0.65);
-    p.quadraticBezierTo(size.width * 0.25, size.height, size.width * 0.55, size.height * 0.74);
-    p.quadraticBezierTo(size.width * 0.82, size.height * 0.5, size.width, size.height * 0.7);
-    p.lineTo(size.width, 0);
+    // Start by moving to a point on the left edge, which is the start of our wave
+    p.moveTo(0, size.height * 0.7);
+    // First curve of the wave
+    p.quadraticBezierTo(size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.7);
+    // Second curve of the wave
+    p.quadraticBezierTo(size.width * 0.75, size.height * 0.9, size.width, size.height * 0.7);
+    // Line to the bottom-right corner
+    p.lineTo(size.width, size.height);
+    // Line to the bottom-left corner
+    p.lineTo(0, size.height);
+    // Close the path
     p.close();
     return p;
   }
+
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

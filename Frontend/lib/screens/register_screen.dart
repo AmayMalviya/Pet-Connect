@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pet_connect_app/services/api_service.dart';
-import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/screens/login_screen.dart';
-import 'package:pet_connect_app/screens/role_selection_screen.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -19,215 +16,181 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final name = TextEditingController();
+  final firstName = TextEditingController();
+  final lastName = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  final confirmPassword = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    name.dispose();
+    firstName.dispose();
+    lastName.dispose();
     email.dispose();
     password.dispose();
+    confirmPassword.dispose();
     super.dispose();
   }
 
-  void _submit() async {
-    setState(() {
-      _isLoading = true;
-    });
-    print('Attempting to register user...');
-    try {
-      print('Attempting Firebase user creation...');
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email.text,
-        password: password.text,
-      );
-      print('Firebase user creation successful.');
-
-      if (userCredential.user != null) {
-        print('User credential user is not null. UID: ${userCredential.user!.uid}');
-        // Update display name in Firebase Auth
-        await userCredential.user!.updateDisplayName(name.text);
-        print('Display name updated in Firebase Auth.');
-
-        // Register user in backend
-        pet_connect_user.User newUser = pet_connect_user.User(
-          uid: userCredential.user!.uid,
-          email: email.text,
-          displayName: name.text,
-        );
-        print('Calling backend ApiService.registerUser...');
-        await ApiService.registerUser(newUser);
-        print('Backend registration successful.');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thank you for signing up!')), 
-        );
-        print('Navigating to MainScreen...');
-        Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
-      } else {
-        print('User credential user is null. Showing error snackbar.');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to register user.')),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException caught: ${e.code} - ${e.message}');
-      String message;
-      if (e.code == 'weak-password') {
-        message = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'The account already exists for that email.';
-      } else {
-        message = e.message ?? 'An unknown error occurred.';
-      }
+  Future<void> _submit() async {
+    if (password.text != confirmPassword.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+    if (firstName.text.isEmpty || lastName.text.isEmpty || email.text.isEmpty || password.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: email.text.trim(),
+        password: password.text,
+        data: {
+          'first_name': firstName.text.trim(),
+          'last_name': lastName.text.trim(),
+        }, // Pass additional data
+      );
+
+      if (response.user != null) {
+        // The user is created, but needs to confirm their email.
+        // Supabase sends the confirmation email automatically if enabled.
+        // We recommend setting up a database trigger to create a profile in the public 'profiles' table
+        // when a new user is created in the 'auth.users' table.
+
+        if (!mounted) return;
+
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirm your email'),
+            content: const Text('We have sent a confirmation link to your email address. Please click the link to activate your account.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.pushReplacementNamed(context, LoginScreen.routeName); // Go to login
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final message = e.message.toLowerCase().contains('already registered')
+          ? 'This email address is already in use.'
+          : e.message;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
     } catch (e) {
-      print('Generic exception caught: ${e.toString()}');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
       );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    setState(() {
-      _isLoading = false;
-    });
-    print('Registration process finished. isLoading set to false.');
   }
 
   Future<void> _googleSignIn() async {
     try {
-      final GoogleSignIn _googleSignIn = GoogleSignIn();
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // The user canceled the sign-in
-        return;
-      }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.petconnect://login-callback',
       );
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      String? idToken = await userCredential.user?.getIdToken();
-      if (idToken != null) {
-        await ApiService.loginUser(idToken);
-        Navigator.pushReplacementNamed(
-          context,
-          RoleSelectionScreen.routeName,
-        );
-      }
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Future<void> _appleSignIn() async {
+    // TODO: Implement Apple Sign In with Supabase
+  }
+
+  Future<void> _facebookSignIn() async {
+    // TODO: Implement Facebook Sign In with Supabase
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context); // Changed to pop
-          },
-        ),
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: const _WaveBands(),
-          ),
+          const Align(alignment: Alignment.bottomCenter, child: _WaveBands()),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 180),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 60), // Adjusted spacing
-                  Text(
-                    "Create your account",
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Sign up to get started",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  PetTextField(
-                    controller: name,
-                    hint: "Full name",
-                    icon: Icons.person_outline_rounded,
-                  ),
-                  const SizedBox(height: 16),
-                  PetTextField(
-                    controller: email,
-                    hint: "Email",
-                    icon: Icons.alternate_email_rounded,
-                  ),
-                  const SizedBox(height: 16),
-                  PetTextField(
-                    controller: password,
-                    hint: "Password",
-                    icon: Icons.lock_outline_rounded,
-                    obscure: true,
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
+                  Text('Create your account', style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                  const SizedBox(height: 6),
+                  Text('Sign up to get started', style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54)),
+                  const SizedBox(height: 18),
+
+                  PetTextField(controller: firstName, hintText: 'First name'),
+                  const SizedBox(height: 12),
+                  PetTextField(controller: lastName, hintText: 'Last name'),
+                  const SizedBox(height: 12),
+                  PetTextField(controller: email, hintText: 'Email'),
+                  const SizedBox(height: 12),
+                  PetTextField(controller: password, hintText: 'Create Password', isPassword: true),
+                  const SizedBox(height: 12),
+                  PetTextField(controller: confirmPassword, hintText: 'Confirm Password', isPassword: true),
+
+                  const SizedBox(height: 18),
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : PrimaryButton(
-                          label: "Sign Up",
-                          icon: Icons.check_circle_rounded,
                           onPressed: _submit,
-                        ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Already have an account?",
-                        style: GoogleFonts.poppins(),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacementNamed(context, LoginScreen.routeName);
-                        },
-                        child: Text(
-                          'Login',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_rounded),
+                              SizedBox(width: 8),
+                              Text('Sign Up', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),  // placeholder
-                      const SizedBox(width: 10),
-                      _SocialIcon(child: const Icon(Icons.facebook)),
-                      const SizedBox(width: 10),
-                      _SocialIcon(child: const Icon(Icons.apple)),
-                    ],
-                  ),
+
+                  const SizedBox(height: 12),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text('Already have an account?', style: GoogleFonts.poppins()),
+                    TextButton(onPressed: () => Navigator.pushReplacementNamed(context, LoginScreen.routeName), child: Text('Login', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)))
+                  ]),
+
+                  const SizedBox(height: 10),
+                  Center(child: Text('Or continue with', style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54))),
+                  const SizedBox(height: 8),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),
+                    const SizedBox(width: 10),
+                    _SocialIcon(onTap: _facebookSignIn, child: const Icon(Icons.facebook_rounded)),
+                    const SizedBox(width: 10),
+                    _SocialIcon(onTap: _appleSignIn, child: const Icon(Icons.apple_rounded)),
+                  ])
                 ],
               ),
             ),
@@ -247,39 +210,25 @@ class _SocialIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 44, width: 44,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black12),
-        ),
+        height: 44,
+        width: 44,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
         child: Center(child: child),
       ),
     );
   }
 }
 
-// same waves as login
 class _WaveBands extends StatelessWidget {
   const _WaveBands();
-
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: const [
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: -6,
-          child: _Band(height: 170, color: AppColors.accent),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 18,
-          child: _Band(height: 150, color: AppColors.primary),
-        ),
+        Positioned(left: 0, right: 0, bottom: -6, child: _Band(height: 170, color: AppColors.accent)),
+        Positioned(left: 0, right: 0, bottom: 18, child: _Band(height: 150, color: AppColors.primary)),
       ],
     );
   }
@@ -289,34 +238,25 @@ class _Band extends StatelessWidget {
   final double height;
   final Color color;
   const _Band({required this.height, required this.color});
-
   @override
-  Widget build(BuildContext context) {
-    return ClipPath(
-      clipper: _WaveClipper(),
-      child: Container(height: height, color: color),
-    );
-  }
+  Widget build(BuildContext context) => ClipPath(clipper: _WaveClipper(), child: Container(height: height, color: color));
 }
 
 class _WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final p = Path();
-    p.lineTo(0, size.height * 0.65);
-    p.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.55,
-      size.height * 0.74,
-    );
-    p.quadraticBezierTo(
-      size.width * 0.82,
-      size.height * 0.5,
-      size.width,
-      size.height * 0.7,
-    );
-    p.lineTo(size.width, 0);
+    // Start by moving to a point on the left edge, which is the start of our wave
+    p.moveTo(0, size.height * 0.7);
+    // First curve of the wave
+    p.quadraticBezierTo(size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.7);
+    // Second curve of the wave
+    p.quadraticBezierTo(size.width * 0.75, size.height * 0.9, size.width, size.height * 0.7);
+    // Line to the bottom-right corner
+    p.lineTo(size.width, size.height);
+    // Line to the bottom-left corner
+    p.lineTo(0, size.height);
+    // Close the path
     p.close();
     return p;
   }

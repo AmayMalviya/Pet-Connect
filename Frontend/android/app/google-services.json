@@ -13,7 +13,12 @@
           "package_name": "com.example.pet_connect_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "543358006471-h35c477i5kt495sobv75okvbgeeoamq4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDD_780NTsg_BB35rixLQhG_ebu81M6bHM"
@@ -21,7 +26,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "543358006471-h35c477i5kt495sobv75okvbgeeoamq4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "543358006471-n8m72rnc26nofvl9rh8s2jss5feelicq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.petConnectApp"
+              }
+            }
+          ]
         }
       }
     }

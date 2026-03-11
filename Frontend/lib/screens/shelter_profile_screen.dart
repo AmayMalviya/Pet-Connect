@@ -1,10 +1,14 @@
 
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:image_picker/image_picker.dart';
 import 'package:pet_connect_app/screens/edit_shelter_profile_screen.dart';
+import 'auth_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:pet_connect_app/services/storage_service.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class ShelterProfileScreen extends StatefulWidget {
   static const routeName = '/shelter-profile';
@@ -16,34 +20,105 @@ class ShelterProfileScreen extends StatefulWidget {
 }
 
 class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
-  Map<String, dynamic>? _shelterData;
+  pet_connect_user.User? _user;
+  String? _shelterPhone;
+  String? _shelterAddress;
+  String? _shelterWebsite; // optional
   bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _fetchShelterData();
+    _fetchProfileData();
   }
 
-  Future<void> _fetchShelterData() async {
+  Future<void> _fetchProfileData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (docSnapshot.exists) {
-          setState(() {
-            _shelterData = docSnapshot.data();
-          });
-        }
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) {
+        setState(() => _error = 'User not logged in.');
+        return;
+      }
+
+      final userProfile = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+      if (userProfile == null) {
+        setState(() => _error = 'No profile found.');
+        return;
+      }
+
+      final fetchedUser = pet_connect_user.User(
+        uid: currentUser.id,
+        email: currentUser.email ?? '',
+        displayName:
+            '${userProfile['first_name'] ?? ''} ${userProfile['last_name'] ?? ''}'.trim(),
+        photoUrl: userProfile['photo_url'],
+        phone: userProfile['phone'],
+        city: userProfile['city'],
+        state: userProfile['state'],
+        country: userProfile['country'],
+      );
+
+      setState(() {
+        _user = fetchedUser;
+        _shelterPhone = userProfile['phone'];
+        _shelterAddress = userProfile['city'];
+        _shelterWebsite = userProfile['website'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load profile data: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    if (image != null) await _uploadImage(image);
+  }
+
+  Future<void> _uploadImage(XFile image) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to upload a profile picture.')),
+      );
+      return;
+    }
+
+    try {
+      final storageService = StorageService();
+      final imageUrl = await storageService.uploadProfilePicture(user.id, image);
+
+      if (imageUrl != null) {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'photo_url': imageUrl}).eq('user_id', user.id);
+        await _fetchProfileData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated successfully!')),
+        );
+      } else {
+        throw Exception('Upload returned a null URL.');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load profile data: $e')),
+        SnackBar(content: Text('Failed to upload profile picture: ${e.toString()}')),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -51,105 +126,162 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Shelter Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text("Profile", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              if (_shelterData != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => EditShelterProfileScreen(shelterData: _shelterData!),
-                  ),
-                ).then((_) => _fetchShelterData());
-              }
+            tooltip: "Logout",
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthScreen()),
+                (route) => false,
+              );
             },
           ),
         ],
+        elevation: 1,
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  const CircleAvatar(
-                    radius: 60,
-                    backgroundImage: AssetImage('assets/images/logo.png'), // Placeholder
+          : _error != null
+              ? Center(child: Text(_error!))
+              : RefreshIndicator(
+                  onRefresh: _fetchProfileData,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      _buildProfileHeader(),
+                      const SizedBox(height: 20),
+                      _buildShelterDetails(),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _shelterData?['name'] ?? 'Happy Paws Shelter',
-                    style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Non-Profit Pet Shelter',
-                    style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 30),
-                  _buildProfileInfoCard(
-                    context,
-                    title: 'Contact Information',
-                    info: {
-                      'Email': _shelterData?['email'] ?? 'contact@happypaws.org',
-                      'Phone': _shelterData?['phone'] ?? '+1 987 654 321',
-                      'Address': _shelterData?['address'] ?? '456 Rescue Road, Animal City',
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  _buildProfileInfoCard(
-                    context,
-                    title: 'Shelter Details',
-                    info: {
-                      'License Number': _shelterData?['licenseNumber'] ?? 'SHLTR98765',
-                      'Capacity': _shelterData?['capacity'] ?? '50 Animals',
-                      'Website': _shelterData?['website'] ?? 'www.happypaws.org',
-                    },
-                  ),
-                ],
-              ),
-            ),
+                ),
     );
   }
 
-  Widget _buildProfileInfoCard(BuildContext context, {required String title, required Map<String, String> info}) {
+  Widget _buildProfileHeader() {
+    final isNetworkUrl = _user?.photoUrl != null &&
+        (_user!.photoUrl!.startsWith('http://') || _user!.photoUrl!.startsWith('https://'));
+
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: CircleAvatar(
+            radius: 50,
+            backgroundImage: isNetworkUrl
+                ? NetworkImage(_user!.photoUrl!)
+                : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          (_user?.displayName ?? '').trim().isEmpty ? 'No Name Provided' : (_user?.displayName ?? ''),
+          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          _user?.email ?? 'No Email Provided',
+          style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShelterDetails() {
     return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Divider(height: 20, thickness: 1),
-            ...info.entries.map((entry) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${entry.key}: ',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                      ),
-                      Expanded(
-                        child: Text(
-                          entry.value,
-                          style: GoogleFonts.poppins(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("User / Shelter Details",
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () async {
+                    final nameParts = (_user?.displayName ?? '').split(' ');
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProfileScreen(
+                          initialData: {
+                            'first_name': nameParts.isNotEmpty ? nameParts.first : '',
+                            'last_name': nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
+                            'email': _user?.email,
+                            'phone': _shelterPhone,
+                            'city': _user?.city,
+                            'state': _user?.state,
+                            'country': _user?.country,
+                            'website': _shelterWebsite,
+                            'address': _shelterAddress,
+                          },
+                          isShelter: true,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    );
+                    if (result == true) {
+                      _fetchProfileData();
+                    }
+                  },
+                ),
+              ],
+            ),
+            const Divider(),
+            _buildDetailRow(Icons.phone, "Phone", _shelterPhone ?? "Not provided"),
+            _buildDetailRow(Icons.location_on, "Address", _shelterAddress ?? "Not provided"),
+            _buildDetailRow(Icons.web, "Website", _shelterWebsite ?? "Not provided"),
+            _buildDetailRow(Icons.location_city, "City", _user?.city ?? "Not provided"),
+            _buildDetailRow(Icons.map, "State", _user?.state ?? "Not provided"),
+            _buildDetailRow(Icons.public, "Country", _user?.country ?? "Not provided"),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                Text(subtitle, style: GoogleFonts.poppins(color: Colors.grey)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

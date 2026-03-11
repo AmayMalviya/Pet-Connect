@@ -16,7 +16,7 @@ class VetHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Vet Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
         elevation: 1,
       ),

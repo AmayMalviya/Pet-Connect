@@ -1,9 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/models/vet.dart';
 import 'package:pet_connect_app/screens/edit_vet_profile_screen.dart';
 
 class VetProfileScreen extends StatefulWidget {
@@ -16,7 +15,7 @@ class VetProfileScreen extends StatefulWidget {
 }
 
 class _VetProfileScreenState extends State<VetProfileScreen> {
-  Map<String, dynamic>? _vetData;
+  Vet? _vet;
   bool _isLoading = true;
 
   @override
@@ -26,18 +25,36 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
   }
 
   Future<void> _fetchVetData() async {
+    setState(() {
+      _isLoading = true;
+    });
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (docSnapshot.exists) {
+    final response = await Supabase.instance.client
+      .from('vets')
+      .select('*, profiles(*)')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    final vetData = response;
+    final profileData = vetData != null ? vetData['profiles'] : null;
+
+        if (vetData != null && profileData != null) {
+          final vet = Vet(
+            id: vetData['id'],
+            phone: vetData['phone'],
+            address: vetData['address'],
+            specialization: vetData['specialization'],
+            yearsOfExperience: vetData['years_of_experience'],
+            user: pet_connect_user.User.fromJson(profileData),
+          );
           setState(() {
-            _vetData = docSnapshot.data();
+            _vet = vet;
           });
         }
       }
     } catch (e) {
-      // Handle errors, e.g., show a snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load profile data: $e')),
       );
@@ -50,21 +67,19 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+        return Scaffold(
       appBar: AppBar(
         title: Text('My Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              if (_vetData != null) {
+              if (_vet != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => EditVetProfileScreen(vetData: _vetData!),
+                    builder: (context) => EditVetProfileScreen(vet: _vet!),
                   ),
                 ).then((_) => _fetchVetData());
               }
@@ -84,7 +99,7 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _vetData?['name'] ?? 'Dr. John Doe',
+                    _vet?.user.displayName ?? 'Dr. John Doe',
                     style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -96,9 +111,9 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
                     context,
                     title: 'Contact Information',
                     info: {
-                      'Email': _vetData?['email'] ?? 'john.doe@vet.com',
-                      'Phone': _vetData?['phone'] ?? '+1 234 567 890',
-                      'Clinic Address': _vetData?['address'] ?? '123 Pet Street, Animal City',
+                      'Email': _vet?.user.email ?? 'john.doe@vet.com',
+                      'Phone': _vet?.phone ?? '+1 234 567 890',
+                      'Clinic Address': _vet?.address ?? '123 Pet Street, Animal City',
                     },
                   ),
                   const SizedBox(height: 20),
@@ -106,9 +121,8 @@ class _VetProfileScreenState extends State<VetProfileScreen> {
                     context,
                     title: 'Professional Details',
                     info: {
-                      'License Number': _vetData?['licenseNumber'] ?? 'VET123456',
-                      'Years of Experience': _vetData?['experience'] ?? '10+',
-                      'Specialization': _vetData?['specialization'] ?? 'Small Animals',
+                      'Years of Experience': _vet?.yearsOfExperience.toString() ?? '10+',
+                      'Specialization': _vet?.specialization ?? 'Small Animals',
                     },
                   ),
                 ],

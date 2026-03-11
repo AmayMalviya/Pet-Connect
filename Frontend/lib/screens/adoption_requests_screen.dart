@@ -1,8 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/models/pet.dart';
+import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/models/adoption_request.dart';
 
 class AdoptionRequestsScreen extends StatefulWidget {
   static const routeName = '/adoption-requests';
@@ -15,7 +16,7 @@ class AdoptionRequestsScreen extends StatefulWidget {
 
 class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
   bool _isLoading = true;
-  List<Map<String, dynamic>> _requests = [];
+  List<AdoptionRequest> _requests = [];
 
   @override
   void initState() {
@@ -28,26 +29,28 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
       _isLoading = true;
     });
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('adoptionRequests')
-            .where('shelterOwnerId', isEqualTo: user.uid)
-            .get();
+        final response = await Supabase.instance.client
+            .from('adoption_requests')
+            .select('*, pets(*), profiles(*)')
+            .eq('shelter_owner_id', user.id);
 
-        final List<Map<String, dynamic>> loadedRequests = [];
-        for (var doc in snapshot.docs) {
-          final requestData = doc.data();
-          final petDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('pets').doc(requestData['petId']).get();
-          final requesterDoc = await FirebaseFirestore.instance.collection('users').doc(requestData['requesterId']).get();
+        final List<AdoptionRequest> loadedRequests = [];
+        for (var req in response as List) {
+          final petData = req['pets'];
+          final requesterData = req['profiles'];
 
-          if (petDoc.exists && requesterDoc.exists) {
-            loadedRequests.add({
-              'id': doc.id,
-              'petName': petDoc.data()!['name'],
-              'requesterName': requesterDoc.data()!['name'],
-              'status': requestData['status'],
-            });
+          if (petData != null && requesterData != null) {
+            loadedRequests.add(AdoptionRequest(
+              id: req['id'],
+              petId: req['pet_id'],
+              requesterId: req['requester_id'],
+              shelterOwnerId: req['shelter_owner_id'],
+              status: req['status'],
+              pet: Pet.fromJson(petData),
+              requester: pet_connect_user.User.fromJson(requesterData),
+            ));
           }
         }
         setState(() {
@@ -65,9 +68,12 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
     }
   }
 
-  Future<void> _updateRequestStatus(String requestId, String status) async {
+  Future<void> _updateRequestStatus(int requestId, String status) async {
     try {
-      await FirebaseFirestore.instance.collection('adoptionRequests').doc(requestId).update({'status': status});
+      await Supabase.instance.client
+          .from('adoption_requests')
+          .update({'status': status})
+          .eq('id', requestId);
       _fetchAdoptionRequests(); // Refresh the list
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,7 +88,7 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
       appBar: AppBar(
         title: Text('Adoption Requests', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+  backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
         elevation: 1,
       ),
@@ -106,11 +112,11 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
                       child: const Icon(Icons.person),
                     ),
                     title: Text(
-                      '${request['requesterName']} for ${request['petName']}',
+                      '${request.requester.displayName} for ${request.pet.name}',
                       style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      'Status: ${request['status']}',
+                      'Status: ${request.status}',
                       style: GoogleFonts.poppins(),
                     ),
                     trailing: Row(
@@ -118,11 +124,11 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.check_circle, color: Colors.green),
-                          onPressed: () => _updateRequestStatus(request['id'], 'Approved'),
+                          onPressed: () => _updateRequestStatus(request.id, 'Approved'),
                         ),
                         IconButton(
                           icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () => _updateRequestStatus(request['id'], 'Rejected'),
+                          onPressed: () => _updateRequestStatus(request.id, 'Rejected'),
                         ),
                       ],
                     ),

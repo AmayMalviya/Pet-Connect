@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class AdoptionRequestsScreen extends StatelessWidget {
   static const routeName = '/shelter-adoption-requests';
@@ -9,8 +11,11 @@ class AdoptionRequestsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Adoption Requests'),
+        title: Text('Adoption Requests', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         leading: const BackButton(), // Added back button
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 1,
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0), // Added padding

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:pet_connect_app/models/product.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'package:pet_connect_app/services/supabase_service.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -11,16 +14,33 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
+  final SupabaseService _supabaseService = SupabaseService();
   final TextEditingController _searchController = TextEditingController();
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _products = _getProducts();
-    _filteredProducts = _products;
+    _loadProducts();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await _supabaseService.getProducts();
+      setState(() {
+        _products = products;
+        _filteredProducts = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // Optionally show an error
+    }
   }
 
   @override
@@ -30,98 +50,55 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   void _onSearchChanged() {
+    final query = _searchController.text.trim().toLowerCase();
     setState(() {
-      _filteredProducts = _products
-          .where(
-            (product) => product.name.toLowerCase().contains(
-              _searchController.text.toLowerCase(),
-            ),
-          )
-          .toList();
+      if (query.isEmpty) {
+        _filteredProducts = List.from(_products);
+      } else {
+        _filteredProducts = _products
+            .where((product) => product.name.toLowerCase().contains(query))
+            .toList();
+      }
     });
-  }
-
-  List<Product> _getProducts() {
-    return [
-      Product(
-        name: 'Dog Food',
-        price: ' 650 Rs',
-        imageUrl: 'assets/images/DogFood.png', // Using a placeholder image
-        productUrl: 'https://www.google.com/search?q=dog+food&oq=dog+food&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIHCAEQABiABDIHCAIQABiABDIHCAMQABiABDIMCAQQABgUGIcCGIAEMgkIBRAAGAoYgAQyBwgGEAAYgAQyBwgHEAAYgAQyBggIEAAYgAQyBggJEC4YQNIBCDE3MDJqMGoxqAIIsAIB8QWtvuSWxlIJMQ&sourceid=chrome&ie=UTF8#pvs=0:~:text=Dry%20Dog%20Food-,Meat,-%26%20Rice',
-      ),
-      Product(
-        name: 'Cat Food',
-        price: ' 400 Rs',
-        imageUrl: 'assets/images/CatFood.png', // Using a placeholder image
-        productUrl: 'https://www.google.com/search?q=cat+food&sca_esv=87473f56703eda8f&sxsrf=AE3TifOfMqlOal0kERoee_fBrHh3rxxZBA%3A1755752865660&ei=oammaPf-J8uy4-EP-ILdiAs&ved=0ahUKEwi30_uOkZuPAxVL2TgGHXhBF7EQ4dUDCBA&uact=5&oq=cat+food&gs_lp=Egxnd3Mtd2l6LXNlcnAiCGNhdCBmb29kMg0QLhiABBixAxhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBhDGIoFMgoQABiABBgUGIcCMgUQABiABDIFEAAYgAQyDRAAGIAEGLEDGEMYigUyBhAAGAcYHjIcEC4YgAQYsQMYQxiKBRiXBRjcBBjeBBjfBNgBAUjiElD0B1iQC3ACeAGQAQCYAdEBoAHBBKoBBTAuMi4xuAEDyAEA-AEBmAIEoAKfA8ICEBAuGLADGNEDGNYEGEcYxwHCAgoQABiwAxjWBBhHwgINEAAYgAQYsAMYQxiKBZgDAIgGAZAGCroGBggBEAEYFJIHBTIuMS4xoAfcF7IHBTAuMS4zyAcP&sclient=gws-wiz-serp#:~:text=Purepet-,Adult,-Cat%20Ocean%20Fish',
-      ),
-      Product(
-        name: 'Chew Toy',
-        price: '\$9.99',
-        imageUrl: 'assets/images/logo.png',
-        productUrl: null,
-      ),
-      Product(
-        name: 'Leash',
-        price: '\$15.00',
-        imageUrl: 'assets/images/logo.png',
-        productUrl: null,
-      ),
-      Product(
-        name: 'Pet Bed',
-        price: '\$45.00',
-        imageUrl: 'assets/images/logo.png',
-        productUrl: null,
-      ),
-    ];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shop'),
-        leading: const BackButton(), // Added back button
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                  ),
                 ),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
+                Expanded(
+                  child: _filteredProducts.isEmpty
+                      ? const Center(child: Text('No products found.'))
+                      : ListView.builder(
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            return ProductCard(product: _filteredProducts[index]);
+                          },
+                        ),
+                ),
+              ],
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _filteredProducts.length,
-              itemBuilder: (context, index) {
-                return ProductCard(product: _filteredProducts[index]);
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
-}
-
-class Product {
-  final String name;
-  final String price;
-  final String imageUrl;
-  final String? productUrl;
-
-  Product({required this.name, required this.price, required this.imageUrl, this.productUrl});
 }
 
 class ProductCard extends StatelessWidget {
@@ -130,11 +107,13 @@ class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product});
 
   Future<void> _launchUrl() async {
-    if (product.productUrl != null) {
-      final Uri url = Uri.parse(product.productUrl!); 
-      if (!await launchUrl(url)) {
-        throw Exception('Could not launch $url');
-      }
+    final urlString = product.productUrl;
+    if (urlString == null || urlString.isEmpty) return;
+    final Uri url = Uri.parse(urlString);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      // ignore errors for now
     }
   }
 
@@ -148,7 +127,12 @@ class ProductCard extends StatelessWidget {
           padding: const EdgeInsets.all(8.0),
           child: Row(
             children: [
-              Image.asset(product.imageUrl, width: 100, height: 100),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: product.imageUrl.isNotEmpty
+                    ? Image.network(product.imageUrl, width: 100, height: 100, fit: BoxFit.cover, errorBuilder: (c, _, __) => Container(width: 100, height: 100, color: Colors.grey))
+                    : Container(width: 100, height: 100, color: Colors.grey),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

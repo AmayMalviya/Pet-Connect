@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pet_connect_app/screens/shelter_verification_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
-import 'package:pet_connect_app/screens/kyc_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
+import 'package:pet_connect_app/screens/profile_setup_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/utils/role_helpers.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   static const routeName = '/role-selection';
@@ -14,11 +17,56 @@ class RoleSelectionScreen extends StatefulWidget {
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
-  bool _isLoading = false;
-  String? _selectedRole;
+  bool _isLoading = true;
+  String? _selectedRoleId;
+  List<Map<String, dynamic>> _roles = [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use a fixed, canonical set of roles for users.
+    // Only expose exactly two choices: Pet Owner and Shelter
+    _roles = [
+      {'id': 'pet_owner', 'name': 'Pet Owner'},
+      {'id': 'shelter', 'name': 'Shelter'},
+    ];
+    _isLoading = false;
+    // If the current user already has a role set, don't show role selection again.
+    Future.microtask(() async {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      try {
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (profile != null && profile['role'] != null && (profile['role'] as String).isNotEmpty) {
+          // Role already set; send user back to main routing (pop this screen).
+          if (mounted) Navigator.of(context).pop();
+        }
+      } catch (_) {
+        // ignore - we'll let the user choose
+      }
+    });
+  }
+  // No remote fetch - keep roles deterministic and limited to two values.
+
+  String _getRoleDescription(String roleName) {
+    switch (roleName) {
+      case 'Pet Owner':
+        return 'Manage your pets, appointments, and connect with a community of pet lovers.';
+      case 'Shelter':
+        return 'Manage your shelter, list pets for adoption, and connect with potential adopters.';
+      default:
+        return 'A general user role.';
+    }
+  }
 
   Future<void> _submitRole() async {
-    if (_selectedRole == null) {
+    if (_selectedRoleId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a role.')),
       );
@@ -30,38 +78,54 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     });
 
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        // If user is null, wait for the auth state to change.
-        // This can happen if the user has just registered and the user object is not yet available.
-        user = await FirebaseAuth.instance.authStateChanges().first;
-      }
-
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({'role': _selectedRole}, SetOptions(merge: true));
+        final selectedRole = _roles.firstWhere((role) => role['id'] == _selectedRoleId);
+        final canonicalRole = selectedRole['name'] as String;
+
+        // Upsert the profile with canonical role names ('Pet Owner' or 'Shelter')
+        await Supabase.instance.client.from('profiles').upsert({
+          'user_id': user.id,
+          'role': canonicalRole,
+        });
 
         if (!mounted) return;
 
-        if (_selectedRole == 'Pet Owner') {
-          Navigator.of(context).pushReplacementNamed(MainScreen.routeName);
+        // Admin path (not selectable here) fallback
+        if (canonicalRole == 'Admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AdminDashboardScreen(),
+            ),
+          );
+        } else if (canonicalRole == 'Pet Owner') {
+          // Pet owners proceed to profile setup
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: canonicalRole),
+            ),
+          );
+        } else if (canonicalRole == 'Shelter') {
+          // For shelters, immediately start KYC flow and require verification before access
+          Navigator.pushReplacementNamed(context, KycDocumentScreen.routeName);
         } else {
-          Navigator.of(context)
-              .pushReplacementNamed(KycScreen.routeName, arguments: _selectedRole);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Authentication error. Please try again.')),
+          // Default fallback: profile setup
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: canonicalRole),
+            ),
           );
         }
+      } else {
+        throw Exception('User is not logged in');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select role: ${e.toString()}')),
+          SnackBar(content: Text('Failed to save role: ${e.toString()}')),
         );
       }
     } finally {
@@ -85,67 +149,67 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'How will you be using Pet Connect?',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Choose your primary role to get a personalized experience.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-              ),
-              const SizedBox(height: 48),
-              _buildRoleCard(
-                context,
-                title: 'Pet Owner',
-                description: 'For those looking to adopt or connect with other pet lovers.',
-                icon: Icons.person_outline,
-                onTap: () => setState(() => _selectedRole = 'Pet Owner'),
-                isSelected: _selectedRole == 'Pet Owner',
-              ),
-              const SizedBox(height: 24),
-              _buildRoleCard(
-                context,
-                title: 'Shelter Owner',
-                description: 'Manage a shelter, list pets for adoption, and connect with potential adopters.',
-                icon: Icons.home_outlined,
-                onTap: () => setState(() => _selectedRole = 'Shelter Owner'),
-                isSelected: _selectedRole == 'Shelter Owner',
-              ),
-              const SizedBox(height: 24),
-              _buildRoleCard(
-                context,
-                title: 'Vet',
-                description: 'Provide veterinary services and connect with pet owners.',
-                icon: Icons.medical_services_outlined,
-                onTap: () => setState(() => _selectedRole = 'Vet'),
-                isSelected: _selectedRole == 'Vet',
-              ),
-              const Spacer(),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _selectedRole == null ? null : _submitRole,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : _roles.isEmpty
+                      ? const Center(child: Text('No roles available. Please contact support.'))
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      'How will you be using Pet Connect?',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Choose your primary role to get a personalized experience.',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                            color: Colors.grey[600],
+                                          ),
+                                    ),
+                                    const SizedBox(height: 48),
+                                    ..._roles.map((role) {
+                                      final roleName = role['name'] as String;
+                                      final description = _getRoleDescription(roleName);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 24.0),
+                                        child: _buildRoleCard(
+                                          context,
+                                          title: roleName,
+                                          description: description,
+                                          icon: getIconForRole(roleName),
+                                          onTap: () => setState(() => _selectedRoleId = role['id']),
+                                          isSelected: _selectedRoleId == role['id'],
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: _selectedRoleId == null || _isLoading ? null : _submitRole,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Continue', style: TextStyle(fontSize: 18)),
+                            ),
+                          ],
                         ),
-                      ),
-                      child: const Text('Continue', style: TextStyle(fontSize: 18)),
-                    ),
-            ],
-          ),
         ),
       ),
     );
