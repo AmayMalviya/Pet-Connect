@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:pet_connect_app/firebase_options.dart';
 
 import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
@@ -49,6 +50,11 @@ final notificationService = NotificationService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // `.env` is optional for local dev; keep app runnable without it.
+  }
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await notificationService.init(); // Initialize notification service
   await Supabase.initialize(
