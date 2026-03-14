@@ -4,7 +4,42 @@ A new Flutter project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project uses HERE Maps (Raster Tile API) + HERE Search (Discover API) on the map screen.
+
+### Configure HERE API key
+
+To run without any extra flags (like before), create a local `.env` file:
+
+```bash
+cd Frontend
+cp .env.example .env
+```
+
+Then set `HERE_API_KEY=` inside `.env`, and just run:
+
+```bash
+flutter run
+```
+
+### Alternative: pass at run-time (no files)
+
+You can also run with `--dart-define`:
+
+```bash
+flutter run --dart-define=HERE_API_KEY="<YOUR_HERE_API_KEY>"
+```
+
+Or create a local JSON define file (not committed) based on `.env/example.json`:
+
+```bash
+cp .env/example.json .env/dev.json
+```
+
+Then run:
+
+```bash
+flutter run --dart-define-from-file=.env/dev.json
+```
 
 A few resources to get you started if this is your first Flutter project:
 

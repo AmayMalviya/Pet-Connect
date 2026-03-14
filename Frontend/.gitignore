@@ -46,3 +46,7 @@ bin/
 /Frontend/build/
 /Frontend/.flutter-plugins-dependencies
 /Frontend/pubspec.lock
+
+# Local env files (do not commit secrets)
+.env
+*.env

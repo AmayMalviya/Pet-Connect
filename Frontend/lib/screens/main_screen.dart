@@ -4,10 +4,10 @@ import 'package:pet_connect_app/screens/community_screen.dart';
 import 'package:pet_connect_app/screens/home_screen.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/shop_screen.dart';
-import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/theme/app_theme.dart' show AppColors;
 import 'package:pet_connect_app/widgets/app_drawer.dart';
-import 'package:pet_connect_app/screens/notifications_screen.dart';
 import 'package:pet_connect_app/widgets/notification_bell.dart';
+import 'package:pet_connect_app/screens/global_ai_chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainScreen extends StatefulWidget {
@@ -69,8 +69,11 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_appBarTitles[_selectedIndex], style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-  backgroundColor: Colors.transparent,
+        title: Text(
+          _appBarTitles[_selectedIndex],
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textDark,
         elevation: 1,
         actions: [
@@ -80,7 +83,8 @@ class _MainScreenState extends State<MainScreen> {
               radius: 18,
               backgroundImage: _photoUrl != null
                   ? NetworkImage(_photoUrl!)
-                  : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
+                  : const AssetImage('assets/images/profile_avatar.png')
+                        as ImageProvider,
             ),
             onPressed: () async {
               await Navigator.pushNamed(context, '/profile');
@@ -91,6 +95,19 @@ class _MainScreenState extends State<MainScreen> {
       ),
       drawer: AppDrawer(),
       body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'main_screen_fab',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const GlobalAIChatScreen()),
+          );
+        },
+        icon: const Icon(Icons.auto_awesome),
+        label: const Text('Pet AI'),
+        backgroundColor: AppColors.primary,
+        tooltip: 'Chat with Pet AI Assistant',
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
@@ -112,4 +129,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

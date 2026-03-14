@@ -6,15 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
 import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
-import 'package:pet_connect_app/screens/adoption_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pet_connect_app/screens/services_screen.dart';
-import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/pet_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   static const String routeName = '/home';
 
   @override
@@ -24,50 +20,32 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _hasPet = false;
   bool _isLoading = true;
-  String? _userName;
   String? _firstName;
   String? _error;
   List<Pet> _myPets = [];
-  List<String> _petNames = [];
   String _currentGreeting = 'Welcome back! 🐾';
 
   final List<String> _baseGreetings = [
-    // General
     'Welcome back! Your pets are happy to see you. 🐾',
     'Hello again! Ready to check on your pets?',
     "Good to see you! Let's care for some happy pets.",
-    'Welcome back to Pet Connect!',
-    'Your pet world is waiting for you.',
-    // Playful
-    'A wagging tail is waiting somewhere! 🐶',
     'Your furry friends say hello!',
     'Someone just wagged their tail thinking about you.',
     'Time to spread some pawsitive vibes. 🐾',
-    "Your pets' happiness starts here.",
-    // Care & Health
     "Let's keep your pets happy and healthy today.",
-    "Your pets' care journey continues.",
-    "A happy pet is a healthy pet. Let's begin.",
-    'Check in on your pets today.',
     'Small care today, big happiness tomorrow.',
-    // Community
-    "Let's see what the pet community is sharing today.",
-    'Pet lovers are connecting right now.',
-    'Your pet community is waiting.',
-    'Discover stories from fellow pet parents.',
-    "Let's connect with the pet world.",
-    // Adoption
-    'Some pets are waiting for a loving home today.',
     'Maybe today you meet your new best friend. 🐕',
-    'Every pet deserves love.',
-    "Let's help more pets find homes.",
-    'Adoption stories start here.',
-    // Minimal
     'Hello, pet parent!',
     'Welcome back. 🐾',
     'Ready for some pawsitive moments?',
-    'Your pets await.',
-    "Let's begin the pet journey.",
+  ];
+
+  final List<String> _vetNames = [
+    'Dr. Aarav Sharma',
+    'Dr. Vivaan Gupta',
+    'Dr. Aditya Singh',
+    'Dr. Ishaan Patel',
+    'Dr. Reyansh Kumar',
   ];
 
   @override
@@ -79,16 +57,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUserData() async {
     if (mounted) setState(() => _isLoading = true);
-
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         final profile = await Supabase.instance.client
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
         final petsResponse = await Supabase.instance.client
             .from('pets')
             .select()
@@ -96,14 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (mounted) {
           setState(() {
-            _firstName = profile?['first_name'] ?? 'User';
-            _userName = _firstName;
+            _firstName = profile?['first_name'] ?? 'there';
             _hasPet = (petsResponse as List).isNotEmpty;
             if (_hasPet) {
               _myPets = petsResponse.map((p) => Pet.fromJson(p)).toList();
             }
             _error = null;
-            // Re-generate greeting now that we have pet names
             _generateGreeting();
           });
         }
@@ -117,14 +92,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _generateGreeting() {
     final random = Random();
-    if (_petNames.isNotEmpty && random.nextDouble() > 0.55) {
-      final petName = _petNames[random.nextInt(_petNames.length)];
+    if (_myPets.isNotEmpty && random.nextDouble() > 0.55) {
+      final petName =
+          _myPets[random.nextInt(_myPets.length)].name ?? 'your pet';
       final dynamicOptions = [
-        'Welcome back, $_firstName! How is $petName doing today?',
-        '$petName hasn\'t had a check-in today 🐾',
+        'How is $petName doing today? 🐾',
+        '$petName hasn\'t had a check-in today!',
         'Ready for some playtime with $petName? 🐶',
         '$petName is waiting for you! 🐾',
-        'Time to check in on $petName today 💛',
+        'Time to check in on $petName 💛',
       ];
       _currentGreeting = dynamicOptions[random.nextInt(dynamicOptions.length)];
     } else {
@@ -132,269 +108,71 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
-  final List<String> _vetNames = [
-    'Dr. Aarav Sharma',
-    'Dr. Vivaan Gupta',
-    'Dr. Aditya Singh',
-    'Dr. Ishaan Patel',
-    'Dr. Reyansh Kumar',
-  ];
+  Future<void> _openAddPetAndSave() async {
+    final result = await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddEditPetScreen()));
+    if (result == true && mounted) {
+      setState(() => _hasPet = true);
+      await _loadUserData();
+    }
+  }
 
   void _showAddPetDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: AlertDialog(
-             shape: RoundedRectangleBorder(
-               borderRadius: BorderRadius.circular(16),
-             ),
-             title: Row(
-               children: [
-                 Icon(Icons.pets, color: AppColors.primary),
-                 const SizedBox(width: 8),
-                 const Text('Add Your Pet'),
-               ],
-             ),
-             content: Column(
-               mainAxisSize: MainAxisSize.min,
-               crossAxisAlignment: CrossAxisAlignment.start,
-               children: [
-                 Text(
-                   'You need to add a pet first to access this service.',
-                   style: GoogleFonts.poppins(),
-                 ),
-                 const SizedBox(height: 8),
-                 Text(
-                   'Would you like to add your pet now?',
-                   style: GoogleFonts.poppins(
-                     color: Colors.grey[600],
-                     fontSize: 14,
-                   ),
-                 ),
-               ],
-             ),
-             actions: [
-               TextButton(
-                 onPressed: () => Navigator.of(context).pop(),
-                 child: Text(
-                   'Later',
-                   style: GoogleFonts.poppins(color: Colors.grey),
-                 ),
-               ),
-               ElevatedButton(
-                 onPressed: () async {
-                   Navigator.of(context).pop();
-                   await _openAddPetAndSave();
-                 },
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: AppColors.primary,
-                   foregroundColor: Colors.white,
-                   shape: RoundedRectangleBorder(
-                     borderRadius: BorderRadius.circular(8),
-                   ),
-                 ),
-                 child: Text(
-                   'Add Pet',
-                   style: GoogleFonts.poppins(),
-                 ),
-               ),
-             ],
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        );
-      },
-    );
-  }
-
-  Future<void> _openAddPetAndSave() async {
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddEditPetScreen()),
-    );
-    if (result == true) {
-      if (!mounted) return;
-      setState(() {
-        _hasPet = true;
-      });
-      await _loadUserData(); // Reload user data to refresh pet list
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _buildHomeScreen();
-  }
-
-  Widget _buildHomeScreen() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    
-    if (_error != null) {
-      return Center(child: Text('Error: $_error'));
-    }
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              constraints: const BoxConstraints(minHeight: 48),
-              alignment: Alignment.centerLeft,
+          title: Row(
+            children: [
+              Icon(Icons.pets, color: AppColors.primary),
+              const SizedBox(width: 8),
+              const Text('Add Your Pet'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You need to add a pet first to access this service.',
+                style: GoogleFonts.poppins(),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Would you like to add your pet now?',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
               child: Text(
-                _currentGreeting,
-                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, height: 1.3),
+                'Later',
+                style: GoogleFonts.poppins(color: Colors.grey),
               ),
             ),
-            const SizedBox(height: 12),
-            if (!_hasPet)
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: InkWell(
-                  onTap: () async {
-                    await _openAddPetAndSave();
-                  },
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          AppColors.primary.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.pets, color: AppColors.primary, size: 28),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Add Your First Pet',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (!_hasPet)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Add a pet to unlock all features',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            const SizedBox(height: 20),
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Search for services, products...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildSectionTitle('My Pets'),
-            const SizedBox(height: 12),
-            if (_myPets.isEmpty)
-              Text('No pets added yet.', style: GoogleFonts.poppins(color: Colors.grey)),
-            if (_myPets.isNotEmpty)
-              SizedBox(
-                height: 130,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _myPets.length,
-                  itemBuilder: (context, index) {
-                    final pet = _myPets[index];
-                    final isNetworkUrl = pet.photoUrl != null &&
-                        (pet.photoUrl!.startsWith('http') || pet.photoUrl!.startsWith('https'));
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => PetProfileScreen(pet: pet),
-                        ));
-                      },
-                      child: Container(
-                        width: 110,
-                        margin: const EdgeInsets.only(right: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.15),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 32,
-                              backgroundImage: isNetworkUrl
-                                  ? NetworkImage(pet.photoUrl!)
-                                  : const AssetImage('assets/images/logo.png') as ImageProvider,
-                              backgroundColor: AppColors.background,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              pet.name ?? 'Unknown',
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            const SizedBox(height: 20),
-            _buildSectionTitle('Nearby Vets'),
-            const SizedBox(height: 10),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3,
-              itemBuilder: (context, index) {
-                final random = Random();
-                final vetName = _vetNames[random.nextInt(_vetNames.length)];
-                return VetCard(
-                  name: vetName,
-                  address: '123 Main Street, Anytown, USA',
-                  rating: 4.5,
-                );
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                await _openAddPetAndSave();
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text('Add Pet', style: GoogleFonts.poppins()),
             ),
           ],
         ),
@@ -402,14 +180,312 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Text('Error: $_error', style: GoogleFonts.poppins()),
+      );
+    }
+    return _buildBody();
+  }
+
+  Widget _buildBody() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Hero banner ─────────────────────────────────────────────────
+          _buildHeroBanner(),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Search ───────────────────────────────────────────────
+                _buildSearchBar(),
+                const SizedBox(height: 20),
+
+                // ── Add pet prompt ───────────────────────────────────────
+                if (!_hasPet) ...[
+                  _buildAddPetBanner(),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── My Pets ──────────────────────────────────────────────
+                if (_myPets.isNotEmpty) ...[
+                  _buildSectionTitle('My Pets'),
+                  const SizedBox(height: 12),
+                  _buildPetsRow(),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Nearby Vets ──────────────────────────────────────────
+                _buildSectionTitle('Nearby Vets'),
+                const SizedBox(height: 10),
+                _buildVetList(),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Hero Banner ───────────────────────────────────────────────────────────
+  Widget _buildHeroBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _firstName != null ? 'Hi, $_firstName 👋' : 'Hi there 👋',
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _currentGreeting,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.85),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.pets, color: Colors.white, size: 26),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Search Bar ────────────────────────────────────────────────────────────
+  Widget _buildSearchBar() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: 'Search for services, products...',
+          hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[400]),
+          prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 22),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  // ── Add Pet Banner ────────────────────────────────────────────────────────
+  Widget _buildAddPetBanner() {
+    return GestureDetector(
+      onTap: _openAddPetAndSave,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withOpacity(0.1),
+              AppColors.primary.withOpacity(0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.25),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.pets, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Add Your First Pet',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  Text(
+                    'Add a pet to unlock all features',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: AppColors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Section Title ─────────────────────────────────────────────────────────
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
       style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
+
+  // ── Pets Row ──────────────────────────────────────────────────────────────
+  Widget _buildPetsRow() {
+    return SizedBox(
+      height: 130,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _myPets.length,
+        itemBuilder: (context, index) {
+          final pet = _myPets[index];
+          final isNetworkUrl =
+              pet.photoUrl != null &&
+              (pet.photoUrl!.startsWith('http') ||
+                  pet.photoUrl!.startsWith('https'));
+
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => PetProfileScreen(pet: pet)),
+            ),
+            child: Container(
+              width: 110,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundImage: isNetworkUrl
+                        ? NetworkImage(pet.photoUrl!)
+                        : const AssetImage('assets/images/logo.png')
+                              as ImageProvider,
+                    backgroundColor: AppColors.background,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    pet.name ?? 'Unknown',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Vet List ──────────────────────────────────────────────────────────────
+  Widget _buildVetList() {
+    final random = Random();
+    return Column(
+      children: List.generate(3, (index) {
+        return VetCard(
+          name: _vetNames[random.nextInt(_vetNames.length)],
+          address: '123 Main Street, Anytown, USA',
+          rating: 4.5,
+        );
+      }),
+    );
+  }
 }
 
+// ── Vet Card ──────────────────────────────────────────────────────────────────
 
 class VetCard extends StatelessWidget {
   final String name;
@@ -425,48 +501,115 @@ class VetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              radius: 30,
-              backgroundImage: AssetImage(
-                'assets/images/logo.png',
-              ), // Add vet image
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
+            child: Icon(
+              Icons.local_hospital_outlined,
+              color: AppColors.primary,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  address,
+                  style: GoogleFonts.poppins(
+                    color: AppColors.textDark,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Open Now',
                     style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green[700],
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  Text(address, style: GoogleFonts.poppins(color: AppColors.textDark)),
-                ],
-              ),
-            ),
-            Row(
-              children: [
-                const Icon(Icons.star, color: AppColors.primary),
-                Text(
-                  rating.toString(),
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          // Rating + Book
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.star, color: AppColors.primary, size: 18),
+                  Text(
+                    rating.toString(),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Book',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
