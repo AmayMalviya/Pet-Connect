@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pet_connect_app/theme/app_theme.dart' show AppColors;
 
 class MapScreen extends StatefulWidget {
   static const routeName = '/map';
@@ -28,16 +29,16 @@ class _MapScreenState extends State<MapScreen> {
 
   static String get _hereApiKey =>
       const String.fromEnvironment('HERE_API_KEY').isNotEmpty
-          ? const String.fromEnvironment('HERE_API_KEY')
-          : _dotenvValue('HERE_API_KEY');
+      ? const String.fromEnvironment('HERE_API_KEY')
+      : _dotenvValue('HERE_API_KEY');
   static String get _hereAccessKeyId =>
       const String.fromEnvironment('HERE_ACCESS_KEY_ID').isNotEmpty
-          ? const String.fromEnvironment('HERE_ACCESS_KEY_ID')
-          : _dotenvValue('HERE_ACCESS_KEY_ID');
+      ? const String.fromEnvironment('HERE_ACCESS_KEY_ID')
+      : _dotenvValue('HERE_ACCESS_KEY_ID');
   static String get _hereAccessKeySecret =>
       const String.fromEnvironment('HERE_ACCESS_KEY_SECRET').isNotEmpty
-          ? const String.fromEnvironment('HERE_ACCESS_KEY_SECRET')
-          : _dotenvValue('HERE_ACCESS_KEY_SECRET');
+      ? const String.fromEnvironment('HERE_ACCESS_KEY_SECRET')
+      : _dotenvValue('HERE_ACCESS_KEY_SECRET');
 
   final MapController _mapController = MapController();
   final List<Marker> _markers = [];
@@ -61,11 +62,13 @@ class _MapScreenState extends State<MapScreen> {
       _isLoading = false;
       _markers
         ..clear()
-        ..add(_buildMarker(
-          position: _currentPosition!,
-          label: 'Your Location',
-          isCurrentLocation: true,
-        ));
+        ..add(
+          _buildMarker(
+            position: _currentPosition!,
+            label: 'Your Location',
+            isCurrentLocation: true,
+          ),
+        );
     });
     await _ensureHereAuth();
     _searchNearbyPlaces();
@@ -75,7 +78,9 @@ class _MapScreenState extends State<MapScreen> {
     if (_hereApiKey.isNotEmpty) return;
     if (_hereBearerToken != null &&
         _hereBearerTokenExpiry != null &&
-        DateTime.now().isBefore(_hereBearerTokenExpiry!.subtract(const Duration(minutes: 2)))) {
+        DateTime.now().isBefore(
+          _hereBearerTokenExpiry!.subtract(const Duration(minutes: 2)),
+        )) {
       return;
     }
     if (_hereAccessKeyId.isEmpty || _hereAccessKeySecret.isEmpty) {
@@ -100,7 +105,9 @@ class _MapScreenState extends State<MapScreen> {
 
       final expiresSeconds = (expiresIn as num).toInt();
       _hereBearerToken = accessToken;
-      _hereBearerTokenExpiry = DateTime.now().add(Duration(seconds: expiresSeconds));
+      _hereBearerTokenExpiry = DateTime.now().add(
+        Duration(seconds: expiresSeconds),
+      );
     } finally {
       _hereAuthInitAttempted = true;
       if (mounted) setState(() {});
@@ -128,7 +135,9 @@ class _MapScreenState extends State<MapScreen> {
             context: context,
             builder: (context) => AlertDialog(
               title: Text(label),
-              content: const Text('Do you want to open this location in HERE WeGo?'),
+              content: const Text(
+                'Do you want to open this location in HERE WeGo?',
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -136,7 +145,11 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    _launchHereMaps(position.latitude, position.longitude, label);
+                    _launchHereMaps(
+                      position.latitude,
+                      position.longitude,
+                      label,
+                    );
                     Navigator.of(context).pop();
                   },
                   child: const Text('Open'),
@@ -151,7 +164,11 @@ class _MapScreenState extends State<MapScreen> {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
             ],
           ),
           child: const Icon(Icons.place, color: Colors.white, size: 22),
@@ -192,10 +209,15 @@ class _MapScreenState extends State<MapScreen> {
 
         final title = (item['title'] as String?) ?? 'Place';
         setState(() {
-          _markers.add(_buildMarker(
-            position: LatLng((itemLat as num).toDouble(), (itemLng as num).toDouble()),
-            label: title,
-          ));
+          _markers.add(
+            _buildMarker(
+              position: LatLng(
+                (itemLat as num).toDouble(),
+                (itemLng as num).toDouble(),
+              ),
+              label: title,
+            ),
+          );
         });
       }
     }
@@ -205,12 +227,14 @@ class _MapScreenState extends State<MapScreen> {
     switch (type) {
       case 'veterinary_care':
       case 'vets':
-        return 'veterinary';
+        return 'veterinary clinic animal hospital';
       case 'pet_store':
       case 'petShops':
-        return 'pet store';
+        return 'pet store pet shop';
       case 'shelter':
-        return 'animal shelter';
+        return 'animal shelter dog shelter cat rescue humane society';
+      case 'ngo':
+        return 'animal ngo animal welfare animal rescue animal protection';
       default:
         return type;
     }
@@ -227,20 +251,48 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _onFilterChanged(String filter) async {
-    if (filter == 'shelter') {
+    setState(() {
+      _selectedPlaceType = filter;
+      _markers.removeWhere((m) => m.point != _currentPosition);
+    });
+
+    if (filter == 'all') {
+      // Search for all service types
+      await _searchNearbyPlaces(type: 'vets');
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _searchNearbyPlaces(type: 'pet_store');
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _searchNearbyPlaces(type: 'shelter');
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _searchNearbyPlaces(type: 'ngo');
+    } else if (filter == 'shelter') {
+      // Multiple keywords for shelters
       final keywords = [
         'animal shelter',
         'pet adoption center',
         'dog shelter',
         'cat rescue',
         'humane society',
-        'SPCA'
+        'SPCA',
+        'animal welfare',
       ];
-      setState(() {
-        _markers.removeWhere((m) => m.point != _currentPosition);
-      });
       for (String keyword in keywords) {
         await _searchNearbyPlaces(keyword: keyword);
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    } else if (filter == 'ngo') {
+      // Multiple keywords for NGOs
+      final keywords = [
+        'animal ngo',
+        'animal welfare',
+        'animal rescue',
+        'animal protection',
+        'wildlife sanctuary',
+        'pet foundation',
+      ];
+      for (String keyword in keywords) {
+        await _searchNearbyPlaces(keyword: keyword);
+        await Future.delayed(const Duration(milliseconds: 100));
       }
     } else {
       _searchNearbyPlaces(type: filter);
@@ -249,91 +301,177 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasSomeAuthInput = _hereApiKey.isNotEmpty ||
+    final hasSomeAuthInput =
+        _hereApiKey.isNotEmpty ||
         (_hereAccessKeyId.isNotEmpty && _hereAccessKeySecret.isNotEmpty);
     final authReady = _hereApiKey.isNotEmpty || _hereBearerToken != null;
     final missingHereAuth = !hasSomeAuthInput;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nearby Pet Services'),
-      ),
+      appBar: AppBar(title: const Text('Nearby Pet Services')),
       body: _isLoading || _currentPosition == null
           ? const Center(child: CircularProgressIndicator())
           : missingHereAuth
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Missing HERE auth.\n\nRun with either:\n--dart-define=HERE_API_KEY=<YOUR_KEY>\n\nor:\n--dart-define=HERE_ACCESS_KEY_ID=<YOUR_ID> --dart-define=HERE_ACCESS_KEY_SECRET=<YOUR_SECRET>',
-                      textAlign: TextAlign.center,
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Missing HERE auth.\n\nRun with either:\n--dart-define=HERE_API_KEY=<YOUR_KEY>\n\nor:\n--dart-define=HERE_ACCESS_KEY_ID=<YOUR_ID> --dart-define=HERE_ACCESS_KEY_SECRET=<YOUR_SECRET>',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          : !authReady
+          ? const Center(child: CircularProgressIndicator())
+          : Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _currentPosition!,
+                    initialZoom: 14,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                     ),
                   ),
-                )
-              : !authReady
-                  ? const Center(child: CircularProgressIndicator())
-                  : Stack(
-                      children: [
-                        FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: _currentPosition!,
-                            initialZoom: 14,
-                            interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                            ),
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate: _hereApiKey.isNotEmpty
-                                  ? 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png?style=explore.day&apiKey=$_hereApiKey'
-                                  : 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png?style=explore.day',
-                              userAgentPackageName: 'pet_connect_app',
-                              tileProvider: NetworkTileProvider(
-                                headers: _hereApiKey.isNotEmpty ? null : _hereAuthHeaders,
-                              ),
-                            ),
-                            MarkerLayer(markers: _markers),
-                          ],
-                        ),
-                        Positioned(
-                          top: 10,
-                          left: 10,
-                          right: 10,
-                          child: Container(
-                            color: Colors.white.withOpacity(0.8),
-                            child: SizedBox(
-                              height: 50.0,
-                              child: IntrinsicWidth(
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: [
-                                    ActionChip(
-                                      label: const Text('Vets'),
-                                      onPressed: () => _onFilterChanged('vets'),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    ActionChip(
-                                      label: const Text('Pet Shops'),
-                                      onPressed: () => _onFilterChanged('pet_store'),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    ActionChip(
-                                      label: const Text('Shelters'),
-                                      onPressed: () => _onFilterChanged('shelter'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: _hereApiKey.isNotEmpty
+                          ? 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png?style=explore.day&apiKey=$_hereApiKey'
+                          : 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png?style=explore.day',
+                      userAgentPackageName: 'pet_connect_app',
+                      tileProvider: NetworkTileProvider(
+                        headers: _hereApiKey.isNotEmpty
+                            ? null
+                            : _hereAuthHeaders,
+                      ),
+                    ),
+                    MarkerLayer(markers: _markers),
+                  ],
+                ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      child: SizedBox(
+                        height: 50.0,
+                        child: IntrinsicWidth(
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              FilterChip(
+                                label: const Text('🏥 Veterinary'),
+                                selected: _selectedPlaceType == 'vets',
+                                onSelected: (_) => _onFilterChanged('vets'),
+                                backgroundColor: Colors.grey[200],
+                                selectedColor: AppColors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                side: _selectedPlaceType == 'vets'
+                                    ? BorderSide(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      )
+                                    : BorderSide(color: Colors.grey[300]!),
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text('🛍️ Pet Shops'),
+                                selected: _selectedPlaceType == 'pet_store',
+                                onSelected: (_) =>
+                                    _onFilterChanged('pet_store'),
+                                backgroundColor: Colors.grey[200],
+                                selectedColor: AppColors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                side: _selectedPlaceType == 'pet_store'
+                                    ? BorderSide(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      )
+                                    : BorderSide(color: Colors.grey[300]!),
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text('🏠 Shelters'),
+                                selected: _selectedPlaceType == 'shelter',
+                                onSelected: (_) => _onFilterChanged('shelter'),
+                                backgroundColor: Colors.grey[200],
+                                selectedColor: AppColors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                side: _selectedPlaceType == 'pet_store'
+                                    ? BorderSide(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      )
+                                    : BorderSide(color: Colors.grey[300]!),
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text('❤️ NGOs'),
+                                selected: _selectedPlaceType == 'ngo',
+                                onSelected: (_) => _onFilterChanged('ngo'),
+                                backgroundColor: Colors.grey[200],
+                                selectedColor: AppColors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                side: _selectedPlaceType == 'ngo'
+                                    ? BorderSide(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      )
+                                    : BorderSide(color: Colors.grey[300]!),
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text('🐾 All Services'),
+                                selected: _selectedPlaceType == 'all',
+                                onSelected: (_) => _onFilterChanged('all'),
+                                backgroundColor: Colors.grey[200],
+                                selectedColor: AppColors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                side: _selectedPlaceType == 'all'
+                                    ? BorderSide(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      )
+                                    : BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            onPressed: () => _mapController.move(_currentPosition!, _mapController.camera.zoom),
+            onPressed: () => _mapController.move(
+              _currentPosition!,
+              _mapController.camera.zoom,
+            ),
             heroTag: "centerLocation",
             child: const Icon(Icons.my_location),
           ),

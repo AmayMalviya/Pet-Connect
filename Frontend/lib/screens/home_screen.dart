@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
 import 'package:pet_connect_app/screens/map_screen.dart';
 import 'package:pet_connect_app/screens/pet_profile_screen.dart';
+import 'package:pet_connect_app/screens/global_ai_chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,11 +85,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         final profile = await Supabase.instance.client
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
         final petsResponse = await Supabase.instance.client
             .from('pets')
             .select()
@@ -132,7 +133,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   final List<String> _vetNames = [
     'Dr. Aarav Sharma',
     'Dr. Vivaan Gupta',
@@ -148,60 +148,57 @@ class _HomeScreenState extends State<HomeScreen> {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: AlertDialog(
-             shape: RoundedRectangleBorder(
-               borderRadius: BorderRadius.circular(16),
-             ),
-             title: Row(
-               children: [
-                 Icon(Icons.pets, color: AppColors.primary),
-                 const SizedBox(width: 8),
-                 const Text('Add Your Pet'),
-               ],
-             ),
-             content: Column(
-               mainAxisSize: MainAxisSize.min,
-               crossAxisAlignment: CrossAxisAlignment.start,
-               children: [
-                 Text(
-                   'You need to add a pet first to access this service.',
-                   style: GoogleFonts.poppins(),
-                 ),
-                 const SizedBox(height: 8),
-                 Text(
-                   'Would you like to add your pet now?',
-                   style: GoogleFonts.poppins(
-                     color: Colors.grey[600],
-                     fontSize: 14,
-                   ),
-                 ),
-               ],
-             ),
-             actions: [
-               TextButton(
-                 onPressed: () => Navigator.of(context).pop(),
-                 child: Text(
-                   'Later',
-                   style: GoogleFonts.poppins(color: Colors.grey),
-                 ),
-               ),
-               ElevatedButton(
-                 onPressed: () async {
-                   Navigator.of(context).pop();
-                   await _openAddPetAndSave();
-                 },
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: AppColors.primary,
-                   foregroundColor: Colors.white,
-                   shape: RoundedRectangleBorder(
-                     borderRadius: BorderRadius.circular(8),
-                   ),
-                 ),
-                 child: Text(
-                   'Add Pet',
-                   style: GoogleFonts.poppins(),
-                 ),
-               ),
-             ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.pets, color: AppColors.primary),
+                const SizedBox(width: 8),
+                const Text('Add Your Pet'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'You need to add a pet first to access this service.',
+                  style: GoogleFonts.poppins(),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Would you like to add your pet now?',
+                  style: GoogleFonts.poppins(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Later',
+                  style: GoogleFonts.poppins(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _openAddPetAndSave();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text('Add Pet', style: GoogleFonts.poppins()),
+              ),
+            ],
           ),
         );
       },
@@ -209,9 +206,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openAddPetAndSave() async {
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddEditPetScreen()),
-    );
+    final result = await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddEditPetScreen()));
     if (result == true) {
       if (!mounted) return;
       setState(() {
@@ -230,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (_error != null) {
       return Center(child: Text('Error: $_error'));
     }
@@ -246,7 +243,11 @@ class _HomeScreenState extends State<HomeScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 _currentGreeting,
-                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, height: 1.3),
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  height: 1.3,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -322,7 +323,10 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildSectionTitle('My Pets'),
             const SizedBox(height: 12),
             if (_myPets.isEmpty)
-              Text('No pets added yet.', style: GoogleFonts.poppins(color: Colors.grey)),
+              Text(
+                'No pets added yet.',
+                style: GoogleFonts.poppins(color: Colors.grey),
+              ),
             if (_myPets.isNotEmpty)
               SizedBox(
                 height: 130,
@@ -331,14 +335,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _myPets.length,
                   itemBuilder: (context, index) {
                     final pet = _myPets[index];
-                    final isNetworkUrl = pet.photoUrl != null &&
-                        (pet.photoUrl!.startsWith('http') || pet.photoUrl!.startsWith('https'));
+                    final isNetworkUrl =
+                        pet.photoUrl != null &&
+                        (pet.photoUrl!.startsWith('http') ||
+                            pet.photoUrl!.startsWith('https'));
 
                     return GestureDetector(
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => PetProfileScreen(pet: pet),
-                        ));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PetProfileScreen(pet: pet),
+                          ),
+                        );
                       },
                       child: Container(
                         width: 110,
@@ -353,7 +362,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               offset: const Offset(0, 4),
                             ),
                           ],
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -362,13 +374,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               radius: 32,
                               backgroundImage: isNetworkUrl
                                   ? NetworkImage(pet.photoUrl!)
-                                  : const AssetImage('assets/images/logo.png') as ImageProvider,
+                                  : const AssetImage('assets/images/logo.png')
+                                        as ImageProvider,
                               backgroundColor: AppColors.background,
                             ),
                             const SizedBox(height: 8),
                             Text(
                               pet.name ?? 'Unknown',
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: AppColors.textDark,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -409,7 +426,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
 
 class VetCard extends StatelessWidget {
   final String name;
@@ -452,7 +468,10 @@ class VetCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(address, style: GoogleFonts.poppins(color: AppColors.textDark)),
+                  Text(
+                    address,
+                    style: GoogleFonts.poppins(color: AppColors.textDark),
+                  ),
                 ],
               ),
             ),
