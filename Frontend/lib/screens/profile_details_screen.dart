@@ -42,21 +42,22 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   Future<void> _fetchLocations() async {
     setState(() => _isLoading = true);
     try {
-      final response = await Supabase.instance.client.from('indian_cities').select();
+      final response = await Supabase.instance.client
+          .from('indian_cities')
+          .select();
       _allLocations = (response as List)
           .where((item) => item != null)
           .map((item) => item as Map<String, dynamic>)
           .toList();
-      
-      _countries = _allLocations
-          .where((e) => e['country'] != null)
-          .map((e) => e['country'] as String)
-          .toSet()
-          .toList()..sort();
-      print('Countries: $_countries');
-      
+      _countries =
+          _allLocations
+              .where((e) => e['country'] != null)
+              .map((e) => e['country'] as String)
+              .toSet()
+              .toList()
+            ..sort();
     } catch (e) {
-      // Handle error
+      debugPrint('Error fetching locations: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -77,18 +78,34 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
       };
 
       await Supabase.instance.client.from('profiles').upsert(payload);
-
       if (!mounted) return;
-
       Navigator.pushReplacementNamed(context, RoleSelectionScreen.routeName);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save profile: ${e.toString()}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save profile: ${e.toString()}')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  InputDecoration _dropdownDecor(String label) => InputDecoration(
+    labelText: label,
+    labelStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+    filled: true,
+    fillColor: Colors.grey[100],
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -100,104 +117,126 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Tell us a little more', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.primary)),
-              const SizedBox(height: 12),
+              // Heading
+              Text(
+                'Tell us a little more',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                'Help us personalise your experience',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(height: 28),
 
+              // Phone
+              _FieldLabel(label: 'Phone Number'),
+              const SizedBox(height: 6),
               PetTextField(controller: phone, hintText: 'Phone'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
+
+              // Country
+              _FieldLabel(label: 'Country'),
+              const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedCountry,
-                decoration: InputDecoration(
-                  labelText: 'Country',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
-                items: _countries.map((String country) {
-                  return DropdownMenuItem<String>(
-                    value: country,
-                    child: Text(country),
-                  );
-                }).toList(),
+                decoration: _dropdownDecor('Select Country'),
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+                items: _countries
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
                 onChanged: (newValue) {
                   setState(() {
                     _selectedCountry = newValue;
                     _selectedState = null;
                     _selectedCity = null;
-                    _states = _allLocations
-                        .where((e) => e['country'] == newValue && e['State'] != null)
-                        .map((e) => e['State'] as String)
-                        .toSet()
-                        .toList()..sort();
+                    _states =
+                        _allLocations
+                            .where(
+                              (e) =>
+                                  e['country'] == newValue &&
+                                  e['State'] != null,
+                            )
+                            .map((e) => e['State'] as String)
+                            .toSet()
+                            .toList()
+                          ..sort();
                     _cities = [];
                   });
                 },
-                validator: (value) => value == null ? 'Please select a country' : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+
+              // State
+              _FieldLabel(label: 'State'),
+              const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedState,
-                decoration: InputDecoration(
-                  labelText: 'State',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
-                items: _states.map((String state) {
-                  return DropdownMenuItem<String>(
-                    value: state,
-                    child: Text(state),
-                  );
-                }).toList(),
-                onChanged: _selectedCountry == null ? null : (newValue) {
-                  setState(() {
-                    _selectedState = newValue;
-                    _selectedCity = null;
-                    _cities = _allLocations
-                        .where((e) => e['country'] == _selectedCountry && e['State'] == newValue && e['City'] != null)
-                        .map((e) => e['City'] as String)
-                        .toSet()
-                        .toList()..sort();
-                  });
-                },
-                validator: (value) => value == null ? 'Please select a state' : null,
+                decoration: _dropdownDecor('Select State'),
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+                items: _states
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: _selectedCountry == null
+                    ? null
+                    : (newValue) {
+                        setState(() {
+                          _selectedState = newValue;
+                          _selectedCity = null;
+                          _cities =
+                              _allLocations
+                                  .where(
+                                    (e) =>
+                                        e['country'] == _selectedCountry &&
+                                        e['State'] == newValue &&
+                                        e['City'] != null,
+                                  )
+                                  .map((e) => e['City'] as String)
+                                  .toSet()
+                                  .toList()
+                                ..sort();
+                        });
+                      },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+
+              // City
+              _FieldLabel(label: 'City'),
+              const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedCity,
-                decoration: InputDecoration(
-                  labelText: 'City',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
-                items: _cities.map((String city) {
-                  return DropdownMenuItem<String>(
-                    value: city,
-                    child: Text(city),
-                  );
-                }).toList(),
-                onChanged: _selectedState == null ? null : (newValue) {
-                  setState(() {
-                    _selectedCity = newValue;
-                  });
-                },
-                validator: (value) => value == null ? 'Please select a city' : null,
+                decoration: _dropdownDecor('Select City'),
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+                items: _cities
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: _selectedState == null
+                    ? null
+                    : (newValue) => setState(() => _selectedCity = newValue),
               ),
+              const SizedBox(height: 28),
 
-              const SizedBox(height: 20),
-
+              // Save button
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : PrimaryButton(
@@ -207,13 +246,34 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                         children: [
                           Icon(Icons.save_outlined),
                           SizedBox(width: 8),
-                          Text('Save & Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                          Text(
+                            'Save & Continue',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ],
                       ),
                     ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  const _FieldLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: GoogleFonts.poppins(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: Colors.grey[600],
       ),
     );
   }

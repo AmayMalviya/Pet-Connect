@@ -52,20 +52,25 @@ class _PetDashboardScreenState extends State<PetDashboardScreen> {
   String _formatData(dynamic data) {
     if (data == null) return 'No information available.';
     if (data is String) return data;
-    if (data is Map) return data.entries.map((e) => '${e.key}: ${e.value}').join('\n');
+    if (data is Map)
+      return data.entries.map((e) => '${e.key}: ${e.value}').join('\n');
     return data.toString();
   }
 
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
-    final isNetworkUrl = pet.photoUrl != null &&
+    final isNetworkUrl =
+        pet.photoUrl != null &&
         (pet.photoUrl!.startsWith('http') || pet.photoUrl!.startsWith('https'));
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('${pet.name}\'s Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(
+          '${pet.name}\'s Dashboard',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textDark,
         elevation: 0,
@@ -74,85 +79,131 @@ class _PetDashboardScreenState extends State<PetDashboardScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          ? Center(child: Text(_error!))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: isNetworkUrl
+                              ? NetworkImage(pet.photoUrl!)
+                              : const AssetImage('assets/images/logo.png')
+                                    as ImageProvider,
+                          backgroundColor: Colors.white,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          pet.name ?? 'Unknown Pet',
+                          style: GoogleFonts.poppins(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        Text(
+                          pet.breed ?? 'Mixed Breed',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Care Requirements',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.9,
                     children: [
-                      Center(
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundImage: isNetworkUrl
-                                  ? NetworkImage(pet.photoUrl!)
-                                  : const AssetImage('assets/images/logo.png') as ImageProvider,
-                              backgroundColor: Colors.white,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              pet.name ?? 'Unknown Pet',
-                              style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textDark),
-                            ),
-                            Text(
-                              pet.breed ?? 'Mixed Breed',
-                              style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
-                            ),
-                          ],
+                      _CareCategoryCard(
+                        title: 'Grooming Tools & Needs',
+                        icon: Icons.cut,
+                        color: const Color(0xFFFFB4A2), // Soft pastel coral
+                        onTap: () => _openDetail(
+                          'Grooming',
+                          _formatData(_breedInfo['grooming_needs']),
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Care Requirements',
-                        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                      _CareCategoryCard(
+                        title: 'Diet & Nutrition',
+                        icon: Icons.restaurant,
+                        color: const Color(0xFFB5EAD7), // Soft pastel green
+                        onTap: () => _openDetail(
+                          'Diet & Nutrition',
+                          _formatData(_breedInfo['diet']),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 0.9,
-                        children: [
-                          _CareCategoryCard(
-                            title: 'Grooming Tools & Needs',
-                            icon: Icons.cut,
-                            color: const Color(0xFFFFB4A2), // Soft pastel coral
-                            onTap: () => _openDetail('Grooming', _formatData(_breedInfo['grooming_needs'])),
-                          ),
-                          _CareCategoryCard(
-                            title: 'Diet & Nutrition',
-                            icon: Icons.restaurant,
-                            color: const Color(0xFFB5EAD7), // Soft pastel green
-                            onTap: () => _openDetail('Diet & Nutrition', _formatData(_breedInfo['diet'])),
-                          ),
-                          _CareCategoryCard(
-                            title: 'Training Tips',
-                            icon: Icons.school,
-                            color: const Color(0xFFC7CEEA), // Soft pastel blue
-                            onTap: () => _openDetail('Training Tips', _formatData(_breedInfo['training_tips'])),
-                          ),
-                          _CareCategoryCard(
-                            title: 'Exercise Needs',
-                            icon: Icons.directions_run,
-                            color: const Color(0xFFFFE1A8), // Soft pastel yellow
-                            onTap: () => _openDetail('Exercise Needs', _formatData(_breedInfo['exercise_needs'])),
-                          ),
-                        ],
+                      _CareCategoryCard(
+                        title: 'Training Tips',
+                        icon: Icons.school,
+                        color: const Color(0xFFC7CEEA), // Soft pastel blue
+                        onTap: () => _openDetail(
+                          'Training Tips',
+                          _formatData(_breedInfo['training_tips']),
+                        ),
+                      ),
+                      _CareCategoryCard(
+                        title: 'Exercise Needs',
+                        icon: Icons.directions_run,
+                        color: const Color(0xFFFFE1A8), // Soft pastel yellow
+                        onTap: () => _openDetail(
+                          'Exercise Needs',
+                          _formatData(_breedInfo['exercise_needs']),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
+              ),
+            ),
     );
   }
 
   void _openDetail(String title, String content) {
+    String topic;
+    switch (title) {
+      case 'Grooming':
+        topic = 'grooming';
+        break;
+      case 'Diet & Nutrition':
+        topic = 'diet';
+        break;
+      case 'Training Tips':
+        topic = 'training';
+        break;
+      case 'Exercise Needs':
+        topic = 'exercise';
+        break;
+      default:
+        topic = 'general';
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PetInfoDetailScreen(title: title, content: content),
+        builder: (context) => PetInfoDetailScreen(
+          title: title,
+          content: content,
+          pet: widget.pet,
+          topic: topic,
+        ),
       ),
     );
   }

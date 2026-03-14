@@ -136,20 +136,35 @@ Current pet context:
 Provide detailed, actionable advice specific to this pet's profile. Be practical and considerate of the pet's specific needs.''';
 
       case 'shopping':
-        return '''You are a Pet Shopping AI Assistant that helps find the perfect pet products.
-Your role is to:
-1. Understand what the pet owner needs
-2. Consider their specific pet type and characteristics
-3. Suggest relevant products with practical details
+        return '''You are an expert Pet Product Recommendation AI specializing in personalized shopping for pet owners.
 
-When suggesting products, provide structured information about:
-- Product name
-- Category
-- Why it's good for this pet
-- Estimated price range
-- Where to find it
+CRITICAL REQUIREMENTS:
+1. ONLY recommend products that are appropriate for the specific pet type (${pet?.animal ?? 'unknown'})
+2. Consider the pet's age (${pet?.age ?? 'unknown'} years), breed (${pet?.breed ?? 'unknown'}), and special needs (${pet?.specialNeeds ?? 'none'})
+3. Provide diverse, high-quality product recommendations (at least 5-8 products)
+4. Ensure all products are actually available and relevant to the pet type
+5. Include realistic price ranges and reputable sources
 
-Be helpful and consider both budget and pet wellbeing.''';
+For ${pet?.animal ?? 'pet'} owners, focus on:
+${_getPetSpecificGuidance(pet?.animal ?? 'dog')}
+
+Return ONLY valid JSON in this exact format:
+{
+  "products": [
+    {
+      "name": "Specific Product Name",
+      "price": "₹500 - ₹1500",
+      "imageUrl": "https://example.com/real-image.jpg",
+      "productUrl": "https://amazon.in/dp/B0123456789",
+      "rating": 4.2,
+      "sourceWebsite": "Amazon",
+      "category": "food/toys/bedding/grooming/etc",
+      "description": "Why this product is perfect for this specific pet"
+    }
+  ]
+}
+
+IMPORTANT: Never suggest products for the wrong pet type. Be specific and accurate.''';
 
       default:
         return 'You are a helpful Pet Connect AI Assistant.';
@@ -169,6 +184,67 @@ Be helpful and consider both budget and pet wellbeing.''';
         return 'Obedience training, behavioral correction, command teaching, and positive reinforcement';
       default:
         return 'General pet care';
+    }
+  }
+
+  /// Get pet-specific product guidance
+  String _getPetSpecificGuidance(String petType) {
+    switch (petType.toLowerCase()) {
+      case 'dog':
+        return '''- High-quality dog food appropriate for breed and age
+- Durable toys for chewing and play (no small parts)
+- Comfortable beds and crates
+- Training treats and clickers
+- Grooming tools (brushes, nail clippers)
+- Collars, leashes, and harnesses
+- Waste bags and poop scoops
+- Health supplements and joint care''';
+
+      case 'cat':
+        return '''- Premium cat food and wet food pouches
+- Litter boxes and premium litter
+- Scratching posts and cat trees
+- Interactive toys and laser pointers
+- Cat beds and cozy hiding spots
+- Grooming brushes and nail clippers
+- Automatic feeders and water fountains
+- Catnip toys and treat dispensers''';
+
+      case 'bird':
+        return '''- Appropriate seed mixes and pellets
+- Spacious cages with proper bar spacing
+- Perches of varying sizes
+- Toys for mental stimulation
+- Cutthroat and mineral blocks
+- Bathing dishes or showers
+- Food and water dishes
+- Nesting materials''';
+
+      case 'rabbit':
+        return '''- High-fiber hay and pellets
+- Timothy hay feeders
+- Spacious hutches or cages
+- Chew toys and tunnels
+- Water bottles and bowls
+- Litter training supplies
+- Grooming brushes
+- Hideouts and bedding''';
+
+      case 'hamster':
+        return '''- Hamster food mix and treats
+- Spacious cages with solid floors
+- Exercise wheels and balls
+- Chew toys and hideouts
+- Water bottles
+- Bedding and nesting materials
+- Sand baths for grooming''';
+
+      default:
+        return '''- Species-appropriate food
+- Comfortable housing
+- Enrichment toys
+- Basic care supplies
+- Health and grooming items''';
     }
   }
 
@@ -237,16 +313,23 @@ Please recommend suitable products and where to find them.''';
   /// Parse product suggestions from AI response
   Map<String, dynamic>? _parseProductSuggestions(String content) {
     try {
-      // Extract product information from the response
-      // This is a simple parser - can be enhanced based on actual response format
-      final suggestions = {
-        'recommendations': content,
-        'parsed':
-            false, // Flag for whether we successfully parsed structured data
-      };
-      return suggestions;
+      // Try to extract JSON from the response
+      final jsonStart = content.indexOf('{');
+      final jsonEnd = content.lastIndexOf('}');
+
+      if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
+        final jsonString = content.substring(jsonStart, jsonEnd + 1);
+        final parsed = json.decode(jsonString);
+
+        if (parsed is Map && parsed.containsKey('products')) {
+          return {'products': parsed['products'], 'parsed': true};
+        }
+      }
+
+      // Fallback: return content as recommendations
+      return {'recommendations': content, 'parsed': false};
     } catch (e) {
-      return null;
+      return {'recommendations': content, 'parsed': false};
     }
   }
 
