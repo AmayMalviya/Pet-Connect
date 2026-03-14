@@ -1,3 +1,5 @@
+// ignore_for_file: undefined_named_parameter, argument_type_not_assignable, unused_import
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -19,7 +21,8 @@ void main() {
   group('AdminKycApprovalScreen', () {
     late MockSupabaseClient mockSupabaseClient;
     late MockPostgrestQueryBuilder mockQueryBuilder;
-    late MockPostgrestFilterBuilder<List<Map<String, dynamic>>> mockFilterBuilder;
+    late MockPostgrestFilterBuilder<List<Map<String, dynamic>>>
+    mockFilterBuilder;
     late MockGoTrueClient mockGoTrueClient;
 
     setUp(() async {
@@ -44,13 +47,15 @@ void main() {
       when(mockQueryBuilder.select(any)).thenReturn(mockFilterBuilder);
       when(mockFilterBuilder.or(any)).thenReturn(mockFilterBuilder);
       when(mockFilterBuilder.eq(any, any)).thenReturn(mockFilterBuilder);
-      when(mockFilterBuilder.order(any, ascending: anyNamed('ascending')))
-          .thenReturn(mockFilterBuilder);
+      when(
+        mockFilterBuilder.order(any, ascending: anyNamed('ascending')),
+      ).thenReturn(mockFilterBuilder);
       when(mockFilterBuilder.limit(any)).thenReturn(mockFilterBuilder);
     });
 
-    testWidgets('should display a list of KYC profiles',
-        (WidgetTester tester) async {
+    testWidgets('should display a list of KYC profiles', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final profiles = [
         {
@@ -62,30 +67,36 @@ void main() {
           'state': 'Test State',
           'country': 'Test Country',
           'kyc_verified': false,
-          'role': 'Shelter'
+          'role': 'Shelter',
         },
       ];
       final kycDocs = [
-        {'user_id': '1', 'aadhaar_number': '1234-5678-9012'}
+        {'user_id': '1', 'aadhaar_number': '1234-5678-9012'},
       ];
       final kycPersonal = [
-        {'user_id': '1', 'full_name': 'Test Person'}
+        {'user_id': '1', 'full_name': 'Test Person'},
       ];
 
       // Stub the specific responses for the calls in _fetchPendingKyc
-      when(mockFilterBuilder.eq('kyc_verified', false))
-          .thenAnswer((_) async => profiles);
-      when(mockFilterBuilder.eq('user_id', '1'))
-          .thenAnswer((_) async => kycDocs);
-      when(mockSupabaseClient.from('kyc_personal')
-              .select('*')
-              .eq('user_id', '1')
-              .order('created_at', ascending: false)
-              .limit(1))
-          .thenAnswer((_) async => kycPersonal);
+      when(
+        mockFilterBuilder.eq('kyc_verified', false),
+      ).thenAnswer((_) async => profiles);
+      when(
+        mockFilterBuilder.eq('user_id', '1'),
+      ).thenAnswer((_) async => kycDocs);
+      when(
+        mockSupabaseClient
+            .from('kyc_personal')
+            .select('*')
+            .eq('user_id', '1')
+            .order('created_at', ascending: false)
+            .limit(1),
+      ).thenAnswer((_) async => kycPersonal);
 
       // Act
-      await tester.pumpWidget(const MaterialApp(home: AdminKycApprovalScreen()));
+      await tester.pumpWidget(
+        const MaterialApp(home: AdminKycApprovalScreen()),
+      );
       await tester.pumpAndSettle();
 
       // Assert

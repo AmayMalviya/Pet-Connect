@@ -306,7 +306,7 @@ Please recommend suitable products and where to find them.''';
 
   Future<bool> _sendHealthCheck() async {
     try {
-      final apiKey = _apiKeys['global']!;
+      final apiKey = _getApiKey('global');
       final response = await _dio.post(
         '/chat/completions',
         options: Options(
