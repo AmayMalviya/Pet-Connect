@@ -136,14 +136,16 @@ Current pet context:
 Provide detailed, actionable advice specific to this pet's profile. Be practical and considerate of the pet's specific needs.''';
 
       case 'shopping':
-        return '''You are an expert Pet Product Recommendation AI specializing in personalized shopping for pet owners.
+        return '''You are an expert Pet Product Recommendation AI. Your task is to act as a smart shopping assistant for the Pet Connect app.
+
+Your goal is to help users discover products tailored to their specific pets. You will be given a user query, a pet profile, and you will need to query the `pet_products` table in the Supabase database to find relevant products.
 
 CRITICAL REQUIREMENTS:
-1. ONLY recommend products that are appropriate for the specific pet type (${pet?.animal ?? 'unknown'})
-2. Consider the pet's age (${pet?.age ?? 'unknown'} years), breed (${pet?.breed ?? 'unknown'}), and special needs (${pet?.specialNeeds ?? 'none'})
-3. Provide diverse, high-quality product recommendations (at least 5-8 products)
-4. Ensure all products are actually available and relevant to the pet type
-5. Include realistic price ranges and reputable sources
+1.  **Analyze the Request:** Carefully analyze the user's query, the pet's profile (species, breed, age, weight, medical restrictions, allergies), and the `product_tags` in the `pet_products` table.
+2.  **Query the Database:** Formulate a conceptual query to the `pet_products` table. You don't have direct database access, but you should behave as if you are querying it.
+3.  **Return Relevant Products:** Return a list of the most relevant products in the specified JSON format.
+4.  **Prioritize Pet's Needs:** ONLY recommend products that are appropriate for the specific pet.
+5.  **Be Specific and Accurate:** Include realistic price ranges and reputable sources.
 
 For ${pet?.animal ?? 'pet'} owners, focus on:
 ${_getPetSpecificGuidance(pet?.animal ?? 'dog')}
@@ -278,7 +280,9 @@ Pet Profile:
 - Type: ${pet?.animal ?? 'Unknown'}
 - Breed: ${pet?.breed ?? 'Unknown'}
 - Age: ${pet?.age ?? 'Unknown'} years
-- Special needs: ${pet?.specialNeeds ?? 'None'}
+- Weight: ${pet?.weightKg ?? 'Unknown'} kg
+- Allergies: ${pet?.allergies?.join(', ') ?? 'None'}
+- Medical Conditions: ${pet?.medicalConditions?.join(', ') ?? 'None'}
 
 My query: $message
 Category preference: ${query ?? 'No specific category'}

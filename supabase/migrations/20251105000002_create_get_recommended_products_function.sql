@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS get_recommended_products(uuid);
+
 create or replace function get_recommended_products(p_pet_id uuid)
 returns json
 language plpgsql

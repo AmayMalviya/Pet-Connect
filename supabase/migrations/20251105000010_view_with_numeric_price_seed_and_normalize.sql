@@ -1,4 +1,4 @@
-R-- Recreate view with computed numeric_price, seed products per current schema, and add normalization procedure
+-- Recreate view with computed numeric_price, seed products per current schema, and add normalization procedure
 
 -- 1) View: breed_recommendations with numeric_price
 DROP VIEW IF EXISTS breed_recommendations;
@@ -18,7 +18,10 @@ SELECT
     (CASE WHEN pr.breeds_allowed IS NOT NULL AND p.breed = ANY(pr.breeds_allowed::text[]) THEN 2 ELSE 0 END) +
     (CASE WHEN LOWER(p.animal) = LOWER(pr.species) THEN 1 ELSE 0 END)
   ) AS match_score,
-  NULLIF(pr.price, '')::numeric NULLS LAST AS numeric_price,
+  CASE
+    WHEN pr.price::text ~ '^[0-9]+(\.[0-9]+)?$' THEN pr.price::numeric
+    ELSE NULL
+  END AS numeric_price,
   CASE
     WHEN pr.breeds_allowed IS NOT NULL AND p.breed = ANY(pr.breeds_allowed::text[]) THEN 'Breed Match'
     WHEN LOWER(p.animal) = LOWER(pr.species) THEN 'Species Match'

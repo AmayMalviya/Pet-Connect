@@ -9,6 +9,12 @@ class Product {
   final String? sourceWebsite;
   final String? category; // For pet-based filtering
   final String? petType; // 'dog', 'cat', 'bird', etc.
+  final List<String>? species;
+  final List<String>? breedCompatibility;
+  final String? ageRange;
+  final String? weightRange;
+  final List<String>? medicalRestrictions;
+  final List<String>? allergyWarnings;
 
   Product({
     required this.id,
@@ -21,25 +27,37 @@ class Product {
     this.sourceWebsite,
     this.category,
     this.petType,
+    this.species,
+    this.breedCompatibility,
+    this.ageRange,
+    this.weightRange,
+    this.medicalRestrictions,
+    this.allergyWarnings,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
+  factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      price: json['price']?.toString() ?? '',
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? '',
+      price: map['price']?.toString() ?? '',
       imageUrl:
-          json['image_url']?.toString() ?? json['imageUrl']?.toString() ?? '',
-      productUrl: json['url']?.toString() ?? json['productUrl']?.toString(),
-      tags: json['tags'] is List ? List<String>.from(json['tags']) : null,
-      rating: json['rating'] != null
-          ? double.tryParse(json['rating'].toString())
+          map['image_url']?.toString() ?? map['imageUrl']?.toString() ?? '',
+      productUrl: map['url']?.toString() ?? map['productUrl']?.toString(),
+      tags: map['tags'] is List ? List<String>.from(map['tags']) : null,
+      rating: map['rating'] != null
+          ? double.tryParse(map['rating'].toString())
           : null,
       sourceWebsite:
-          json['source_website']?.toString() ??
-          json['sourceWebsite']?.toString(),
-      category: json['category']?.toString(),
-      petType: json['pet_type']?.toString() ?? json['petType']?.toString(),
+          map['source_website']?.toString() ??
+          map['sourceWebsite']?.toString(),
+      category: map['category']?.toString(),
+      petType: map['pet_type']?.toString() ?? map['petType']?.toString(),
+      species: map['species'] is List ? List<String>.from(map['species']) : null,
+      breedCompatibility: map['breed_compatibility'] is List ? List<String>.from(map['breed_compatibility']) : null,
+      ageRange: map['age_range']?.toString(),
+      weightRange: map['weight_range']?.toString(),
+      medicalRestrictions: map['medical_restrictions'] is List ? List<String>.from(map['medical_restrictions']) : null,
+      allergyWarnings: map['allergy_warnings'] is List ? List<String>.from(map['allergy_warnings']) : null,
     );
   }
 
@@ -55,6 +73,12 @@ class Product {
       'source_website': sourceWebsite,
       'category': category,
       'pet_type': petType,
+      'species': species,
+      'breed_compatibility': breedCompatibility,
+      'age_range': ageRange,
+      'weight_range': weightRange,
+      'medical_restrictions': medicalRestrictions,
+      'allergy_warnings': allergyWarnings,
     };
   }
 
