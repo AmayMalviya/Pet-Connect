@@ -42,7 +42,7 @@ class Product {
       price: map['price']?.toString() ?? '',
       imageUrl:
           map['image_url']?.toString() ?? map['imageUrl']?.toString() ?? '',
-      productUrl: map['url']?.toString() ?? map['productUrl']?.toString(),
+      productUrl: map['product_url']?.toString() ?? map['url']?.toString() ?? map['productUrl']?.toString(),
       tags: map['tags'] is List ? List<String>.from(map['tags']) : null,
       rating: map['rating'] != null
           ? double.tryParse(map['rating'].toString())

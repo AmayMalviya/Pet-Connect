@@ -95,19 +95,21 @@ class _MainScreenState extends State<MainScreen> {
       ),
       drawer: AppDrawer(),
       body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'main_screen_fab',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const GlobalAIChatScreen()),
-          );
-        },
-        icon: const Icon(Icons.auto_awesome),
-        label: const Text('Pet AI'),
-        backgroundColor: AppColors.primary,
-        tooltip: 'Chat with Pet AI Assistant',
-      ),
+      floatingActionButton: (_selectedIndex == 0 || _selectedIndex == 1)
+          ? FloatingActionButton.extended(
+              heroTag: 'main_screen_fab',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GlobalAIChatScreen()),
+                );
+              },
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Pet AI'),
+              backgroundColor: AppColors.primary,
+              tooltip: 'Chat with Pet AI Assistant',
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),

@@ -7,7 +7,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class AIService {
-  static const String _groqBaseUrl = 'https://api.groq.com/openai/v1';
+  /// If you need to override the default Groq base URL, set this in your `.env` file.
+  /// Examples:
+  ///   GROQ_API_BASE_URL=https://api.groq.com/openai/v1
+  ///   GROQ_API_BASE_URL=https://api.groq.com/v1
+  static String get _groqBaseUrl {
+    try {
+      final envUrl = dotenv.env['GROQ_API_BASE_URL'];
+      if (envUrl != null && envUrl.trim().isNotEmpty) {
+        return envUrl.trim();
+      }
+    } catch (_) {
+      // If dotenv isn't initialized yet, fall back to the default.
+    }
+
+    return 'https://api.groq.com/openai/v1';
+  }
+
   static const String _model = 'openai/gpt-oss-120b';
   static const Duration _requestTimeout = Duration(seconds: 30);
 

@@ -27,18 +27,24 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  static String get _hereApiKey =>
-      const String.fromEnvironment('HERE_API_KEY').isNotEmpty
-      ? const String.fromEnvironment('HERE_API_KEY')
-      : _dotenvValue('HERE_API_KEY');
-  static String get _hereAccessKeyId =>
-      const String.fromEnvironment('HERE_ACCESS_KEY_ID').isNotEmpty
-      ? const String.fromEnvironment('HERE_ACCESS_KEY_ID')
-      : _dotenvValue('HERE_ACCESS_KEY_ID');
-  static String get _hereAccessKeySecret =>
-      const String.fromEnvironment('HERE_ACCESS_KEY_SECRET').isNotEmpty
-      ? const String.fromEnvironment('HERE_ACCESS_KEY_SECRET')
-      : _dotenvValue('HERE_ACCESS_KEY_SECRET');
+  static String get _hereApiKey {
+    // Prefer `.env` values (runtime) but still allow dart-define when required.
+    final envValue = _dotenvValue('HERE_API_KEY');
+    if (envValue.isNotEmpty) return envValue;
+    return const String.fromEnvironment('HERE_API_KEY');
+  }
+
+  static String get _hereAccessKeyId {
+    final envValue = _dotenvValue('HERE_ACCESS_KEY_ID');
+    if (envValue.isNotEmpty) return envValue;
+    return const String.fromEnvironment('HERE_ACCESS_KEY_ID');
+  }
+
+  static String get _hereAccessKeySecret {
+    final envValue = _dotenvValue('HERE_ACCESS_KEY_SECRET');
+    if (envValue.isNotEmpty) return envValue;
+    return const String.fromEnvironment('HERE_ACCESS_KEY_SECRET');
+  }
 
   final MapController _mapController = MapController();
   final List<Marker> _markers = [];
@@ -315,7 +321,7 @@ class _MapScreenState extends State<MapScreen> {
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Missing HERE auth.\n\nRun with either:\n--dart-define=HERE_API_KEY=<YOUR_KEY>\n\nor:\n--dart-define=HERE_ACCESS_KEY_ID=<YOUR_ID> --dart-define=HERE_ACCESS_KEY_SECRET=<YOUR_SECRET>',
+                  'Missing HERE auth.\n\nSet HERE_API_KEY in your .env file or run with:\n--dart-define=HERE_API_KEY=<YOUR_KEY>\n\nor:\n--dart-define=HERE_ACCESS_KEY_ID=<YOUR_ID> --dart-define=HERE_ACCESS_KEY_SECRET=<YOUR_SECRET>',
                   textAlign: TextAlign.center,
                 ),
               ),

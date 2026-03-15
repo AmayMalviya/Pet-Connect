@@ -85,7 +85,15 @@ GROQ_API_KEY_SHOPPING=<your_shopping_key>
 
 ### HERE Maps (Optional)
 
-If you want map features using HERE Maps:
+If you want map features using HERE Maps, you can set the API key via `.env` or using `--dart-define`:
+
+**Option A: Use `.env`** (recommended for local development)
+
+```ini
+HERE_API_KEY=your_key
+```
+
+**Option B: Use dart-define** (useful in CI or when building release versions)
 
 ```bash
 flutter run --dart-define=HERE_API_KEY=your_key

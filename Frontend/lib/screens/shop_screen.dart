@@ -112,6 +112,12 @@ class _ShopScreenState extends State<ShopScreen> {
       await _aiService.initialize();
 
       final products = await _supabaseService.getProducts(limit: 20, offset: 0);
+      debugPrint('Loaded ${products.length} products from Supabase');
+      
+      // Log first product details for debugging
+      if (products.isNotEmpty) {
+        debugPrint('First product: ${products[0].name}, URL: ${products[0].productUrl}');
+      }
 
       final user = Supabase.instance.client.auth.currentUser;
       List<Pet> pets = [];
@@ -138,7 +144,12 @@ class _ShopScreenState extends State<ShopScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading products: $e')),
+        );
+      }
       debugPrint('Error loading shop data: $e');
     }
   }
@@ -554,7 +565,6 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(elevation: 0, backgroundColor: AppColors.primary),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : Column(
@@ -664,63 +674,6 @@ class _ShopScreenState extends State<ShopScreen> {
                         }).toList(),
                       ),
                       const SizedBox(height: 12),
-                      // AI Button
-                      if (_selectedPet != null) ...[
-                        GestureDetector(
-                          onTap: _aiLoading ? null : _showAISuggestionsDialog,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 160),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _aiLoading
-                                  ? Colors.blue[50]
-                                  : Colors.blue.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: _aiLoading
-                                    ? Colors.blue[200]!
-                                    : Colors.blue,
-                                width: 1.2,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (_aiLoading)
-                                  const SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.blue,
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  Icon(
-                                    Icons.smart_toy_rounded,
-                                    size: 14,
-                                    color: Colors.blue[700],
-                                  ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'AI Suggestions',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.blue[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
                       // Search
                       Container(
                         height: 44,
@@ -930,31 +883,71 @@ class _ShopScreenState extends State<ShopScreen> {
 
 // ── Product Card ──────────────────────────────────────────────────────────────
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final Product product;
   const ProductCard({super.key, required this.product});
 
-  Future<void> _launchUrl(BuildContext context) async {
-    final urlString = product.productUrl;
-    if (urlString == null || urlString.isEmpty) return;
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
 
-    // Track the click
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null && product.id.isNotEmpty) {
-      await Supabase.instance.client.from('product_clicks').insert({
-        'product_id': product.id,
-        'user_id': user.id,
-        'clicked_at': DateTime.now().toIso8601String(),
-      });
+class _ProductCardState extends State<ProductCard> {
+  bool _isLaunching = false;
+
+  Future<void> _launchUrl(BuildContext context) async {
+    final urlString = widget.product.productUrl;
+    if (urlString == null || urlString.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product link not available')),
+      );
+      return;
     }
 
+    setState(() => _isLaunching = true);
+
     try {
-      await launchUrl(
-        Uri.parse(urlString),
-        mode: LaunchMode.externalApplication,
-      );
+      // Track the click
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null && widget.product.id.isNotEmpty) {
+        try {
+          await Supabase.instance.client.from('product_clicks').insert({
+            'product_id': widget.product.id,
+            'user_id': user.id,
+            'clicked_at': DateTime.now().toIso8601String(),
+          });
+          debugPrint('Tracked click for product: ${widget.product.name}');
+        } catch (e) {
+          debugPrint('Error tracking click: $e');
+        }
+      }
+
+      // Launch the URL
+      final uri = Uri.parse(urlString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        debugPrint('Launched URL: $urlString');
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open product link')),
+          );
+        }
+        debugPrint('Could not launch URL: $urlString');
+      }
     } catch (e) {
-      debugPrint('Could not launch URL: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+      debugPrint('Error launching URL: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLaunching = false);
+      }
     }
   }
 
@@ -980,16 +973,16 @@ class ProductCard extends StatelessWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Stack(
               children: [
-                product.imageUrl.isNotEmpty
+                widget.product.imageUrl.isNotEmpty
                     ? Image.network(
-                        product.imageUrl,
+                        widget.product.imageUrl,
                         width: double.infinity,
                         height: 128,
                         fit: BoxFit.cover,
                         errorBuilder: (c, _, __) => _fallback(),
                       )
                     : _fallback(),
-                if (product.rating != null)
+                if (widget.product.rating != null)
                   Positioned(
                     top: 8,
                     right: 8,
@@ -1012,7 +1005,7 @@ class ProductCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 2),
                           Text(
-                            '${product.rating}',
+                            '${widget.product.rating}',
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -1034,7 +1027,7 @@ class ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.name,
+                    widget.product.name,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -1044,10 +1037,10 @@ class ProductCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (product.sourceWebsite != null) ...[
+                  if (widget.product.sourceWebsite != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      product.sourceWebsite!,
+                      widget.product.sourceWebsite!,
                       style: GoogleFonts.poppins(
                         fontSize: 10,
                         color: Colors.grey[400],
@@ -1062,7 +1055,7 @@ class ProductCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        product.price,
+                        widget.product.price,
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -1070,24 +1063,35 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: product.productUrl != null
+                        onTap: widget.product.productUrl != null && !_isLaunching
                             ? () => _launchUrl(context)
                             : null,
                         child: Container(
                           padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
-                            color: product.productUrl != null
+                            color: widget.product.productUrl != null && !_isLaunching
                                 ? AppColors.primary
                                 : Colors.grey[200],
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(
-                            Icons.open_in_new_rounded,
-                            size: 14,
-                            color: product.productUrl != null
-                                ? Colors.white
-                                : Colors.grey[400],
-                          ),
+                          child: _isLaunching
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 14,
+                                  color: widget.product.productUrl != null
+                                      ? Colors.white
+                                      : Colors.grey[400],
+                                ),
                         ),
                       ),
                     ],
