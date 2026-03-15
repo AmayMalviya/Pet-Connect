@@ -57,6 +57,48 @@ class _ShopScreenState extends State<ShopScreen> {
     }
   }
 
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final moreProducts = await _supabaseService.getProducts(
+        limit: 20,
+        offset: _page * 20,
+      );
+
+      if (mounted) {
+        setState(() {
+          _products.addAll(moreProducts);
+          _filteredProducts = _productService.filterProducts(
+            products: _products,
+            petType: _selectedPet?.animal,
+            category: _selectedCategory,
+            species: _selectedPet != null ? [_selectedPet!.animal!] : null,
+            breedCompatibility: _selectedPet != null
+                ? [_selectedPet!.breed!]
+                : null,
+            ageRange: _selectedPet?.age != null
+                ? '${_selectedPet!.age} years'
+                : null,
+            weightRange: _selectedPet?.weightKg != null
+                ? '${_selectedPet!.weightKg} kg'
+                : null,
+            medicalRestrictions: _selectedPet?.medicalConditions,
+            allergyWarnings: _selectedPet?.allergies,
+          );
+          _page++;
+          _hasMore = moreProducts.length == 20;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingMore = false);
+      debugPrint('Error loading more products: $e');
+    }
+  }
+
   Future<void> _loadInitialData() async {
     setState(() {
       _isLoading = true;
@@ -101,38 +143,6 @@ class _ShopScreenState extends State<ShopScreen> {
     }
   }
 
-  Future<void> _loadMoreProducts() async {
-    if (_isLoadingMore || !_hasMore) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
-
-    try {
-      final newProducts = await _supabaseService.getProducts(
-        limit: 20,
-        offset: _page * 20,
-      );
-
-      if (mounted) {
-        setState(() {
-          _products.addAll(newProducts);
-          _page++;
-          _hasMore = newProducts.length == 20;
-          _applyFilters();
-          _isLoadingMore = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-        });
-      }
-      debugPrint('Error loading more products: $e');
-    }
-  }
-
   void _applyFilters() {
     var filtered = _productService.filterProducts(
       products: _products,
@@ -141,7 +151,9 @@ class _ShopScreenState extends State<ShopScreen> {
       species: _selectedPet != null ? [_selectedPet!.animal!] : null,
       breedCompatibility: _selectedPet != null ? [_selectedPet!.breed!] : null,
       ageRange: _selectedPet?.age != null ? '${_selectedPet!.age} years' : null,
-      weightRange: _selectedPet?.weightKg != null ? '${_selectedPet!.weightKg} kg' : null,
+      weightRange: _selectedPet?.weightKg != null
+          ? '${_selectedPet!.weightKg} kg'
+          : null,
       medicalRestrictions: _selectedPet?.medicalConditions,
       allergyWarnings: _selectedPet?.allergies,
     );
@@ -153,6 +165,52 @@ class _ShopScreenState extends State<ShopScreen> {
           .toList();
     }
     setState(() => _filteredProducts = filtered);
+  }
+
+  Future<void> _getPersonalizedRecommendations() async {
+    if (_selectedPet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a pet first')),
+      );
+      return;
+    }
+
+    setState(() => _aiLoading = true);
+
+    try {
+      final response = await _aiService.sendMessage(
+        message: 'Get personalized product recommendations for my pet',
+        mode: 'shopping',
+        pet: _selectedPet,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (response.structuredData != null &&
+              response.structuredData!['parsed'] == true) {
+            _aiSuggestedProducts = List<Map<String, dynamic>>.from(
+              response.structuredData!['products'] ?? [],
+            );
+            _applyAIFilters();
+          } else {
+            _aiSuggestedProducts = [];
+            _filteredAISuggestions = [];
+          }
+          _aiLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _aiSuggestedProducts = [];
+          _filteredAISuggestions = [];
+          _aiLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error getting recommendations: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _getAISuggestions() async {
@@ -439,7 +497,6 @@ class _ShopScreenState extends State<ShopScreen> {
   void dispose() {
     _searchController.dispose();
     _aiQueryController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -486,7 +543,14 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ["Food", "Toys", "Beds", "Grooming", "Health", "Accessories"];
+    final categories = [
+      "Food",
+      "Toys",
+      "Beds",
+      "Grooming",
+      "Health",
+      "Accessories",
+    ];
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -813,7 +877,6 @@ class _ShopScreenState extends State<ShopScreen> {
                           ),
                         )
                       : GridView.builder(
-                          controller: _scrollController,
                           padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
@@ -871,9 +934,20 @@ class ProductCard extends StatelessWidget {
   final Product product;
   const ProductCard({super.key, required this.product});
 
-  Future<void> _launchUrl() async {
+  Future<void> _launchUrl(BuildContext context) async {
     final urlString = product.productUrl;
     if (urlString == null || urlString.isEmpty) return;
+
+    // Track the click
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null && product.id.isNotEmpty) {
+      await Supabase.instance.client.from('product_clicks').insert({
+        'product_id': product.id,
+        'user_id': user.id,
+        'clicked_at': DateTime.now().toIso8601String(),
+      });
+    }
+
     try {
       await launchUrl(
         Uri.parse(urlString),
@@ -996,7 +1070,9 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: product.productUrl != null ? _launchUrl : null,
+                        onTap: product.productUrl != null
+                            ? () => _launchUrl(context)
+                            : null,
                         child: Container(
                           padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
