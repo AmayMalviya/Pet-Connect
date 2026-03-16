@@ -87,7 +87,6 @@ class PetConnectApp extends StatelessWidget {
         }
         final profile = snapshot.data;
         final userRole = profile?['role'] as String?;
-        final kycVerified = profile?['kyc_verified'] == true;
 
         if (userRole == null || (userRole != 'Shelter' && userRole != 'Shelter Owner')) {
           Future.microtask(() => Navigator.of(context).pushReplacementNamed(RoleSelectionScreen.routeName));

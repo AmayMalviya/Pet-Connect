@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 
-import 'package: pet_connect_app/services/storage_service.dart';
+import 'package:pet_connect_app/services/storage_service.dart';
 
 class AdminKycApprovalScreen extends StatefulWidget {
   static const routeName = '/admin-kyc-approval';
@@ -218,30 +218,9 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Flexible(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _approveKyc(kycData['profile']['user_id']);
-                            Navigator.pop(ctx);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                          child: const Text('Approve', style: TextStyle(color: Colors.white)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _rejectKyc(kycData['profile']['user_id']);
-                            Navigator.pop(ctx);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                          child: const Text('Reject', style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          'Actions disabled in this view',
+                          style: TextStyle(color: Colors.grey),
                         ),
                       ),
                     ],

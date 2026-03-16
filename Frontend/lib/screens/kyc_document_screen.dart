@@ -70,6 +70,33 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
     super.dispose();
   }
 
+  Future<void> _checkPreviousSubmission() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      final response = await Supabase.instance.client
+          .from('shelter_kyc')
+          .select()
+          .eq('user_id', userId)
+          .eq('status', 'rejected')
+          .order('created_at', ascending: false)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _rejectionReason = response['reviewer_note'];
+          _firstNameController.text = response['first_name'] ?? '';
+          _lastNameController.text = response['last_name'] ?? '';
+          _phoneController.text = response['phone'] ?? '';
+          _aadhaarController.text = response['aadhaar_number'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking previous submission: $e');
+    }
+  }
+
   Future<void> _initFirebase() async {
     try {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
