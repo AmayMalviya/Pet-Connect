@@ -20,6 +20,7 @@ class ManagePetsScreen extends StatefulWidget {
 class _ManagePetsScreenState extends State<ManagePetsScreen> {
   bool _isLoading = true;
   List<Pet> _pets = [];
+  bool _kycVerified = false;
   
 
   @override
@@ -33,17 +34,27 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final response = await Supabase.instance.client
+        // Fetch pets
+        final petsResponse = await Supabase.instance.client
             .from('pets')
             .select()
             .eq('owner_id', user.id)
             .order('created_at', ascending: false);
+        
+        // Fetch kyc_verified status
+        final profileResponse = await Supabase.instance.client
+            .from('profiles')
+            .select('kyc_verified')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
         setState(() {
-          _pets = (response as List).map((d) => Pet.fromJson(d as Map<String, dynamic>)).toList();
+          _pets = (petsResponse as List).map((d) => Pet.fromJson(d as Map<String, dynamic>)).toList();
+          _kycVerified = profileResponse?['kyc_verified'] == true;
         });
       }
     } catch (e) {
-      _showSnackBar('Failed to load pets: $e');
+      _showSnackBar('Failed to load data: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -52,6 +63,10 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
 
 
   Future<void> _showPetForm(BuildContext context, Pet? pet) async {
+    if (!_kycVerified) {
+      _showSnackBar('Please complete verification to add or edit pets.');
+      return;
+    }
     final result = await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => AddEditPetScreen(pet: pet)),
     );
@@ -146,13 +161,15 @@ class _ManagePetsScreenState extends State<ManagePetsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showPetForm(context, null),
-        icon: const Icon(Icons.add),
-        label: Text('Add Pet', style: GoogleFonts.poppins()),
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      ),
+      floatingActionButton: _kycVerified 
+        ? FloatingActionButton.extended(
+            onPressed: () => _showPetForm(context, null),
+            icon: const Icon(Icons.add),
+            label: Text('Add Pet', style: GoogleFonts.poppins()),
+            elevation: 3,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          )
+        : null,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: _isLoading

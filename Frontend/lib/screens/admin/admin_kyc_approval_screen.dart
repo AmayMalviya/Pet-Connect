@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 
+import 'package: pet_connect_app/services/storage_service.dart';
+
 class AdminKycApprovalScreen extends StatefulWidget {
   static const routeName = '/admin-kyc-approval';
 
@@ -14,6 +16,7 @@ class AdminKycApprovalScreen extends StatefulWidget {
 
 class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
   late Future<List<Map<String, dynamic>>> _pendingKycFuture;
+  final _storage = StorageService();
 
   @override
   void initState() {
@@ -21,50 +24,16 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
     _pendingKycFuture = _fetchPendingKyc();
   }
 
-  /// Fetch pending KYC requests with full details from profiles, kyc_documents, and kyc_personal
-  /// Only includes users who have SUBMITTED KYC documents AND personal details (filters out dummy/incomplete submissions)
+  /// Fetch pending KYC requests from shelter_kyc joined with profiles
   Future<List<Map<String, dynamic>>> _fetchPendingKyc() async {
     try {
-      // Fetch unverified shelter profiles
-      final profiles = await Supabase.instance.client
-          .from('profiles')
-          .select('*')
-          .or('role.eq.Shelter,role.eq.Shelter Owner')
-          .eq('kyc_verified', false);
+      final response = await Supabase.instance.client
+          .from('shelter_kyc')
+          .select('*, profiles!inner(*)')
+          .inFilter('status', ['pending', 'pending_review'])
+          .order('created_at', ascending: false);
 
-      final List<Map<String, dynamic>> result = [];
-
-      for (var profile in profiles) {
-        final userId = profile['user_id'];
-
-        // Fetch the most recent KYC document for this user
-        final docs = await Supabase.instance.client
-            .from('kyc_documents')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', ascending: false)
-            .limit(1);
-
-        // Fetch the most recent KYC personal details for this user
-        final personal = await Supabase.instance.client
-            .from('kyc_personal')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', ascending: false)
-            .limit(1);
-
-        // Only include users who have BOTH kyc_documents AND kyc_personal records
-        // This filters out unverified users without any submitted KYC data
-        if (docs.isNotEmpty && personal.isNotEmpty) {
-          result.add({
-            'profile': profile,
-            'kyc_documents': docs.first,
-            'kyc_personal': personal.first,
-          });
-        }
-      }
-
-      return result;
+      return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error fetching pending KYC: $e');
       rethrow;
@@ -86,70 +55,99 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
     }
   }
 
-  /// Approve KYC and set kyc_verified to true
-  Future<void> _approveKyc(String userId) async {
+  /// Approve KYC
+  Future<void> _approveSubmission(String userId, int submissionId) async {
+    final adminId = Supabase.instance.client.auth.currentUser!.id;
     try {
-      // Call the database function to approve the KYC
-      await Supabase.instance.client.rpc('approve_kyc', params: {'target_user_id': userId});
+      // 1. Update shelter_kyc
+      await Supabase.instance.client.from('shelter_kyc').update({
+        'status': 'approved',
+        'reviewed_by': adminId,
+        'reviewed_at': DateTime.now().toIso8601String(),
+      }).eq('id', submissionId);
+
+      // 2. Update profiles
+      await Supabase.instance.client.from('profiles').update({
+        'kyc_status': 'verified',
+        'kyc_verified': true,
+        'kyc_submitted': true,
+      }).eq('user_id', userId);
+
+      // 3. Send notification
+      await Supabase.instance.client.from('notifications').insert({
+        'recipient_id': userId,
+        'title': 'KYC Update',
+        'body': 'Your KYC has been approved.',
+        'type': 'kyc_update',
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('KYC approved successfully!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('KYC approved successfully!'), backgroundColor: Colors.green),
         );
-        // Refresh the pending KYC list
-        setState(() {
-          _pendingKycFuture = _fetchPendingKyc();
-        });
+        setState(() => _pendingKycFuture = _fetchPendingKyc());
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error approving KYC: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
-      debugPrint('Error in _approveKyc: $e');
     }
   }
 
-  /// Reject/delete KYC request
-  Future<void> _rejectKyc(String userId) async {
-    try {
-      // Delete KYC documents and personal records
-      await Supabase.instance.client
-          .from('kyc_documents')
-          .delete()
-          .eq('user_id', userId);
+  /// Reject KYC
+  Future<void> _rejectSubmission(String userId, int submissionId) async {
+    final controller = TextEditingController();
+    final adminId = Supabase.instance.client.auth.currentUser!.id;
 
-      await Supabase.instance.client
-          .from('kyc_personal')
-          .delete()
-          .eq('user_id', userId);
+    final note = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject KYC'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Reason for rejection'),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Reject')),
+        ],
+      ),
+    );
+
+    if (note == null || note.isEmpty) return;
+
+    try {
+      // 1. Update shelter_kyc
+      await Supabase.instance.client.from('shelter_kyc').update({
+        'status': 'rejected',
+        'reviewer_note': note,
+        'reviewed_by': adminId,
+        'reviewed_at': DateTime.now().toIso8601String(),
+      }).eq('id', submissionId);
+
+      // 2. Update profiles
+      await Supabase.instance.client.from('profiles').update({
+        'kyc_status': 'rejected',
+      }).eq('user_id', userId);
+
+      // 3. Send notification
+      await Supabase.instance.client.from('notifications').insert({
+        'recipient_id': userId,
+        'title': 'KYC Update',
+        'body': 'Your KYC was rejected: $note',
+        'type': 'kyc_update',
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('KYC request rejected.'),
-            backgroundColor: Colors.orange,
-          ),
+          const SnackBar(content: Text('KYC rejected.'), backgroundColor: Colors.orange),
         );
-        setState(() {
-          _pendingKycFuture = _fetchPendingKyc();
-        });
+        setState(() => _pendingKycFuture = _fetchPendingKyc());
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error rejecting KYC: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     }
   }
@@ -292,24 +290,35 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
         if (docs['aadhaar_image_url'] != null) ...[
           Text('Aadhaar Image:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
           const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () => _showImagePreview(docs['aadhaar_image_url'], 'Aadhaar Image'),
-            child: Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  docs['aadhaar_image_url'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(child: Text('Image unavailable')),
+          FutureBuilder<String?>(
+            future: _storage.getKycSignedUrl(docs['aadhaar_image_url']),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Container(height: 120, width: double.infinity, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator()));
+              }
+              final signedUrl = snapshot.data;
+              if (signedUrl == null) return const Text('Image unavailable');
+              
+              return GestureDetector(
+                onTap: () => _showImagePreview(signedUrl, 'Aadhaar Image'),
+                child: Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      signedUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(child: Text('Image unavailable')),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           const SizedBox(height: 12),
         ],
@@ -318,24 +327,35 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
         if (docs['selfie_image_url'] != null) ...[
           Text('Selfie Photo:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
           const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () => _showImagePreview(docs['selfie_image_url'], 'Selfie'),
-            child: Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  docs['selfie_image_url'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(child: Text('Image unavailable')),
+          FutureBuilder<String?>(
+            future: _storage.getKycSignedUrl(docs['selfie_image_url']),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Container(height: 120, width: double.infinity, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator()));
+              }
+              final signedUrl = snapshot.data;
+              if (signedUrl == null) return const Text('Image unavailable');
+
+              return GestureDetector(
+                onTap: () => _showImagePreview(signedUrl, 'Selfie'),
+                child: Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      signedUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(child: Text('Image unavailable')),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ],
@@ -462,11 +482,12 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text('KYC Approvals', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         foregroundColor: AppColors.textDark,
-        elevation: 1,
+        elevation: 0,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _pendingKycFuture,
@@ -483,28 +504,243 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
 
           final kycRequests = snapshot.data!;
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             itemCount: kycRequests.length,
             itemBuilder: (context, index) {
-              final kycData = kycRequests[index];
-              final profile = kycData['profile'] as Map<String, dynamic>;
-              final shelterName = profile['first_name'] ?? 'Unknown';
-              final phone = profile['phone'] ?? 'N/A';
+              final kyc = kycRequests[index];
+              final profile = kyc['profiles'] as Map<String, dynamic>;
+              final userId = kyc['user_id'];
+              final submissionId = kyc['id'];
+              
+              final fullName = "${kyc['first_name'] ?? ''} ${kyc['last_name'] ?? ''}".trim();
+              final phone = kyc['phone'] ?? 'N/A';
+              final maskedAadhaar = kyc['aadhaar_number'] ?? 'N/A';
+              final submittedDate = kyc['created_at'] != null 
+                ? DateTime.parse(kyc['created_at']).toLocal().toString().split('.')[0]
+                : 'N/A';
+              
+              final isSignatureValid = kyc['signature_valid'] == true;
 
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.verified_user_outlined, color: Colors.orange),
-                  title: Text(shelterName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(phone),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showKycDetails(kycData),
+                margin: const EdgeInsets.only(bottom: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 4,
+                shadowColor: Colors.black26,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header: Name and Status Badge
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  fullName,
+                                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  profile['email'] ?? 'No email',
+                                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isSignatureValid ? Colors.green[50] : Colors.red[50],
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: isSignatureValid ? Colors.green : Colors.red),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSignatureValid ? Icons.check_circle : Icons.warning,
+                                  size: 14,
+                                  color: isSignatureValid ? Colors.green : Colors.red,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isSignatureValid ? 'Sig Valid' : 'Sig Invalid',
+                                  style: TextStyle(
+                                    fontSize: 10, 
+                                    fontWeight: FontWeight.bold,
+                                    color: isSignatureValid ? Colors.green : Colors.red
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+
+                      // Details Rows
+                      _buildInfoRow('Phone', phone),
+                      _buildInfoRow('Aadhaar', maskedAadhaar),
+                      _buildInfoRow('Submitted', submittedDate),
+                      const SizedBox(height: 16),
+
+                      // Offline Verification Data (if available)
+                      if (kyc['extracted_name'] != null || kyc['extracted_dob'] != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Offline KYC Extras:",
+                                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue[900]),
+                              ),
+                              const SizedBox(height: 4),
+                              if (kyc['extracted_name'] != null)
+                                _buildInfoRow('Verified Name', kyc['extracted_name'], compact: true),
+                              if (kyc['extracted_dob'] != null)
+                                _buildInfoRow('Verified DOB', kyc['extracted_dob'], compact: true),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Images Section
+                      Text(
+                        "Verification Photos:",
+                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 120,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            _buildImageThumbnail(context, kyc['aadhaar_image_url'], 'Aadhaar'),
+                            _buildImageThumbnail(context, kyc['selfie_image_url'], 'Selfie'),
+                            if (kyc['extracted_photo_url'] != null)
+                              _buildImageThumbnail(context, kyc['extracted_photo_url'], 'Offline Photo'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _rejectSubmission(userId, submissionId),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Text('Reject'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _approveSubmission(userId, submissionId),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                elevation: 0,
+                              ),
+                              child: const Text('Approve'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
           );
         },
       ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool compact = false}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: compact ? 2 : 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageThumbnail(BuildContext context, String? path, String label) {
+    if (path == null) return const SizedBox.shrink();
+    return FutureBuilder<String?>(
+      future: _storage.getKycSignedUrl(path),
+      builder: (context, snapshot) {
+        return GestureDetector(
+          onTap: () {
+            if (snapshot.hasData) {
+              showDialog(
+                context: context,
+                builder: (ctx) => Dialog(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      Image.network(snapshot.data!),
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
+                    ],
+                  ),
+                ),
+              );
+            }
+          },
+          child: Container(
+            width: 100,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+              image: snapshot.hasData
+                ? DecorationImage(image: NetworkImage(snapshot.data!), fit: BoxFit.cover)
+                : null,
+            ),
+            child: !snapshot.hasData 
+              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              : Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: double.infinity,
+                    color: Colors.black54,
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 8),
+                    ),
+                  ),
+                ),
+          ),
+        );
+      },
     );
   }
 }

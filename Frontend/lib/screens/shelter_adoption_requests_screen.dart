@@ -14,6 +14,7 @@ class ShelterAdoptionRequestsScreen extends StatefulWidget {
 class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _requests = [];
+  bool _kycVerified = false;
 
   @override
   void initState() {
@@ -27,7 +28,14 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
     if (user == null) return;
 
     try {
-      // Query using `shelter_owner_id` (the column name used when inserting adoption requests)
+      // Fetch kyc_verified status
+      final profileResponse = await Supabase.instance.client
+          .from('profiles')
+          .select('kyc_verified')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      // Query using `shelter_owner_id`
       final response = await Supabase.instance.client
           .from('adoption_requests')
           .select('id, pet_id, status, message, created_at, pets(name, animal, breed), profiles!requester_id(first_name, last_name, email, phone, city, state)')
@@ -36,6 +44,7 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
 
       setState(() {
         _requests = List<Map<String, dynamic>>.from(response);
+        _kycVerified = profileResponse?['kyc_verified'] == true;
         _isLoading = false;
       });
     } catch (e) {
@@ -305,10 +314,12 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
                                         icon: const Icon(Icons.check, size: 16),
                                         label: Text('Approve', style: GoogleFonts.poppins()),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
+                                          backgroundColor: _kycVerified ? Colors.green : Colors.grey,
                                           minimumSize: const Size(0, 42),
                                         ),
-                                        onPressed: () => _updateRequestStatus(req['id'].toString(), 'Approved'),
+                                        onPressed: !_kycVerified 
+                                          ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification pending.')))
+                                          : () => _updateRequestStatus(req['id'].toString(), 'Approved'),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -317,10 +328,12 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
                                         icon: const Icon(Icons.close, size: 16),
                                         label: Text('Reject', style: GoogleFonts.poppins()),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
+                                          backgroundColor: _kycVerified ? Colors.red : Colors.grey,
                                           minimumSize: const Size(0, 42),
                                         ),
-                                        onPressed: () => _updateRequestStatus(req['id'].toString(), 'Rejected'),
+                                        onPressed: !_kycVerified 
+                                          ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification pending.')))
+                                          : () => _updateRequestStatus(req['id'].toString(), 'Rejected'),
                                       ),
                                     ),
                                   ],

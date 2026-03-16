@@ -94,11 +94,6 @@ class PetConnectApp extends StatelessWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        if (!kycVerified) {
-          Future.microtask(() => Navigator.of(context).pushReplacementNamed(KycDocumentScreen.routeName));
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-
         return page;
       },
     );
@@ -147,12 +142,7 @@ class PetConnectApp extends StatelessWidget {
                   if (userRole == 'Pet Owner') {
                     return const MainScreen();
                   } else if (userRole == 'Shelter' || userRole == 'Shelter Owner') {
-                    final kycVerified = profile['kyc_verified'] == true;
-                    if (kycVerified) {
-                      return const ShelterHomeScreen();
-                    } else {
-                      return const KycDocumentScreen();
-                    }
+                    return const ShelterHomeScreen();
                   } else {
                     return const RoleSelectionScreen();
                   }
