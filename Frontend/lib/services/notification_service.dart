@@ -103,7 +103,7 @@ class NotificationService {
             channelDescription: 'your channel description',
             icon: android.smallIcon,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
       );
     }
