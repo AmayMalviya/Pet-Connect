@@ -172,87 +172,121 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
       children: [
         GestureDetector(
           onTap: _pickImage,
-          child: CircleAvatar(
-            radius: 50,
-            backgroundImage: isNetworkUrl
-                ? NetworkImage(_user!.photoUrl!)
-                : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
-            child: Stack(
-              children: [
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
-                  ),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
+            child: CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.white,
+              child: CircleAvatar(
+                radius: 56,
+                backgroundImage: isNetworkUrl
+                    ? NetworkImage(_user!.photoUrl!)
+                    : const AssetImage('assets/images/profile_avatar.png') as ImageProvider,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         Text(
           (_user?.displayName ?? '').trim().isEmpty ? 'No Name Provided' : (_user?.displayName ?? ''),
-          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textDark),
         ),
         Text(
           _user?.email ?? 'No Email Provided',
-          style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey),
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildShelterDetails() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("User / Shelter Details",
-                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () async {
-                    final nameParts = (_user?.displayName ?? '').split(' ');
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditProfileScreen(
-                          initialData: {
-                            'first_name': nameParts.isNotEmpty ? nameParts.first : '',
-                            'last_name': nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
-                            'email': _user?.email,
-                            'phone': _shelterPhone,
-                            'city': _user?.city,
-                            'state': _user?.state,
-                            'country': _user?.country,
-                            'website': _shelterWebsite,
-                            'address': _shelterAddress,
-                          },
-                          isShelter: true,
+                Text("Shelter Details",
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, color: AppColors.primary),
+                    onPressed: () async {
+                      final nameParts = (_user?.displayName ?? '').split(' ');
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfileScreen(
+                            initialData: {
+                              'first_name': nameParts.isNotEmpty ? nameParts.first : '',
+                              'last_name': nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
+                              'email': _user?.email,
+                              'phone': _shelterPhone,
+                              'city': _user?.city,
+                              'state': _user?.state,
+                              'country': _user?.country,
+                              'website': _shelterWebsite,
+                              'address': _shelterAddress,
+                            },
+                            isShelter: true,
+                          ),
                         ),
-                      ),
-                    );
-                    if (result == true) {
-                      _fetchProfileData();
-                    }
-                  },
+                      );
+                      if (result == true) {
+                        _fetchProfileData();
+                      }
+                    },
+                  ),
                 ),
               ],
             ),
+            const SizedBox(height: 16),
             const Divider(),
+            const SizedBox(height: 8),
             _buildDetailRow(Icons.phone, "Phone", _shelterPhone ?? "Not provided"),
             _buildDetailRow(Icons.location_on, "Address", _shelterAddress ?? "Not provided"),
             _buildDetailRow(Icons.web, "Website", _shelterWebsite ?? "Not provided"),
@@ -267,17 +301,24 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
 
   Widget _buildDetailRow(IconData icon, String title, String subtitle) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Row(
         children: [
-          Icon(icon, color: Theme.of(context).primaryColor),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 24),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-                Text(subtitle, style: GoogleFonts.poppins(color: Colors.grey)),
+                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[700])),
+                Text(subtitle, style: GoogleFonts.poppins(color: AppColors.textDark, fontSize: 15)),
               ],
             ),
           ),

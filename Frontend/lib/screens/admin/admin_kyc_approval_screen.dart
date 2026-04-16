@@ -24,16 +24,54 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
     _pendingKycFuture = _fetchPendingKyc();
   }
 
-  /// Fetch pending KYC requests from shelter_kyc joined with profiles
   Future<List<Map<String, dynamic>>> _fetchPendingKyc() async {
     try {
-      final response = await Supabase.instance.client
-          .from('shelter_kyc')
-          .select('*, profiles!inner(*)')
-          .inFilter('status', ['pending', 'pending_review'])
+      // Fetch all shelters that are NOT verified
+      final profilesResponse = await Supabase.instance.client
+          .from('profiles')
+          .select('*, shelter_kyc:shelter_kyc!shelter_kyc_user_id_fkey(*)')
+          .inFilter('role', ['Shelter', 'Shelter Owner'])
+          .neq('kyc_verified', true)
           .order('created_at', ascending: false);
 
-      return List<Map<String, dynamic>>.from(response);
+      final List<Map<String, dynamic>> results = [];
+      
+      for (var p in profilesResponse) {
+        final Map<String, dynamic> profile = Map<String, dynamic>.from(p as Map);
+        final kycList = profile['shelter_kyc'] as List<dynamic>?;
+        
+        if (kycList != null && kycList.isNotEmpty) {
+          // Prioritize pending submissions
+          Map<String, dynamic>? targetKyc;
+          try {
+            targetKyc = kycList.firstWhere(
+              (k) => k['status'] == 'pending' || k['status'] == 'pending_review'
+            );
+          } catch (_) {
+            targetKyc = kycList.first;
+          }
+          
+          results.add({
+            ...Map<String, dynamic>.from(targetKyc!),
+            'profiles': profile,
+          });
+        } else {
+          // Mock a KYC request object for those who haven't submitted
+          results.add({
+            'user_id': profile['user_id'],
+            'id': -1, // Mock ID
+            'first_name': profile['first_name'],
+            'last_name': profile['last_name'],
+            'phone': profile['phone'],
+            'aadhaar_number': null,
+            'status': 'not_submitted',
+            'created_at': profile['created_at'],
+            'profiles': profile,
+          });
+        }
+      }
+
+      return results;
     } catch (e) {
       debugPrint('Error fetching pending KYC: $e');
       rethrow;
@@ -59,12 +97,14 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
   Future<void> _approveSubmission(String userId, int submissionId) async {
     final adminId = Supabase.instance.client.auth.currentUser!.id;
     try {
-      // 1. Update shelter_kyc
-      await Supabase.instance.client.from('shelter_kyc').update({
-        'status': 'approved',
-        'reviewed_by': adminId,
-        'reviewed_at': DateTime.now().toIso8601String(),
-      }).eq('id', submissionId);
+      // 1. Update shelter_kyc if it exists
+      if (submissionId != -1) {
+        await Supabase.instance.client.from('shelter_kyc').update({
+          'status': 'approved',
+          'reviewed_by': adminId,
+          'reviewed_at': DateTime.now().toIso8601String(),
+        }).eq('id', submissionId);
+      }
 
       // 2. Update profiles
       await Supabase.instance.client.from('profiles').update({
@@ -613,35 +653,52 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                       const SizedBox(height: 24),
 
                       // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _rejectSubmission(userId, submissionId),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red,
-                                side: const BorderSide(color: Colors.red),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      kyc['status'] == 'not_submitted'
+                          ? SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  // Call a manual verify function logic here, similar to the one in ManageProfiles
+                                  _approveSubmission(userId, -1);
+                                },
+                                icon: const Icon(Icons.verified_user, size: 18),
+                                label: const Text('Verify Manually'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
                               ),
-                              child: const Text('Reject'),
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _rejectSubmission(userId, submissionId),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.red,
+                                      side: const BorderSide(color: Colors.red),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text('Reject'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _approveSubmission(userId, submissionId),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text('Approve'),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _approveSubmission(userId, submissionId),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                elevation: 0,
-                              ),
-                              child: const Text('Approve'),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),

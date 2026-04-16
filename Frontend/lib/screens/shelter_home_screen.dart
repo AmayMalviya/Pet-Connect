@@ -5,10 +5,9 @@ import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
 import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
 import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
 import 'package:pet_connect_app/screens/add_edit_pet_screen.dart';
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
-import 'package:pet_connect_app/screens/notifications_screen.dart';
 import 'package:pet_connect_app/widgets/notification_bell.dart';
-import 'package:pet_connect_app/widgets/kyc_status_banner.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
@@ -29,37 +28,6 @@ class ShelterHomeScreen extends StatelessWidget {
           const NotificationBell(),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: AppColors.primary),
-              child: Text('Shelter', style: GoogleFonts.poppins(color: Colors.white, fontSize: 18)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: Text('Home', style: GoogleFonts.poppins()),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.pets),
-              title: Text('Manage Pets', style: GoogleFonts.poppins()),
-              onTap: () => Navigator.pushNamed(context, ManagePetsScreen.routeName),
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: Text('Logout', style: GoogleFonts.poppins()),
-              onTap: () async {
-                await Supabase.instance.client.auth.signOut();
-                if (context.mounted) {
-                  Navigator.pushReplacementNamed(context, '/');
-                }
-              },
-            ),
-          ],
-        ),
-      ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: Supabase.instance.client
             .from('profiles')
@@ -71,7 +39,6 @@ class ShelterHomeScreen extends StatelessWidget {
 
           return Column(
             children: [
-              const KycStatusBanner(),
               Expanded(
                 child: CustomScrollView(
                   slivers: [
@@ -169,6 +136,81 @@ class ShelterHomeScreen extends StatelessWidget {
                       ),
                     ),
                     
+                    // Verification status info if not verified
+                    if (!kycVerified)
+                      SliverToBoxAdapter(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.red[100]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[100],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.gpp_bad_outlined, color: Colors.red, size: 28),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Verification Required',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.red[900],
+                                      ),
+                                    ),
+                                    Text(
+                                      'Complete your KYC to unlock full access to shelter tools.',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.red[700],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pushNamed(context, KycDocumentScreen.routeName);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        minimumSize: const Size(0, 36),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Start Verification',
+                                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                     // Search Bar
                     SliverToBoxAdapter(
                       child: Padding(
@@ -232,7 +274,7 @@ class ShelterHomeScreen extends StatelessWidget {
                             title: 'Manage Pets',
                             subtitle: 'View and update rescues',
                             icon: Icons.pets,
-                            color: Colors.blueAccent.shade100,
+                            color: Colors.blue.shade600,
                             onTap: () {
                               Navigator.pushNamed(context, ManagePetsScreen.routeName);
                             },
@@ -243,7 +285,7 @@ class ShelterHomeScreen extends StatelessWidget {
                               title: 'Adoption Requests',
                               subtitle: 'Review incoming requests',
                               icon: Icons.volunteer_activism_outlined,
-                              color: Colors.pinkAccent.shade100,
+                              color: Colors.pink.shade500,
                               onTap: () {
                                 if (!kycVerified) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -267,7 +309,7 @@ class ShelterHomeScreen extends StatelessWidget {
                           title: 'Analytics',
                           subtitle: 'Track your shelter\'s performance',
                           icon: Icons.analytics_outlined,
-                          color: Colors.purpleAccent.shade100,
+                          color: Colors.deepPurple.shade500,
                           isWide: true,
                           onTap: () {
                             Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName);
@@ -282,7 +324,7 @@ class ShelterHomeScreen extends StatelessWidget {
                           title: 'Manage Profile',
                           subtitle: 'Update shelter details and contacts',
                           icon: Icons.person_outline,
-                          color: Colors.greenAccent.shade100,
+                          color: Colors.teal.shade500,
                           isWide: true,
                           onTap: () {
                             Navigator.pushNamed(context, ShelterProfileScreen.routeName);
@@ -320,17 +362,24 @@ class _PremiumShelterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Generate a softer companion color for the gradient
+    final gradientEnd = color.withOpacity(0.7);
+    
     return Container(
-      height: isWide ? 130 : null,
+      height: isWide ? 110 : null,
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [color, gradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: color.withOpacity(0.3),
             spreadRadius: 0,
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -347,10 +396,10 @@ class _PremiumShelterCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.2),
-                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(icon, color: color.withAlpha(255), size: 32),
+                        child: Icon(icon, color: Colors.white, size: 32),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -363,20 +412,28 @@ class _PremiumShelterCard extends StatelessWidget {
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
+                                color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               subtitle,
                               style: GoogleFonts.poppins(
-                                color: Colors.grey[600],
+                                color: Colors.white.withOpacity(0.9),
                                 fontSize: 13,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, color: Colors.grey[300], size: 16),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                      ),
                     ],
                   )
                 : Column(
@@ -386,11 +443,12 @@ class _PremiumShelterCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.2),
-                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(icon, color: color.withAlpha(255), size: 28),
+                        child: Icon(icon, color: Colors.white, size: 28),
                       ),
+                      const SizedBox(height: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -399,13 +457,14 @@ class _PremiumShelterCard extends StatelessWidget {
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             subtitle,
                             style: GoogleFonts.poppins(
-                              color: Colors.grey[600],
+                              color: Colors.white.withOpacity(0.9),
                               fontSize: 12,
                             ),
                             maxLines: 2,

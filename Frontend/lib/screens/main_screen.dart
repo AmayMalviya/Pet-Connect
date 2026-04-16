@@ -8,7 +8,18 @@ import 'package:pet_connect_app/theme/app_theme.dart' show AppColors;
 import 'package:pet_connect_app/widgets/app_drawer.dart';
 import 'package:pet_connect_app/widgets/notification_bell.dart';
 import 'package:pet_connect_app/screens/global_ai_chat_screen.dart';
+import 'package:pet_connect_app/widgets/kyc_status_banner.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Shelter Screens
+import 'package:pet_connect_app/screens/shelter_home_screen.dart';
+import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
+import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
+
+// Vet Screens
+import 'package:pet_connect_app/screens/vet_home_screen.dart';
+import 'package:pet_connect_app/screens/appointments_screen.dart';
+import 'package:pet_connect_app/screens/my_patients_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -22,6 +33,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   String? _photoUrl;
+  String _userRole = 'Pet Owner';
+  bool _kycVerified = false;
+  bool _isLoadingRole = true;
 
   @override
   void initState() {
@@ -34,30 +48,91 @@ class _MainScreenState extends State<MainScreen> {
     if (user != null) {
       final profile = await Supabase.instance.client
           .from('profiles')
-          .select('photo_url')
+          .select('photo_url, role, kyc_verified')
           .eq('user_id', user.id)
           .maybeSingle();
-      if (profile != null && profile['photo_url'] != null) {
+      if (profile != null) {
         setState(() {
           _photoUrl = profile['photo_url'];
+          _userRole = profile['role'] ?? 'Pet Owner';
+          _kycVerified = profile['kyc_verified'] == true;
+          _isLoadingRole = false;
         });
       }
     }
   }
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    ServicesScreen(),
-    ShopScreen(),
-    CommunityScreen(),
-  ];
+  List<Widget> _getWidgetOptions() {
+    switch (_userRole) {
+      case 'Admin':
+        return [
+          const HomeScreen(), // Admin Dashboard fallback or specific admin home
+          const ServicesScreen(),
+          const CommunityScreen(),
+        ];
+      case 'Shelter':
+      case 'Shelter Owner':
+        return [
+          const ShelterHomeScreen(),
+          const ManagePetsScreen(),
+          const ShelterAdoptionRequestsScreen(),
+          const CommunityScreen(),
+        ];
+      case 'Vet':
+        return [
+          const VetHomeScreen(),
+          const MyPatientsScreen(),
+          const AppointmentsScreen(),
+          const CommunityScreen(),
+        ];
+      default:
+        return [
+          const HomeScreen(),
+          const ServicesScreen(),
+          const ShopScreen(),
+          const CommunityScreen(),
+        ];
+    }
+  }
 
-  static const List<String> _appBarTitles = <String>[
-    'Home',
-    'Services',
-    'Shop',
-    'Community',
-  ];
+  List<String> _getAppBarTitles() {
+    switch (_userRole) {
+      case 'Shelter':
+      case 'Shelter Owner':
+        return ['Shelter Home', 'Manage Pets', 'Adoptions', 'Community'];
+      case 'Vet':
+        return ['Vet Dashboard', 'My Patients', 'Appointments', 'Community'];
+      default:
+        return ['Home', 'Services', 'Shop', 'Community'];
+    }
+  }
+
+  List<BottomNavigationBarItem> _getBottomNavItems() {
+    switch (_userRole) {
+      case 'Shelter':
+      case 'Shelter Owner':
+        return [
+          const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Pets'),
+          const BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism), label: 'Requests'),
+          const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Community'),
+        ];
+      case 'Vet':
+        return [
+          const BottomNavigationBarItem(icon: Icon(Icons.medical_services), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(Icons.assignment_ind), label: 'Patients'),
+          const BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Appts'),
+          const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Community'),
+        ];
+      default:
+        return [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(Icons.medical_services), label: 'Services'),
+          const BottomNavigationBarItem(icon: Icon(Icons.shop), label: 'Shop'),
+          const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Community'),
+        ];
+    }
+  }  // end of _getBottomNavItems()
 
   void _onItemTapped(int index) {
     setState(() {
@@ -67,10 +142,21 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingRole) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final widgetOptions = _getWidgetOptions();
+    final appBarTitles = _getAppBarTitles();
+    final bottomNavItems = _getBottomNavItems();
+
+    // Show persistent KYC banner for shelters that are not verified
+    bool showKycBanner = (_userRole == 'Shelter' || _userRole == 'Shelter Owner') && !_kycVerified;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _appBarTitles[_selectedIndex],
+          appBarTitles[_selectedIndex],
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -93,8 +179,15 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      drawer: AppDrawer(),
-      body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
+      drawer: const AppDrawer(),
+      body: Column(
+        children: [
+          if (showKycBanner) const KycStatusBanner(),
+          Expanded(
+            child: widgetOptions.elementAt(_selectedIndex),
+          ),
+        ],
+      ),
       floatingActionButton: (_selectedIndex == 0 || _selectedIndex == 1)
           ? FloatingActionButton.extended(
               heroTag: 'main_screen_fab',
@@ -111,22 +204,15 @@ class _MainScreenState extends State<MainScreen> {
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
-            label: 'Services',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.shop), label: 'Shop'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Community'),
-        ],
+        items: bottomNavItems,
         currentIndex: _selectedIndex,
         selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: AppColors.textDark.withOpacity(0.5),
         onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
-        selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.poppins(),
+        selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12),
+        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12),
       ),
     );
   }

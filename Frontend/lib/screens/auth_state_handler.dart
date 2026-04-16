@@ -34,25 +34,21 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
               break;
 
             case AuthChangeEvent.signedIn:
-              // Handle successful sign in (including magic link and email confirmation)
+              // Handle password recovery and other specific flows
               if (session != null) {
-                // Check if this is a password recovery flow
                 final uri = Uri.tryParse(session.accessToken);
                 if (uri != null && uri.fragment.contains('type=recovery')) {
                   Navigator.of(context).pushReplacementNamed(
                     ResetPasswordScreen.routeName,
                     arguments: session,
                   );
-                } else {
-                  // Regular sign in - navigate to home
-                  Navigator.of(context).pushReplacementNamed('/');
                 }
+                // Do NOT navigate to '/' here, StreamBuilder in main.dart handles it
               }
               break;
 
             case AuthChangeEvent.signedOut:
-              // Handle sign out - navigate to auth screen
-              Navigator.of(context).pushReplacementNamed('/');
+              // Do NOT navigate to '/' here, StreamBuilder in main.dart handles it
               break;
 
             case AuthChangeEvent.tokenRefreshed:
