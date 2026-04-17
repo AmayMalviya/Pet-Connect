@@ -25,7 +25,10 @@ class KycStatusBanner extends StatelessWidget {
         final kycVerified = profile['kyc_verified'] == true;
         final kycStatus = profile['kyc_status'] as String? ?? 'unverified';
 
-        if (kycVerified) return const SizedBox.shrink();
+        // Hide banner if verified by boolean flag OR if status indicates verified/completed/approved
+        if (kycVerified || kycStatus == 'verified' || kycStatus == 'completed' || kycStatus == 'approved') {
+          return const SizedBox.shrink();
+        }
 
         Color bannerColor;
         String message;

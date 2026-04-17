@@ -155,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               _SocialIcon(
                                 onTap: _googleSignIn,
                                 child: Image.network(
-                                  'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
+                                  'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
                                   height: 24,
                                 ),
                               ),

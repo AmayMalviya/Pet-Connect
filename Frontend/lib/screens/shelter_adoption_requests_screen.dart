@@ -31,20 +31,23 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
       // Fetch kyc_verified status
       final profileResponse = await Supabase.instance.client
           .from('profiles')
-          .select('kyc_verified')
+          .select('kyc_verified, kyc_status')
           .eq('user_id', user.id)
           .maybeSingle();
 
       // Query using `shelter_owner_id`
       final response = await Supabase.instance.client
           .from('adoption_requests')
-          .select('id, pet_id, status, message, created_at, pets(name, animal, breed), profiles!requester_id(first_name, last_name, email, phone, city, state)')
-          .eq('shelter_owner_id', user.id)
-          .order('created_at', ascending: false);
+          .select('id, pet_id, status, message, pets(name, animal, breed), profiles!requester_id(first_name, last_name, email, phone, city, state)')
+          .eq('shelter_owner_id', user.id);
 
       setState(() {
         _requests = List<Map<String, dynamic>>.from(response);
-        _kycVerified = profileResponse?['kyc_verified'] == true;
+        final kycStatus = profileResponse?['kyc_status'] as String? ?? '';
+        _kycVerified = profileResponse?['kyc_verified'] == true ||
+            kycStatus == 'completed' ||
+            kycStatus == 'verified' ||
+            kycStatus == 'approved';
         _isLoading = false;
       });
     } catch (e) {
@@ -301,10 +304,6 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
                                 ),
                               ],
                               const SizedBox(height: 12),
-                              Text(
-                                '🕒 ${DateTime.parse(req['created_at']).toLocal().toString().substring(0, 16)}',
-                                style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 12),
-                              ),
                               if (status == 'Pending') ...[
                                 const SizedBox(height: 12),
                                 Row(

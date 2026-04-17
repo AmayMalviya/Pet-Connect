@@ -108,7 +108,7 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
 
       // 2. Update profiles
       await Supabase.instance.client.from('profiles').update({
-        'kyc_status': 'verified',
+        'kyc_status': 'completed',
         'kyc_verified': true,
         'kyc_submitted': true,
       }).eq('user_id', userId);

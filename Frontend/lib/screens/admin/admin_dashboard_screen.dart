@@ -31,7 +31,12 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await Supabase.instance.client.auth.signOut();
-              // StreamBuilder in main.dart will automatically handle the navigation to the auth screen
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  LoginScreen.routeName,
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

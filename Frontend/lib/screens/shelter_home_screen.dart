@@ -35,7 +35,11 @@ class ShelterHomeScreen extends StatelessWidget {
             .eq('user_id', Supabase.instance.client.auth.currentUser!.id),
         builder: (context, snapshot) {
           final profile = (snapshot.hasData && snapshot.data!.isNotEmpty) ? snapshot.data!.first : null;
-          final kycVerified = profile?['kyc_verified'] == true;
+          final kycStatus = profile?['kyc_status'] as String? ?? '';
+          final kycVerified = profile?['kyc_verified'] == true ||
+              kycStatus == 'completed' ||
+              kycStatus == 'verified' ||
+              kycStatus == 'approved';
 
           return Column(
             children: [
@@ -409,18 +413,22 @@ class _PremiumShelterCard extends StatelessWidget {
                           children: [
                             Text(
                               title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 18,
+                                fontSize: 15,
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.poppins(
                                 color: Colors.white.withOpacity(0.9),
-                                fontSize: 13,
+                                fontSize: 11,
                               ),
                             ),
                           ],

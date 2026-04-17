@@ -117,34 +117,60 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
   /// Manually verify a user
   Future<void> _verifyUserManually(String userId) async {
     try {
-      await Supabase.instance.client
+      final response = await Supabase.instance.client
           .from('profiles')
           .update({
             'kyc_verified': true,
-            'kyc_status': 'approved',
+            'kyc_status': 'completed',
           })
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .select();
 
-      // Also update shelter_kyc status if it exists
-      await Supabase.instance.client
-          .from('shelter_kyc')
-          .update({'status': 'approved'})
-          .eq('user_id', userId);
+      if (response.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not update — check Supabase RLS policies for the profiles table.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Optionally update shelter_kyc if a row exists
+      try {
+        await Supabase.instance.client
+            .from('shelter_kyc')
+            .update({'status': 'approved'})
+            .eq('user_id', userId);
+      } catch (_) {
+        // No shelter_kyc row — fine
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User verified manually!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('User verified successfully!'), backgroundColor: Colors.green),
         );
-        setState(() => _profilesFuture = _fetchProfiles());
+        final refreshed = _fetchProfiles();
+        setState(() {
+          _profilesFuture = refreshed;
+        });
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error verifying user: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
   }
+
 
   void _sendWarning(String userId, String userName) {
     final TextEditingController warningController = TextEditingController();
@@ -485,20 +511,43 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('Manage Profiles', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.transparent,
+        title: Text('Manage Profiles', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: Colors.white,
         foregroundColor: AppColors.textDark,
-        elevation: 1,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: 'Pet Owners'),
-            Tab(text: 'Shelters'),
-          ],
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () {
+              final refreshed = _fetchProfiles();
+              setState(() {
+                _profilesFuture = refreshed;
+              });
+            },
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Container(
+            color: Colors.white,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.primary,
+              indicatorWeight: 3,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: Colors.grey,
+              labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
+              unselectedLabelStyle: GoogleFonts.poppins(fontSize: 14),
+              tabs: const [
+                Tab(text: 'Pet Owners'),
+                Tab(text: 'Shelters'),
+              ],
+            ),
+          ),
         ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -508,25 +557,41 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 12),
+                  Text('Error loading profiles', style: GoogleFonts.poppins(color: Colors.red)),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      final refreshed = _fetchProfiles();
+                      setState(() {
+                        _profilesFuture = refreshed;
+                      });
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: Text('Retry', style: GoogleFonts.poppins()),
+                  ),
+                ],
+              ),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No profiles found.'));
+            return Center(child: Text('No profiles found.', style: GoogleFonts.poppins(color: Colors.grey)));
           }
 
           final allProfiles = snapshot.data!;
-
-          // Filter profiles by role
           final petOwners = allProfiles.where((p) => p['role'] == 'Pet Owner').toList();
           final shelters = allProfiles.where((p) => p['role'] == 'Shelter' || p['role'] == 'Shelter Owner').toList();
 
           return TabBarView(
             controller: _tabController,
             children: [
-              // Pet Owners tab
-              _buildProfileList(petOwners, 'No Pet Owners'),
-              // Shelters tab
-              _buildProfileList(shelters, 'No Shelters'),
+              _buildProfileList(petOwners, 'No Pet Owners found'),
+              _buildProfileList(shelters, 'No Shelters found'),
             ],
           );
         },
@@ -534,123 +599,282 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
     );
   }
 
+
   Widget _buildProfileList(List<Map<String, dynamic>> profiles, String emptyMessage) {
     if (profiles.isEmpty) {
-      return Center(child: Text(emptyMessage, style: GoogleFonts.poppins(color: Colors.grey)));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(emptyMessage, style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 15)),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       itemCount: profiles.length,
       itemBuilder: (context, index) {
         final profile = profiles[index];
         final isBanned = profile['is_banned'] == true;
+        final isRestricted = profile['is_restricted'] == true;
+        final kycStatus = profile['kyc_status'] as String? ?? '';
+        final isVerified = profile['kyc_verified'] == true ||
+            kycStatus == 'completed' ||
+            kycStatus == 'verified' ||
+            kycStatus == 'approved';
         final fullName = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
-        final isVerified = profile['kyc_verified'] == true || profile['kyc_status'] == 'verified' || profile['kyc_status'] == 'approved';
+        final location = [profile['city'], profile['state']]
+            .where((s) => s != null && (s as String).isNotEmpty)
+            .join(', ');
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: isBanned ? Colors.red[50] : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+        // Determine KYC badge color and label
+        Color kycColor;
+        String kycLabel;
+        if (isVerified) {
+          kycColor = Colors.green;
+          kycLabel = 'Verified';
+        } else if (kycStatus == 'pending') {
+          kycColor = Colors.orange;
+          kycLabel = 'Pending';
+        } else if (kycStatus == 'rejected') {
+          kycColor = Colors.red;
+          kycLabel = 'Rejected';
+        } else {
+          kycColor = Colors.grey;
+          kycLabel = 'Unverified';
+        }
+
+        return GestureDetector(
+          onTap: () => _showProfileDetails(profile),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: isBanned ? Colors.red[50] : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isBanned
+                    ? Colors.red.withOpacity(0.25)
+                    : isRestricted
+                        ? Colors.orange.withOpacity(0.3)
+                        : Colors.grey[200]!,
+                width: 1.5,
               ),
-            ],
-            border: Border.all(color: isBanned ? Colors.red.withOpacity(0.3) : Colors.grey[200]!),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => _showProfileDetails(profile),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 2),
-                          ),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.grey[100],
-                            foregroundImage: _getProfileImageUrl(profile) != null ? NetworkImage(_getProfileImageUrl(profile)!) : null,
-                            child: _getProfileImageUrl(profile) == null
-                                ? Icon(
-                                    profile['role'] == 'Pet Owner' ? Icons.person : Icons.home,
-                                    color: AppColors.primary,
-                                  )
-                                : null,
-                          ),
-                        ),
-                        if (isBanned)
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                              padding: const EdgeInsets.all(4),
-                              child: const Icon(Icons.block, size: 10, color: Colors.white),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top row: avatar + name + status badges
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Avatar with status dot
+                      Stack(
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  fullName.isNotEmpty ? fullName : 'User ID: ${profile['user_id'].toString().substring(0, 8)}...',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                    color: AppColors.textDark,
-                                    decoration: isBanned ? TextDecoration.lineThrough : null,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isVerified) ...[
-                                const SizedBox(width: 4),
-                                const Icon(Icons.verified, color: Colors.blue, size: 16),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.primary.withOpacity(0.15),
+                                  AppColors.accent.withOpacity(0.15),
+                                ],
+                              ),
                             ),
-                            child: Text(
-                              profile['role'] ?? 'N/A',
-                              style: GoogleFonts.poppins(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w500),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.transparent,
+                              foregroundImage: _getProfileImageUrl(profile) != null
+                                  ? NetworkImage(_getProfileImageUrl(profile)!)
+                                  : null,
+                              child: _getProfileImageUrl(profile) == null
+                                  ? Icon(
+                                      profile['role'] == 'Pet Owner' ? Icons.person_rounded : Icons.home_work_rounded,
+                                      color: AppColors.primary,
+                                      size: 26,
+                                    )
+                                  : null,
                             ),
                           ),
+                          if (isVerified)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(3),
+                                child: const Icon(Icons.check, size: 9, color: Colors.white),
+                              ),
+                            )
+                          else if (isBanned)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(3),
+                                child: const Icon(Icons.block, size: 9, color: Colors.white),
+                              ),
+                            ),
                         ],
                       ),
+                      const SizedBox(width: 12),
+                      // Name + email + badges
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    fullName.isNotEmpty
+                                        ? fullName
+                                        : 'Unnamed User',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                      color: isBanned ? Colors.red[700] : AppColors.textDark,
+                                      decoration: isBanned ? TextDecoration.lineThrough : null,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isVerified) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.verified_rounded, color: Colors.blue, size: 15),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              profile['email'] ?? 'No email',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            // Status chips row
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                // Role chip
+                                _buildChip(
+                                  profile['role'] ?? 'N/A',
+                                  AppColors.primary.withOpacity(0.12),
+                                  AppColors.primary,
+                                ),
+                                // KYC chip
+                                _buildChip(
+                                  kycLabel,
+                                  kycColor.withOpacity(0.12),
+                                  kycColor,
+                                ),
+                                // Banned chip
+                                if (isBanned)
+                                  _buildChip('Banned', Colors.red[50]!, Colors.red[700]!),
+                                // Restricted chip
+                                if (isRestricted && !isBanned)
+                                  _buildChip('Restricted', Colors.orange[50]!, Colors.orange[700]!),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Divider
+                  if (location.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, thickness: 0.8),
+                    const SizedBox(height: 10),
+                    // Location + quick actions row
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 13, color: Colors.grey),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            location,
+                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[600]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    isBanned
-                        ? const Icon(Icons.lock, color: Colors.red, size: 20)
-                        : Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
                   ],
-                ),
+
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, thickness: 0.8),
+                  const SizedBox(height: 8),
+
+                  // Quick action row
+                  Row(
+                    children: [
+                      // Ban / Unban quick button
+                      _buildQuickAction(
+                        icon: isBanned ? Icons.lock_open_rounded : Icons.lock_rounded,
+                        label: isBanned ? 'Unban' : 'Ban',
+                        color: isBanned ? Colors.green[700]! : Colors.red[600]!,
+                        bgColor: isBanned ? Colors.green[50]! : Colors.red[50]!,
+                        onTap: () => _toggleBanStatus(profile['user_id'], isBanned),
+                      ),
+                      const SizedBox(width: 8),
+                      // Restrict quick button
+                      _buildQuickAction(
+                        icon: isRestricted ? Icons.remove_circle_outline : Icons.do_not_disturb_on_outlined,
+                        label: isRestricted ? 'Unrestrict' : 'Restrict',
+                        color: Colors.orange[700]!,
+                        bgColor: Colors.orange[50]!,
+                        onTap: () => _toggleRestrictStatus(profile['user_id'], isRestricted),
+                      ),
+                      const SizedBox(width: 8),
+                      // Verify quick button (only for unverified shelters)
+                      if (!isVerified && (profile['role'] == 'Shelter' || profile['role'] == 'Shelter Owner'))
+                        _buildQuickAction(
+                          icon: Icons.verified_user_rounded,
+                          label: 'Verify',
+                          color: Colors.blue[700]!,
+                          bgColor: Colors.blue[50]!,
+                          onTap: () => _verifyUserManually(profile['user_id']),
+                        ),
+                      const Spacer(),
+                      // View details arrow
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -658,6 +882,51 @@ class _ManageProfilesScreenState extends State<ManageProfilesScreen> with Single
       },
     );
   }
+
+  Widget _buildChip(String label, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(fontSize: 10, color: textColor, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildQuickAction({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.poppins(fontSize: 11, color: color, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   /// Try a few common profile image fields and return the first non-null url
   String? _getProfileImageUrl(Map<String, dynamic> profile) {
