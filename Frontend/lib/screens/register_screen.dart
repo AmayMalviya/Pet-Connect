@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
-import 'package:pet_connect_app/screens/login_screen.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -34,67 +33,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    if (email.text.isEmpty || password.text.isEmpty || firstName.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
     if (password.text != confirmPassword.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Passwords do not match')),
       );
       return;
     }
-    if (firstName.text.isEmpty || lastName.text.isEmpty || email.text.isEmpty || password.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
-    }
+
     setState(() => _isLoading = true);
     try {
       final response = await Supabase.instance.client.auth.signUp(
         email: email.text.trim(),
-        password: password.text,
+        password: password.text.trim(),
         data: {
           'first_name': firstName.text.trim(),
           'last_name': lastName.text.trim(),
-        }, // Pass additional data
+        },
       );
 
       if (response.user != null) {
-        // The user is created, but needs to confirm their email.
-        // Supabase sends the confirmation email automatically if enabled.
-        // We recommend setting up a database trigger to create a profile in the public 'profiles' table
-        // when a new user is created in the 'auth.users' table.
-
         if (!mounted) return;
-
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Confirm your email'),
-            content: const Text('We have sent a confirmation link to your email address. Please click the link to activate your account.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  Navigator.pushReplacementNamed(context, LoginScreen.routeName); // Go to login
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful! Please login.')),
         );
+        Navigator.pushReplacementNamed(context, LoginScreen.routeName);
       }
     } on AuthException catch (e) {
-      if (!mounted) return;
-      final message = e.message.toLowerCase().contains('already registered')
-          ? 'This email address is already in use.'
-          : e.message;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
       );
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
+        SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -105,83 +81,93 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'io.supabase.petconnect://login-callback',
-      );
-    } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        redirectTo: 'io.supabase.petconnect://login-callback',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An unexpected error occurred: ${e.toString()}'), backgroundColor: Colors.red),
-      );
+      debugPrint('Google Sign In Error: $e');
     }
-  }
-
-  Future<void> _appleSignIn() async {
-    // TODO: Implement Apple Sign In with Supabase
-  }
-
-  Future<void> _facebookSignIn() async {
-    // TODO: Implement Facebook Sign In with Supabase
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, automaticallyImplyLeading: false),
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          const Align(alignment: Alignment.bottomCenter, child: _WaveBands()),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 12),
-                  Text('Create your account', style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                  const SizedBox(height: 6),
-                  Text('Sign up to get started', style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54)),
-                  const SizedBox(height: 18),
+          const Positioned.fill(child: _WaveBands()),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 12),
+                          Text('Create your account', style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                          const SizedBox(height: 6),
+                          Text('Sign up to get started', style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54)),
+                          const SizedBox(height: 18),
 
-                  PetTextField(controller: firstName, hint: 'First name', icon: Icons.person_outline_rounded),
-                  const SizedBox(height: 12),
-                  PetTextField(controller: lastName, hint: 'Last name', icon: Icons.person_outline_rounded),
-                  const SizedBox(height: 12),
-                  PetTextField(controller: email, hint: 'Email', icon: Icons.alternate_email_rounded),
-                  const SizedBox(height: 12),
-                  PetTextField(controller: password, hint: 'Create Password', icon: Icons.lock_outline_rounded, obscure: true),
-                  const SizedBox(height: 12),
-                  PetTextField(controller: confirmPassword, hint: 'Confirm Password', icon: Icons.lock_outline_rounded, obscure: true),
+                          PetTextField(controller: firstName, hintText: 'First name'),
+                          const SizedBox(height: 12),
+                          PetTextField(controller: lastName, hintText: 'Last name'),
+                          const SizedBox(height: 12),
+                          PetTextField(controller: email, hintText: 'Email'),
+                          const SizedBox(height: 12),
+                          PetTextField(controller: password, hintText: 'Create Password', isPassword: true),
+                          const SizedBox(height: 12),
+                          PetTextField(controller: confirmPassword, hintText: 'Confirm Password', isPassword: true),
 
-                  const SizedBox(height: 18),
-                  _isLoading ? const Center(child: CircularProgressIndicator()) : PrimaryButton(label: 'Sign Up', icon: Icons.check_circle_rounded, onPressed: _submit),
+                          const SizedBox(height: 18),
+                          _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : PrimaryButton(
+                                  onPressed: _submit,
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.check_circle_rounded),
+                                      SizedBox(width: 8),
+                                      Text('Sign Up', style: TextStyle(fontWeight: FontWeight.w700)),
+                                    ],
+                                  ),
+                                ),
 
-                  const SizedBox(height: 12),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text('Already have an account?', style: GoogleFonts.poppins()),
-                    TextButton(onPressed: () => Navigator.pushReplacementNamed(context, LoginScreen.routeName), child: Text('Login', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)))
-                  ]),
+                          const SizedBox(height: 12),
+                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Text('Already have an account?', style: GoogleFonts.poppins()),
+                            TextButton(onPressed: () => Navigator.pushReplacementNamed(context, LoginScreen.routeName), child: Text('Login', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)))
+                          ]),
 
-                  const SizedBox(height: 10),
-                  Center(child: Text('Or continue with', style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54))),
-                  const SizedBox(height: 8),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    _SocialIcon(onTap: _googleSignIn, child: const Icon(Icons.g_mobiledata)),
-                    const SizedBox(width: 10),
-                    _SocialIcon(onTap: _facebookSignIn, child: const Icon(Icons.facebook_rounded)),
-                    const SizedBox(width: 10),
-                    _SocialIcon(onTap: _appleSignIn, child: const Icon(Icons.apple_rounded)),
-                  ])
-                ],
-              ),
-            ),
+                          const SizedBox(height: 10),
+                          Center(child: Text('Or continue with', style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54))),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _SocialIcon(
+                                onTap: _googleSignIn,
+                                child: Image.network(
+                                  'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+                                  height: 24,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -214,9 +200,29 @@ class _WaveBands extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      children: const [
-        Positioned(left: 0, right: 0, bottom: -6, child: _Band(height: 170, color: AppColors.accent)),
-        Positioned(left: 0, right: 0, bottom: 18, child: _Band(height: 150, color: AppColors.primary)),
+      children: [
+        // bottom bands
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -6,
+          child: _Band(height: 170, color: AppColors.accent, clipper: _BottomWaveClipper()),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 18,
+          child: _Band(height: 150, color: AppColors.primary, clipper: _BottomWaveClipper()),
+        ),
+        // top-right soft curve
+        Positioned(
+          top: -10,
+          right: -40,
+          child: Transform.rotate(
+            angle: -0.2,
+            child: _Band(height: 140, width: 240, color: AppColors.accent, clipper: _TopWaveClipper()),
+          ),
+        ),
       ],
     );
   }
@@ -224,31 +230,50 @@ class _WaveBands extends StatelessWidget {
 
 class _Band extends StatelessWidget {
   final double height;
+  final double? width;
   final Color color;
-  const _Band({required this.height, required this.color});
+  final CustomClipper<Path> clipper;
+  const _Band({required this.height, required this.color, this.width, required this.clipper});
   @override
-  Widget build(BuildContext context) => ClipPath(clipper: _WaveClipper(), child: Container(height: height, color: color));
+  Widget build(BuildContext context) {
+    return ClipPath(
+      clipper: clipper,
+      child: Container(
+        height: height,
+        width: width ?? MediaQuery.of(context).size.width,
+        color: color,
+      ),
+    );
+  }
 }
 
-class _WaveClipper extends CustomClipper<Path> {
+class _BottomWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final p = Path();
-    // Start by moving to a point on the left edge, which is the start of our wave
     p.moveTo(0, size.height * 0.7);
-    // First curve of the wave
     p.quadraticBezierTo(size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.7);
-    // Second curve of the wave
     p.quadraticBezierTo(size.width * 0.75, size.height * 0.9, size.width, size.height * 0.7);
-    // Line to the bottom-right corner
     p.lineTo(size.width, size.height);
-    // Line to the bottom-left corner
     p.lineTo(0, size.height);
-    // Close the path
     p.close();
     return p;
   }
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
 
+class _TopWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final p = Path();
+    p.lineTo(0, size.height * 0.65);
+    p.quadraticBezierTo(size.width * 0.25, size.height, size.width * 0.55, size.height * 0.74);
+    p.quadraticBezierTo(size.width * 0.82, size.height * 0.5, size.width, size.height * 0.7);
+    p.lineTo(size.width, 0);
+    p.close();
+    return p;
+  }
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

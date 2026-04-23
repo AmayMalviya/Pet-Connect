@@ -41,11 +41,12 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-# Java / Maven
-/backend_java/target/
-
 # Flutter / Dart
 /Frontend/.dart_tool/
 /Frontend/build/
 /Frontend/.flutter-plugins-dependencies
 /Frontend/pubspec.lock
+
+# Local env files (do not commit secrets)
+.env
+*.env

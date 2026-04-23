@@ -11,10 +11,10 @@ serve(async (req) => {
   }
 
   try {
-    const { idPhotoPath, selfiePath, userId } = await req.json();
+    const { aadhaar_image_url, selfie_image_url, user_id } = await req.json();
 
-    if (!idPhotoPath || !selfiePath || !userId) {
-      return new Response(JSON.stringify({ error: "Missing idPhotoPath, selfiePath, or userId" }), {
+    if (!aadhaar_image_url || !selfie_image_url || !user_id) {
+      return new Response(JSON.stringify({ error: "Missing aadhaar_image_url, selfie_image_url, or user_id" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,
       });

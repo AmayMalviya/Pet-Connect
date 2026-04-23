@@ -2,7 +2,7 @@ import 'package:uuid/uuid.dart';
 
 class Animal {
   final String id;
-  final String shelterId;
+  final String userId;
   final String name;
   final String type;
   final String? breed;
@@ -15,7 +15,7 @@ class Animal {
 
   Animal({
     required this.id,
-    required this.shelterId,
+    required this.userId,
     required this.name,
     required this.type,
     this.breed,
@@ -30,7 +30,7 @@ class Animal {
   factory Animal.fromJson(Map<String, dynamic> json) {
     return Animal(
       id: json['id'] as String,
-      shelterId: json['shelter_id'] as String,
+      userId: json['user_id'] as String,
       name: json['name'] as String,
       type: json['type'] as String,
       breed: json['breed'] as String?,
@@ -46,7 +46,7 @@ class Animal {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'shelter_id': shelterId,
+      'user_id': userId,
       'name': name,
       'type': type,
       'breed': breed,

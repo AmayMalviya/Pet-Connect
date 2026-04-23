@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/shelter_verification_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
-import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/kyc_document_screen.dart';
+import 'package:pet_connect_app/screens/profile_setup_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/utils/role_helpers.dart';
 
@@ -23,31 +25,40 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchRoles();
-  }
+    // Use a fixed, canonical set of roles for users.
+    // Only expose exactly two choices: Pet Owner and Shelter
+    _roles = [
+      {'id': 'pet_owner', 'name': 'Pet Owner'},
+      {'id': 'shelter', 'name': 'Shelter'},
+    ];
+    _isLoading = false;
+    // If the current user already has a role set, don't show role selection again.
+    Future.microtask(() async {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      try {
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-  Future<void> _fetchRoles() async {
-    try {
-      final response = await Supabase.instance.client.from('roles').select('id, name');
-      setState(() {
-        _roles = (response as List).map((role) => {'id': role['id'], 'name': role['name']}).toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load roles: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
+        if (profile != null && profile['role'] != null && (profile['role'] as String).isNotEmpty) {
+          // Role already set; send user back to main routing (pop this screen).
+          if (mounted) Navigator.of(context).pop();
+        }
+      } catch (_) {
+        // ignore - we'll let the user choose
+      }
+    });
   }
+  // No remote fetch - keep roles deterministic and limited to two values.
 
   String _getRoleDescription(String roleName) {
     switch (roleName) {
       case 'Pet Owner':
         return 'Manage your pets, appointments, and connect with a community of pet lovers.';
-      case 'Vet':
-        return 'Manage your clinic, appointments, and provide care for pets.';
-      case 'Shelter Owner':
+      case 'Shelter':
         return 'Manage your shelter, list pets for adoption, and connect with potential adopters.';
       default:
         return 'A general user role.';
@@ -70,26 +81,42 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         final selectedRole = _roles.firstWhere((role) => role['id'] == _selectedRoleId);
+        final canonicalRole = selectedRole['name'] as String;
 
+        // Upsert the profile with canonical role names ('Pet Owner' or 'Shelter')
         await Supabase.instance.client.from('profiles').upsert({
           'user_id': user.id,
-          'role': selectedRole['name'],
+          'role': canonicalRole,
         });
 
         if (!mounted) return;
 
-        if (selectedRole['name'] == 'Shelter Owner') {
+        // Admin path (not selectable here) fallback
+        if (canonicalRole == 'Admin') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const ShelterVerificationScreen()),
+            MaterialPageRoute(
+              builder: (context) => const AdminDashboardScreen(),
+            ),
           );
-        } else if (selectedRole['name'] == 'Pet Owner') {
-          Navigator.pushReplacementNamed(context, MainScreen.routeName);
-        } else {
-          Navigator.pushReplacementNamed(
+        } else if (canonicalRole == 'Pet Owner') {
+          // Pet owners proceed to profile setup
+          Navigator.pushReplacement(
             context,
-            KycScreen.routeName,
-            arguments: selectedRole['name'],
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: canonicalRole),
+            ),
+          );
+        } else if (canonicalRole == 'Shelter') {
+          // For shelters, immediately start KYC flow and require verification before access
+          Navigator.pushReplacementNamed(context, KycDocumentScreen.routeName);
+        } else {
+          // Default fallback: profile setup
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: canonicalRole),
+            ),
           );
         }
       } else {

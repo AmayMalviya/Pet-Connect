@@ -6,9 +6,8 @@ IconData getIconForRole(String roleName) {
     case 'Pet Owner':
       return Icons.person_outline;
     case 'Shelter Owner':
+    case 'Shelter':
       return Icons.home_outlined;
-    case 'Vet':
-      return Icons.medical_services_outlined;
     default:
       return Icons.person;
   }

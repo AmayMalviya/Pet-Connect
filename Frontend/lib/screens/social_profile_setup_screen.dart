@@ -93,22 +93,26 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
             const SizedBox(height: 32),
             PetTextField(
               controller: _firstNameController,
-              hint: 'First Name',
-              icon: Icons.person_outline,
+              hintText: 'First Name',
             ),
             const SizedBox(height: 16),
             PetTextField(
               controller: _lastNameController,
-              hint: 'Last Name',
-              icon: Icons.person_outline,
+              hintText: 'Last Name',
             ),
             const SizedBox(height: 32),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : PrimaryButton(
-                    label: 'Save and Continue',
                     onPressed: _saveProfile,
-                    icon: Icons.check_circle_outline,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline),
+                        SizedBox(width: 8),
+                        Text('Save and Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
           ],
         ),

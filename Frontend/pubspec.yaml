@@ -30,35 +30,45 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_fonts: ^6.3.2
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.6
-  google_maps_flutter: ^2.6.1
-  geolocator: ^12.0.0
-  google_maps_apis: ^4.0.0
-  permission_handler: ^11.3.1
-  http: ^1.2.1
-  image_picker: ^1.1.2
+  google_fonts: 
+  geolocator: ^14.0.2
+  flutter_map: ^8.0.0
+  latlong2: ^0.9.1
+  flutter_dotenv: ^6.0.0
+  permission_handler: ^12.0.1
+  http: ^1.5.0
+  image_picker: ^1.2.1
+  image: ^4.1.0
   url_launcher: ^6.2.2
   table_calendar: ^3.1.1
-  sign_in_with_apple: ^7.0.1
   mobile_scanner: ^7.1.2
-  camera: ^0.11.0
+  camera: ^0.12.0+1
 
   supabase_flutter: ^2.5.0
-  google_sign_in: ^6.2.1
+  google_sign_in: ^7.2.0
+  app_links: ^7.0.0
 
   # Firebase & Notifications
-  firebase_core: ^3.1.1 
-  firebase_messaging: ^15.0.1
-  flutter_local_notifications: ^17.2.1
+  firebase_core: 
+  firebase_messaging: 
+  flutter_local_notifications: ^19.0.0
 
+  csv: ^8.0.0
+  file_picker: ^8.1.7
+  path: ^1.8.3
+  firebase_auth: 
+  
+  # AI and API integrations
+  dio: ^5.3.0
+  shared_preferences: ^2.2.0
+  uuid: ^4.0.0
+  google_maps_flutter: ^2.6.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mockito: ^5.4.4
+  build_runner: ^2.4.10
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -79,6 +89,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env
     - assets/images/logo.png
     - assets/images/dog_trick.png
     - assets/images/cat_sleep.png
