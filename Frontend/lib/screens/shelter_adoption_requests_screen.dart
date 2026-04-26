@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/screens/chat_screen.dart';
 
 class ShelterAdoptionRequestsScreen extends StatefulWidget {
   static const routeName = '/shelter-adoption-requests';
@@ -336,6 +337,30 @@ class _ShelterAdoptionRequestsScreenState extends State<ShelterAdoptionRequestsS
                                       ),
                                     ),
                                   ],
+                                ),
+                              ] else if (status == 'Approved') ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                                    label: Text('Chat with Adopter', style: GoogleFonts.poppins()),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ChatScreen(
+                                            requestId: req['id'].toString(),
+                                            otherUserName: requesterName.isNotEmpty ? requesterName : 'Adopter',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ],
                             ],

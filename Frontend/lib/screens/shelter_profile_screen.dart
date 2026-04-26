@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:pet_connect_app/services/storage_service.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/screens/my_adoption_requests_screen.dart';
 
 class ShelterProfileScreen extends StatefulWidget {
   static const routeName = '/shelter-profile';
@@ -158,6 +159,11 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
                       _buildProfileHeader(),
                       const SizedBox(height: 20),
                       _buildShelterDetails(),
+                      const SizedBox(height: 20),
+                      _buildMyAdoptionRequestsButton(),
+                      const SizedBox(height: 20),
+                      _buildLogoutButton(),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -323,6 +329,94 @@ class _ShelterProfileScreenState extends State<ShelterProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMyAdoptionRequestsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.pets, color: AppColors.primary),
+        ),
+        title: Text(
+          'My Adoption Requests',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        subtitle: Text(
+          'View status and chat with shelters',
+          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MyAdoptionRequestsScreen()),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.logout_rounded, color: Colors.red),
+        ),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.red),
+        ),
+        subtitle: Text(
+          'Sign out of your account',
+          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.red),
+        onTap: () async {
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const AuthScreen()),
+              (route) => false,
+            );
+          }
+        },
       ),
     );
   }
