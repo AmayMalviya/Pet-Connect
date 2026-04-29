@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/screens/auth_screen.dart';
 import 'package:pet_connect_app/services/storage_service.dart';
 
 // ── navigation targets ──────────────────────────────────────────────────────
@@ -164,6 +165,51 @@ class _KycScreenState extends State<KycScreen> {
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
+  // ── info bottom-sheet ────────────────────────────────────────────────────
+  static void _showInfo(BuildContext ctx, {required String title, required String body, String? steps}) {
+    showModalBottomSheet(
+      context: ctx,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.info_outline, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text(title,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(body, style: const TextStyle(fontSize: 13, height: 1.6)),
+            if (steps != null) ...[
+              const SizedBox(height: 10),
+              Text(steps,
+                  style: const TextStyle(
+                      fontSize: 12, height: 1.65, color: Color(0xFF555555))),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -180,6 +226,18 @@ class _KycScreenState extends State<KycScreen> {
             backgroundColor: theme.appBarTheme.backgroundColor,
             foregroundColor: theme.appBarTheme.foregroundColor,
             elevation: 0,
+            actions: [
+              IconButton(
+                tooltip: 'Logout',
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  await Supabase.instance.client.auth.signOut();
+                  if (context.mounted) {
+                    Navigator.pushReplacementNamed(context, AuthScreen.routeName);
+                  }
+                },
+              ),
+            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -188,8 +246,42 @@ class _KycScreenState extends State<KycScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Tip banner ─────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: cs.primary.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.bolt_rounded, color: cs.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'More information you provide, the faster the verification.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   // ── Aadhaar ZIP ────────────────────────────────────────
-                  _SectionLabel('1. Aadhaar (Offline E-Aadhaar ZIP)', theme),
+                  _LabelRow(
+                    label: '1. Aadhaar (Offline E-Aadhaar ZIP)',
+                    onInfo: () => _showInfo(context,
+                      title: 'How to get your E-Aadhaar ZIP',
+                      body: 'The offline Aadhaar XML (ZIP) is a digitally signed file issued by UIDAI. It contains your name, DOB, address and a verifiable UIDAI signature — far more reliable than a photo.',
+                      steps: 'Steps:\n1. Go to myaadhaar.uidai.gov.in\n2. Sign in with your Aadhaar number + OTP\n3. Click "Offline e-KYC" → "Download XML"\n4. Set a 4-digit share code when prompted\n5. Save the .zip file and upload it here.',
+                    ),
+                    theme: theme,
+                  ),
                   const SizedBox(height: 8),
                   _aadhaarZip == null
                       ? _OutlineBtn(
@@ -213,7 +305,15 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(height: 20),
 
                   // ── PAN ────────────────────────────────────────────────
-                  _SectionLabel('2. PAN Card Number', theme),
+                  _LabelRow(
+                    label: '2. PAN Card Number',
+                    onInfo: () => _showInfo(context,
+                      title: 'What is a PAN card?',
+                      body: 'PAN (Permanent Account Number) is a 10-character alphanumeric code issued by the Income Tax Department of India. It is mandatory for all financial and tax transactions.',
+                      steps: 'Where to find it:\n• Printed on the front of your physical PAN card\n• Format: AAAAA9999A  (5 letters · 4 digits · 1 letter)\n• 4th character: P = Individual,  C = Company / Trust',
+                    ),
+                    theme: theme,
+                  ),
                   const SizedBox(height: 8),
                   _KycField(
                     controller: _panCtrl,
@@ -237,7 +337,15 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(height: 20),
 
                   // ── GSTIN (optional) ───────────────────────────────────
-                  _SectionLabel('3. GSTIN (optional)', theme),
+                  _LabelRow(
+                    label: '3. GSTIN (optional)',
+                    onInfo: () => _showInfo(context,
+                      title: 'What is GSTIN?',
+                      body: 'GSTIN (Goods & Services Tax Identification Number) is a 15-digit number assigned to every GST-registered business in India. Providing it boosts your trust score.',
+                      steps: 'Where to find it:\n• GST registration certificate\n• Any GST invoice issued to / by your shelter\n• GST portal: gst.gov.in → Login → My Profile\n• Format: 22AAAAA0000A1Z5',
+                    ),
+                    theme: theme,
+                  ),
                   const SizedBox(height: 8),
                   _KycField(
                     controller: _gstinCtrl,
@@ -257,7 +365,15 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(height: 20),
 
                   // ── Darpan ID (optional) ───────────────────────────────
-                  _SectionLabel('4. Darpan ID (optional, NGO shelters)', theme),
+                  _LabelRow(
+                    label: '4. Darpan ID (optional, NGO shelters)',
+                    onInfo: () => _showInfo(context,
+                      title: 'What is a Darpan ID?',
+                      body: 'Darpan is a government portal (darpan.gov.in) that registers NGOs. A Darpan ID proves your shelter is a registered non-profit, significantly increasing your trust score.',
+                      steps: 'Where to find it:\n• NGO registration certificate from niti.gov.in/darpan\n• Visible after login at darpan.gov.in → My Profile\n• Format: GJ/2019/0223456  (State / Year / Number)',
+                    ),
+                    theme: theme,
+                  ),
                   const SizedBox(height: 8),
                   _KycField(
                     controller: _darpanCtrl,
@@ -268,7 +384,15 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(height: 20),
 
                   // ── Selfie ─────────────────────────────────────────────
-                  _SectionLabel('5. Selfie (front camera)', theme),
+                  _LabelRow(
+                    label: '5. Selfie (front camera)',
+                    onInfo: () => _showInfo(context,
+                      title: 'Taking a good selfie',
+                      body: 'Your selfie is used to cross-verify your identity against the Aadhaar photo. A clear selfie speeds up manual review.',
+                      steps: 'Tips:\n• Face must be centered and fully visible\n• Remove sunglasses, caps, or masks\n• Use natural lighting — avoid backlighting\n• Neutral expression works best\n• The app automatically corrects the mirror effect',
+                    ),
+                    theme: theme,
+                  ),
                   const SizedBox(height: 8),
                   _selfieImage == null
                       ? _OutlineBtn(
@@ -387,14 +511,42 @@ class _KycScreenState extends State<KycScreen> {
 
 // ── Shared small widgets ──────────────────────────────────────────────────────
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text, this.theme);
-  final String text;
+/// Row with section label + individual ⓘ info button
+class _LabelRow extends StatelessWidget {
+  const _LabelRow({
+    required this.label,
+    required this.onInfo,
+    required this.theme,
+  });
+  final String label;
+  final VoidCallback onInfo;
   final ThemeData theme;
+
   @override
-  Widget build(BuildContext context) => Text(text,
-      style: theme.textTheme.titleSmall
-          ?.copyWith(fontWeight: FontWeight.w600));
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        GestureDetector(
+          onTap: onInfo,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: theme.colorScheme.primary.withValues(alpha: 0.75),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _KycField extends StatelessWidget {

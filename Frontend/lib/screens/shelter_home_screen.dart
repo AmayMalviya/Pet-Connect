@@ -9,6 +9,7 @@ import 'package:pet_connect_app/screens/kyc_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:pet_connect_app/widgets/notification_bell.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/screens/auth_screen.dart';
 
 class ShelterHomeScreen extends StatelessWidget {
   static const routeName = '/shelter-home';
@@ -19,13 +20,6 @@ class ShelterHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text('Home', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
-        actions: [const NotificationBell()],
-      ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: Supabase.instance.client
             .from('profiles')
@@ -43,10 +37,35 @@ class ShelterHomeScreen extends StatelessWidget {
 
           return Column(
             children: [
-              // ── Sticky KYC banner ──────────────────────────────────────
+              // AppBar — inline so we can access kycVerified
+              AppBar(
+                title: Text('Home',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                backgroundColor: Colors.transparent,
+                foregroundColor: AppColors.textDark,
+                elevation: 0,
+                automaticallyImplyLeading: false,
+                actions: [
+                  const NotificationBell(),
+                  if (!kycVerified)
+                    IconButton(
+                      tooltip: 'Logout',
+                      icon: const Icon(Icons.logout),
+                      onPressed: () async {
+                        await Supabase.instance.client.auth.signOut();
+                        if (context.mounted) {
+                          Navigator.pushReplacementNamed(
+                              context, AuthScreen.routeName);
+                        }
+                      },
+                    ),
+                ],
+              ),
+
+              // ── Sticky KYC banner ────────────────────────────────────
               if (!kycVerified) _KycBanner(),
 
-              // ── Content — fully blocked when unverified ────────────────
+              // ── Content — fully blocked when unverified ──────────────
               Expanded(
                 child: AbsorbPointer(
                   absorbing: !kycVerified,
