@@ -164,6 +164,15 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 1,
         actions: [
           const NotificationBell(),
+          // Logout for unverified shelter users
+          if (showKycBanner)
+            IconButton(
+              tooltip: 'Logout',
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+              },
+            ),
           IconButton(
             icon: CircleAvatar(
               radius: 18,
@@ -179,7 +188,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(onTabSwitch: _onItemTapped),
       body: Column(
         children: [
           if (showKycBanner) const KycStatusBanner(),

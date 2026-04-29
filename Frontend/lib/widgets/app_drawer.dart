@@ -31,7 +31,10 @@ import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/vet_profile_screen.dart';
 
 class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+  /// Called with the tab index to switch to in MainScreen.
+  /// Pass null-safe — drawer items that open a new screen use pushNamed directly.
+  final void Function(int index)? onTabSwitch;
+  const AppDrawer({super.key, this.onTabSwitch});
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -178,27 +181,27 @@ class _AppDrawerState extends State<AppDrawer> {
       _buildDrawerItem(
         icon: Icons.home_outlined,
         title: 'Home',
-        onTap: () => Navigator.pushReplacementNamed(context, MainScreen.routeName),
-      ),
-      _buildDrawerItem(
-        icon: Icons.people_outline,
-        title: 'Community',
-        onTap: () => Navigator.pushReplacementNamed(context, CommunityScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(0); },
       ),
       _buildDrawerItem(
         icon: Icons.miscellaneous_services_outlined,
         title: 'Services',
-        onTap: () => Navigator.pushReplacementNamed(context, ServicesScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(1); },
       ),
       _buildDrawerItem(
         icon: Icons.shopping_bag_outlined,
         title: 'Shop',
-        onTap: () => Navigator.pushReplacementNamed(context, ShopScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(2); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.people_outline,
+        title: 'Community',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(3); },
       ),
       _buildDrawerItem(
         icon: Icons.person_outline,
         title: 'Profile',
-        onTap: () => Navigator.pushNamed(context, ProfileScreen.routeName),
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, ProfileScreen.routeName); },
       ),
     ];
   }
@@ -208,27 +211,27 @@ class _AppDrawerState extends State<AppDrawer> {
       _buildDrawerItem(
         icon: Icons.dashboard_outlined,
         title: 'Shelter Hub',
-        onTap: () => Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(0); },
       ),
       _buildDrawerItem(
         icon: Icons.pets_outlined,
         title: 'Manage Pets',
-        onTap: () => Navigator.pushNamed(context, ManagePetsScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(1); },
       ),
       _buildDrawerItem(
         icon: Icons.volunteer_activism_outlined,
         title: 'Adoption Requests',
-        onTap: () => Navigator.pushNamed(context, ShelterAdoptionRequestsScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(2); },
       ),
       _buildDrawerItem(
         icon: Icons.analytics_outlined,
         title: 'Analytics',
-        onTap: () => Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName),
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName); },
       ),
       _buildDrawerItem(
         icon: Icons.person_outline,
         title: 'Shelter Profile',
-        onTap: () => Navigator.pushNamed(context, ShelterProfileScreen.routeName),
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, ShelterProfileScreen.routeName); },
       ),
     ];
   }
@@ -268,22 +271,22 @@ class _AppDrawerState extends State<AppDrawer> {
       _buildDrawerItem(
         icon: Icons.medical_services_outlined,
         title: 'Vet Dashboard',
-        onTap: () => Navigator.pushReplacementNamed(context, VetHomeScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(0); },
       ),
       _buildDrawerItem(
         icon: Icons.assignment_ind_outlined,
         title: 'My Patients',
-        onTap: () => Navigator.pushNamed(context, MyPatientsScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(1); },
       ),
       _buildDrawerItem(
         icon: Icons.calendar_today_outlined,
         title: 'Appointments',
-        onTap: () => Navigator.pushNamed(context, AppointmentsScreen.routeName),
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(2); },
       ),
       _buildDrawerItem(
         icon: Icons.person_outline,
         title: 'Vet Profile',
-        onTap: () => Navigator.pushNamed(context, VetProfileScreen.routeName),
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, VetProfileScreen.routeName); },
       ),
     ];
   }

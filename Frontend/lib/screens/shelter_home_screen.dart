@@ -37,31 +37,6 @@ class ShelterHomeScreen extends StatelessWidget {
 
           return Column(
             children: [
-              // AppBar — inline so we can access kycVerified
-              AppBar(
-                title: Text('Home',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-                backgroundColor: Colors.transparent,
-                foregroundColor: AppColors.textDark,
-                elevation: 0,
-                automaticallyImplyLeading: false,
-                actions: [
-                  const NotificationBell(),
-                  if (!kycVerified)
-                    IconButton(
-                      tooltip: 'Logout',
-                      icon: const Icon(Icons.logout),
-                      onPressed: () async {
-                        await Supabase.instance.client.auth.signOut();
-                        if (context.mounted) {
-                          Navigator.pushReplacementNamed(
-                              context, AuthScreen.routeName);
-                        }
-                      },
-                    ),
-                ],
-              ),
-
               // ── Sticky KYC banner ────────────────────────────────────
               if (!kycVerified) _KycBanner(),
 
