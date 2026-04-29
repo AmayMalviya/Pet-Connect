@@ -4,6 +4,7 @@ import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
+import 'package:pet_connect_app/screens/kyc_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   static const routeName = '/profile-setup';
@@ -106,7 +107,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
       // Navigate based on role
       if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') {
-        Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
+        // Shelter must complete KYC after profile setup
+        Navigator.pushReplacementNamed(context, KycScreen.routeName);
       } else {
         Navigator.pushReplacementNamed(context, MainScreen.routeName);
       }

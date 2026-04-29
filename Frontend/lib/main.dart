@@ -22,6 +22,9 @@ import 'package:pet_connect_app/screens/nutrition_advice_screen.dart';
 import 'package:pet_connect_app/screens/role_selection_screen.dart';
 import 'package:pet_connect_app/screens/kyc_document_screen.dart';
 import 'package:pet_connect_app/screens/kyc_pending_screen.dart';
+import 'package:pet_connect_app/screens/kyc_screen.dart';
+import 'package:pet_connect_app/screens/verification_success_screen.dart';
+import 'package:pet_connect_app/screens/under_review_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 import 'package:pet_connect_app/screens/appointments_screen.dart';
 import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
@@ -223,7 +226,13 @@ class _PetConnectAppState extends State<PetConnectApp> {
                     return const MainScreen();
                   } else if (userRole == 'Shelter' ||
                       userRole == 'Shelter Owner') {
-                    return const ShelterHomeScreen();
+                    // Only send to shelter home if KYC is verified
+                    final kycVerified = profile['kyc_verified'] == true;
+                    if (kycVerified) {
+                      return const ShelterHomeScreen();
+                    } else {
+                      return const KycScreen();
+                    }
                   } else {
                     return const RoleSelectionScreen();
                   }
@@ -261,6 +270,9 @@ class _PetConnectAppState extends State<PetConnectApp> {
         KycDocumentScreen.routeName: (context) => const KycDocumentScreen(),
         KycPendingScreen.routeName: (context) => const KycPendingScreen(),
         KycPersonalScreen.routeName: (context) => const KycPersonalScreen(),
+        KycScreen.routeName: (context) => const KycScreen(),
+        VerificationSuccessScreen.routeName: (context) => const VerificationSuccessScreen(),
+        UnderReviewScreen.routeName: (context) => const UnderReviewScreen(),
         ShelterHomeScreen.routeName: (context) =>
             _guardShelterRoute(const ShelterHomeScreen()),
         AppointmentsScreen.routeName: (context) =>
