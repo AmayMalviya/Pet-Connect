@@ -6,38 +6,45 @@ class SupabaseService {
 
   /// Fetch products from the 'pet_products' table.
   /// Returns an empty list on error and logs debug information.
-  Future<List<Product>> getProducts({int limit = 20, int offset = 0}) async {
+  Future<List<Product>> getProducts() async {
     try {
-      final response = await _client
+      final dynamic res = await _client
           .from('pet_products')
           .select()
-          .order('id', ascending: false)
-          .limit(limit)
-          .range(offset, offset + limit - 1);
+          .order('id', ascending: false);
 
-      if (response.isEmpty) {
-        print('No products found from Supabase.');
+      print('Supabase getProducts raw response type: ${res.runtimeType}');
+      print('Supabase getProducts raw response: $res');
+
+      final List<Map<String, dynamic>> rows = [];
+
+      if (res is List) {
+        // already the list of rows
+        for (final item in res) {
+          if (item is Map) rows.add(Map<String, dynamic>.from(item));
+        }
+      } else if (res is Map) {
+        // Some SDK versions return a Map-like response wrapper
+        if (res['error'] != null) {
+          print('Supabase error fetching products: ${res['error']}');
+          return [];
+        }
+        final data = res['data'] ?? res['body'] ?? res['result'];
+        if (data is List) {
+          for (final item in data) {
+            if (item is Map) rows.add(Map<String, dynamic>.from(item));
+          }
+        }
+      } else {
+        print('Unexpected response shape from Supabase: ${res.runtimeType}');
         return [];
       }
 
-      final products = response.map((item) => Product.fromMap(item)).toList();
+      final products = rows.map<Product>((r) => Product.fromMap(r)).toList();
       return products;
     } catch (e) {
       print('Exception in getProducts: $e');
       return [];
-    }
-  }
-
-  /// Track product click for analytics
-  Future<void> trackProductClick(String productId, String userId) async {
-    try {
-      await _client.from('product_clicks').insert({
-        'product_id': productId,
-        'user_id': userId,
-        'clicked_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      print('Error tracking product click: $e');
     }
   }
 }
