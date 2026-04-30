@@ -58,6 +58,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (response.user != null) {
+        // Write name + email into the profiles table immediately.
+        // Supabase auth metadata (data: {}) is separate from the profiles table.
+        try {
+          await Supabase.instance.client.from('profiles').upsert({
+            'user_id': response.user!.id,
+            'first_name': firstName.text.trim(),
+            'last_name': lastName.text.trim(),
+            'email': email.text.trim(),
+          });
+        } catch (profileErr) {
+          // Non-fatal: profile can be completed in ProfileSetupScreen
+          debugPrint('Profile pre-fill warning: $profileErr');
+        }
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration successful! Please login.')),

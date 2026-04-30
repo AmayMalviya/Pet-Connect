@@ -531,8 +531,13 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
               final userId = kyc['user_id'];
               final submissionId = kyc['id'];
               
-              final fullName = "${kyc['first_name'] ?? ''} ${kyc['last_name'] ?? ''}".trim();
-              final phone = kyc['phone'] ?? 'N/A';
+              // Always read display name from the profiles row, not the KYC record.
+              // KYC records may not have first_name for not_submitted users.
+              final firstName = (profile['first_name'] as String? ?? '').trim();
+              final lastName = (profile['last_name'] as String? ?? '').trim();
+              final fullName = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
+              final displayName = fullName.isNotEmpty ? fullName : (profile['email'] ?? 'Unknown User');
+              final phone = profile['phone'] ?? kyc['phone'] ?? 'N/A';
               final maskedAadhaar = kyc['aadhaar_number'] ?? 'N/A';
               final submittedDate = kyc['created_at'] != null 
                 ? DateTime.parse(kyc['created_at']).toLocal().toString().split('.')[0]
@@ -559,7 +564,7 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  fullName,
+                                  displayName,
                                   style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                                 Text(

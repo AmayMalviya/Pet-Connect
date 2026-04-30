@@ -36,6 +36,7 @@ class _KycScreenState extends State<KycScreen> {
   final _panCtrl = TextEditingController();
   final _gstinCtrl = TextEditingController();
   final _darpanCtrl = TextEditingController();
+  final _shareCodeCtrl = TextEditingController();
 
   File? _aadhaarZip;
   File? _selfieImage;
@@ -50,6 +51,7 @@ class _KycScreenState extends State<KycScreen> {
     _panCtrl.dispose();
     _gstinCtrl.dispose();
     _darpanCtrl.dispose();
+    _shareCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -138,6 +140,7 @@ class _KycScreenState extends State<KycScreen> {
           'zipPath': zipPath,
           'selfiePath': selfiePath,
           'pan': _panCtrl.text.trim().toUpperCase(),
+          'shareCode': _shareCodeCtrl.text.trim(),
           if (_gstinCtrl.text.trim().isNotEmpty) 'gstin': _gstinCtrl.text.trim().toUpperCase(),
           if (_darpanCtrl.text.trim().isNotEmpty) 'darpanId': _darpanCtrl.text.trim(),
         },
@@ -302,6 +305,20 @@ class _KycScreenState extends State<KycScreen> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
+                  const SizedBox(height: 20),
+
+                  _LabelRow(
+                    label: '1b. Aadhaar Share Code (4 digits)',
+                    onInfo: () => _showInfo(context, title: 'Share Code', body: 'The 4-digit code you set while downloading the Offline E-Aadhaar ZIP.'),
+                    theme: theme,
+                  ),
+                  const SizedBox(height: 8),
+                  _KycField(
+                    controller: _shareCodeCtrl,
+                    label: '4-digit code',
+                    maxLen: 4,
+                    theme: theme,
+                  ),
                   const SizedBox(height: 20),
 
                   // ── PAN ────────────────────────────────────────────────
