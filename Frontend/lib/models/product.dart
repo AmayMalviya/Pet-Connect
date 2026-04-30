@@ -4,60 +4,72 @@ class Product {
   final String price;
   final String imageUrl;
   final String? productUrl;
-  final List<String>? tags;
   final double? rating;
-  final String? sourceWebsite;
-  final String? category; // For pet-based filtering
-  final String? petType; // 'dog', 'cat', 'bird', etc.
-  final List<String>? species;
-  final List<String>? breedCompatibility;
-  final String? ageRange;
-  final String? weightRange;
-  final List<String>? medicalRestrictions;
-  final List<String>? allergyWarnings;
+  final String? category;
+  final String? petType;
+  final List<String>? tags;
 
   Product({
     required this.id,
     required this.name,
     required this.price,
-    required this.imageUrl,
+    this.imageUrl = '',
     this.productUrl,
-    this.tags,
     this.rating,
-    this.sourceWebsite,
     this.category,
     this.petType,
-    this.species,
-    this.breedCompatibility,
-    this.ageRange,
-    this.weightRange,
-    this.medicalRestrictions,
-    this.allergyWarnings,
+    this.tags,
   });
 
+  /// Flexible parser that accepts different key naming conventions
   factory Product.fromMap(Map<String, dynamic> map) {
+    String id = (map['id'] ?? map['product_id'] ?? '')?.toString() ?? '';
+    String name = (map['name'] ?? map['title'] ?? '')?.toString() ?? '';
+    String price = (map['price'] ?? map['amount'] ?? '')?.toString() ?? '';
+
+    String imageUrl = '';
+    if (map.containsKey('image_url')) imageUrl = (map['image_url'] ?? '')?.toString() ?? '';
+    else if (map.containsKey('image')) imageUrl = (map['image'] ?? '')?.toString() ?? '';
+    else if (map.containsKey('imageUrl')) imageUrl = (map['imageUrl'] ?? '')?.toString() ?? '';
+
+    String? productUrl;
+    if (map.containsKey('product_url')) productUrl = (map['product_url'] ?? '')?.toString();
+    else if (map.containsKey('url')) productUrl = (map['url'] ?? '')?.toString();
+    else if (map.containsKey('productUrl')) productUrl = (map['productUrl'] ?? '')?.toString();
+
+    double? rating;
+    final rawRating = map['rating'] ?? map['rating_score'];
+    if (rawRating != null) {
+      try {
+        rating = rawRating is num ? rawRating.toDouble() : double.parse(rawRating.toString());
+      } catch (_) {
+        rating = null;
+      }
+    }
+
+    final category = (map['category'] ?? map['cat'] ?? map['type'])?.toString();
+    final petType = (map['pet_type'] ?? map['petType'] ?? map['pet'])?.toString();
+
+    List<String>? tags;
+    if (map['tags'] != null) {
+      try {
+        if (map['tags'] is List) tags = List<String>.from(map['tags']);
+        else if (map['tags'] is String) tags = (map['tags'] as String).split(',').map((s) => s.trim()).toList();
+      } catch (_) {
+        tags = null;
+      }
+    }
+
     return Product(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      price: map['price']?.toString() ?? '',
-      imageUrl:
-          map['image_url']?.toString() ?? map['imageUrl']?.toString() ?? '',
-      productUrl: map['product_url']?.toString() ?? map['url']?.toString() ?? map['productUrl']?.toString(),
-      tags: map['tags'] is List ? List<String>.from(map['tags']) : null,
-      rating: map['rating'] != null
-          ? double.tryParse(map['rating'].toString())
-          : null,
-      sourceWebsite:
-          map['source_website']?.toString() ??
-          map['sourceWebsite']?.toString(),
-      category: map['category']?.toString(),
-      petType: map['pet_type']?.toString() ?? map['petType']?.toString(),
-      species: map['species'] is List ? List<String>.from(map['species']) : null,
-      breedCompatibility: map['breed_compatibility'] is List ? List<String>.from(map['breed_compatibility']) : null,
-      ageRange: map['age_range']?.toString(),
-      weightRange: map['weight_range']?.toString(),
-      medicalRestrictions: map['medical_restrictions'] is List ? List<String>.from(map['medical_restrictions']) : null,
-      allergyWarnings: map['allergy_warnings'] is List ? List<String>.from(map['allergy_warnings']) : null,
+      id: id,
+      name: name,
+      price: price,
+      imageUrl: imageUrl,
+      productUrl: productUrl,
+      rating: rating,
+      category: category,
+      petType: petType,
+      tags: tags,
     );
   }
 
@@ -67,76 +79,27 @@ class Product {
       'name': name,
       'price': price,
       'image_url': imageUrl,
-      'url': productUrl,
-      'tags': tags,
+      'product_url': productUrl,
       'rating': rating,
-      'source_website': sourceWebsite,
       'category': category,
       'pet_type': petType,
-      'species': species,
-      'breed_compatibility': breedCompatibility,
-      'age_range': ageRange,
-      'weight_range': weightRange,
-      'medical_restrictions': medicalRestrictions,
-      'allergy_warnings': allergyWarnings,
+      'tags': tags,
     };
   }
 
-  /// Get relevant categories based on pet type
+  // Static helper returning categories available per pet type
   static Map<String, List<String>> getPetCategories() {
     return {
-      'dog': [
-        'food',
-        'toys',
-        'leash',
-        'grooming kit',
-        'beds',
-        'treats',
-        'bowls',
-        'collars',
-      ],
-      'cat': [
-        'food',
-        'litter',
-        'scratchers',
-        'toys',
-        'beds',
-        'treats',
-        'bowls',
-        'litter box',
-      ],
-      'bird': [
-        'food',
-        'cage',
-        'toys',
-        'perches',
-        'treats',
-        'sand bath',
-        'mirrors',
-      ],
-      'rabbit': [
-        'food',
-        'hay',
-        'toys',
-        'bedding',
-        'tunnels',
-        'treats',
-        'bowls',
-      ],
-      'hamster': [
-        'food',
-        'bedding',
-        'wheel',
-        'toys',
-        'treats',
-        'hidehouse',
-        'bowls',
-      ],
+      'dog': ['food', 'treat', 'toy', 'leash', 'bed', 'grooming'],
+      'cat': ['food', 'treat', 'toy', 'litter', 'bed', 'grooming'],
+      'bird': ['cage', 'food', 'toys'],
+      'general': ['accessories', 'health']
     };
   }
 
-  /// Get default categories for a pet type
-  static List<String> getCategoriesForPet(String petType) {
-    return getPetCategories()[petType.toLowerCase()] ?? [];
+  static List<String> getCategoriesForPet(String pet) {
+    final map = getPetCategories();
+    final key = pet.toLowerCase();
+    return map[key] ?? [];
   }
 }

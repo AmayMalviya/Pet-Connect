@@ -15,6 +15,8 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   final SupabaseService _supabaseService = SupabaseService();
+
+class _ShopScreenState extends State<ShopScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
@@ -39,7 +41,7 @@ class _ShopScreenState extends State<ShopScreen> {
       setState(() {
         _isLoading = false;
       });
-      // Optionally show an error
+      // Handle error
     }
   }
 
@@ -50,24 +52,25 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.trim().toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        _filteredProducts = List.from(_products);
-      } else {
-        _filteredProducts = _products
-            .where((product) => product.name.toLowerCase().contains(query))
-            .toList();
-      }
+      _filteredProducts = _products
+          .where(
+            (product) => product.name.toLowerCase().contains(
+              _searchController.text.toLowerCase(),
+            ),
+          )
+          .toList();
     });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shop'),
-        leading: const BackButton(),
+        leading: const BackButton(), // Added back button
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -90,14 +93,12 @@ class _ShopScreenState extends State<ShopScreen> {
                   ),
                 ),
                 Expanded(
-                  child: _filteredProducts.isEmpty
-                      ? const Center(child: Text('No products found.'))
-                      : ListView.builder(
-                          itemCount: _filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            return ProductCard(product: _filteredProducts[index]);
-                          },
-                        ),
+                  child: ListView.builder(
+                    itemCount: _filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      return ProductCard(product: _filteredProducts[index]);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -105,19 +106,19 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 }
 
+
+
 class ProductCard extends StatelessWidget {
   final Product product;
 
   const ProductCard({super.key, required this.product});
 
   Future<void> _launchUrl() async {
-    final urlString = product.productUrl;
-    if (urlString == null || urlString.isEmpty) return;
-    final Uri url = Uri.parse(urlString);
-    try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      // ignore errors for now
+    if (product.productUrl != null) {
+      final Uri url = Uri.parse(product.productUrl!); 
+      if (!await launchUrl(url)) {
+        throw Exception('Could not launch $url');
+      }
     }
   }
 
@@ -131,12 +132,7 @@ class ProductCard extends StatelessWidget {
           padding: const EdgeInsets.all(8.0),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: product.imageUrl.isNotEmpty
-                    ? Image.network(product.imageUrl, width: 100, height: 100, fit: BoxFit.cover, errorBuilder: (c, _, __) => Container(width: 100, height: 100, color: Colors.grey))
-                    : Container(width: 100, height: 100, color: Colors.grey),
-              ),
+              Image.network(product.imageUrl, width: 100, height: 100),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
