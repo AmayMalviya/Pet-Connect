@@ -309,14 +309,26 @@ class _KycScreenState extends State<KycScreen> {
 
                   _LabelRow(
                     label: '1b. Aadhaar Share Code (4 digits)',
-                    onInfo: () => _showInfo(context, title: 'Share Code', body: 'The 4-digit code you set while downloading the Offline E-Aadhaar ZIP.'),
+                    onInfo: () => _showInfo(context,
+                      title: 'What is the Aadhaar Share Code?',
+                      body: 'When you download the Offline E-Aadhaar ZIP from UIDAI, you are asked to set a 4-digit numeric password to protect the file. This share code is needed to open (decrypt) the ZIP and verify your Aadhaar data.',
+                      steps: 'Where to find it:\n• You chose this 4-digit code yourself during the UIDAI download\n• It is NOT your Aadhaar OTP or PIN\n• If you forgot it, re-download the ZIP from myaadhaar.uidai.gov.in and set a new code',
+                    ),
                     theme: theme,
                   ),
                   const SizedBox(height: 8),
                   _KycField(
                     controller: _shareCodeCtrl,
-                    label: '4-digit code',
+                    label: '4-digit share code',
                     maxLen: 4,
+                    caps: false,
+                    keyboardType: TextInputType.number,
+                    validator: (v) {
+                      if (_aadhaarZip == null) return null; // only required if zip attached
+                      if (v == null || v.isEmpty) return 'Share code required with Aadhaar ZIP';
+                      if (!RegExp(r'^\d{4}$').hasMatch(v)) return 'Must be exactly 4 digits';
+                      return null;
+                    },
                     theme: theme,
                   ),
                   const SizedBox(height: 20),
@@ -574,6 +586,7 @@ class _KycField extends StatelessWidget {
     this.maxLen,
     this.caps = false,
     this.validator,
+    this.keyboardType,
   });
   final TextEditingController controller;
   final String label;
@@ -581,12 +594,14 @@ class _KycField extends StatelessWidget {
   final bool caps;
   final String? Function(String?)? validator;
   final ThemeData theme;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       maxLength: maxLen,
+      keyboardType: keyboardType,
       textCapitalization:
           caps ? TextCapitalization.characters : TextCapitalization.none,
       decoration: InputDecoration(

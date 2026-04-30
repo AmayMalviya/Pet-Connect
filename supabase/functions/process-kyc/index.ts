@@ -1,7 +1,7 @@
 // process-kyc/index.ts  –  Deno / Supabase Edge Function
 // Triggered by Flutter KycScreen after file uploads.
-// Input  JSON: { userId, zipPath, selfiePath, pan, gstin?, darpanId? }
-// Output JSON: { status, trustScore, reason? }
+// Input  JSON: { userId, zipPath, selfiePath, pan, shareCode, gstin?, darpanId? }
+// Output JSON: { status, trustScore, notes, reason? }
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -23,12 +23,13 @@ serve(async (req) => {
 
   try {
     // ── 1. Parse input ──────────────────────────────────────────────────────
-    const { userId, zipPath, selfiePath, pan, gstin, darpanId } =
+    const { userId, zipPath, selfiePath, pan, shareCode, gstin, darpanId } =
       (await req.json()) as {
         userId: string;
         zipPath: string;
         selfiePath: string;
         pan: string;
+        shareCode?: string;   // 4-digit UIDAI share code (password for the ZIP)
         gstin?: string;
         darpanId?: string;
       };
@@ -58,16 +59,35 @@ serve(async (req) => {
         .download(zipPath);
       if (zipErr) throw zipErr;
 
-      // Read ZIP entries
-      const reader = new ZipReader(new BlobReader(zipBlob));
-      const entries = await reader.getEntries();
+      // Read ZIP entries — pass shareCode as the password if provided
+      // The UIDAI offline XML ZIP is AES-256 encrypted with the share code.
+      const reader = new ZipReader(new BlobReader(zipBlob), {
+        password: shareCode ?? undefined,
+      });
+
+      let entries;
+      try {
+        entries = await reader.getEntries();
+      } catch (pwErr) {
+        notes.push("Aadhaar ZIP could not be opened — wrong or missing share code");
+        await reader.close();
+        throw pwErr;
+      }
 
       for (const entry of entries) {
         const name = entry.filename.toLowerCase();
 
         // Look for XML (UIDAI offline XML)
         if (name.endsWith(".xml")) {
-          const xmlText = await entry.getData!(new TextWriter());
+          let xmlText: string;
+          try {
+            xmlText = await entry.getData!(new TextWriter(), {
+              password: shareCode ?? undefined,
+            });
+          } catch (_decryptErr) {
+            notes.push("Aadhaar XML decryption failed — share code may be incorrect");
+            continue;
+          }
 
           // Verify UIDAI signature presence (production: use WebCrypto to verify RSA-SHA256)
           if (xmlText.includes("Signature") && xmlText.includes("ds:SignatureValue")) {
