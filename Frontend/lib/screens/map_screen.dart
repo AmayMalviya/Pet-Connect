@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pet_connect_app/models/place.dart';
+import 'package:pet_connect_app/services/place_service.dart';
 import 'package:pet_connect_app/theme/app_theme.dart' show AppColors;
 
 class MapScreen extends StatefulWidget {
@@ -17,486 +17,551 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
+// ── Filter type enum ──────────────────────────────────────────────────────────
+
+enum _PlaceFilter {
+  vets('vets', '🏥 Veterinary'),
+  petShops('petShops', '🛍️ Pet Shops'),
+  shelters('shelters', '🏠 Shelters & NGOs'),
+  all('all', '🐾 All Services');
+
+  const _PlaceFilter(this.key, this.label);
+  final String key;
+  final String label;
+
+  static _PlaceFilter fromKey(String key) =>
+      _PlaceFilter.values.firstWhere((f) => f.key == key, orElse: () => vets);
+}
+
+// ── Colour per filter ─────────────────────────────────────────────────────────
+
+Color _markerColor(_PlaceFilter filter) {
+  switch (filter) {
+    case _PlaceFilter.vets:
+      return Colors.blue.shade600;
+    case _PlaceFilter.petShops:
+      return Colors.orange.shade600;
+    case _PlaceFilter.shelters:
+      return Colors.green.shade600;
+    case _PlaceFilter.all:
+      return Colors.purple.shade600;
+  }
+}
+
+// ── Screen state ──────────────────────────────────────────────────────────────
+
 class _MapScreenState extends State<MapScreen> {
-  static String _dotenvValue(String key) {
+  // ── API key (replace placeholder with dart-define or .env) ─────────────────
+  static String get _googleApiKey {
     try {
-      return dotenv.env[key] ?? '';
-    } catch (_) {
-      // `flutter_dotenv` throws NotInitializedError when not loaded.
-      return '';
-    }
+      final envVal = dotenv.env['GOOGLE_PLACES_API_KEY'] ?? '';
+      if (envVal.isNotEmpty) return envVal;
+    } catch (_) {}
+    return const String.fromEnvironment('GOOGLE_PLACES_API_KEY');
   }
 
-  static String get _hereApiKey {
-    // Prefer `.env` values (runtime) but still allow dart-define when required.
-    final envValue = _dotenvValue('HERE_API_KEY');
-    if (envValue.isNotEmpty) return envValue;
-    return const String.fromEnvironment('HERE_API_KEY');
-  }
-
-  static String get _hereAccessKeyId {
-    final envValue = _dotenvValue('HERE_ACCESS_KEY_ID');
-    if (envValue.isNotEmpty) return envValue;
-    return const String.fromEnvironment('HERE_ACCESS_KEY_ID');
-  }
-
-  static String get _hereAccessKeySecret {
-    final envValue = _dotenvValue('HERE_ACCESS_KEY_SECRET');
-    if (envValue.isNotEmpty) return envValue;
-    return const String.fromEnvironment('HERE_ACCESS_KEY_SECRET');
-  }
-
+  late final PlaceService _placeService;
   final MapController _mapController = MapController();
-  final List<Marker> _markers = [];
-  LatLng? _currentPosition;
-  bool _isLoading = true;
-  String _selectedPlaceType = 'vets';
-  String? _hereBearerToken;
-  DateTime? _hereBearerTokenExpiry;
-  bool _hereAuthInitAttempted = false;
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  LatLng _currentPosition = const LatLng(22.719568, 75.857727); // Indore default
+  bool _isLocating = true;
+  bool _isSearching = false;
+  String? _errorMessage;
+  _PlaceFilter _activeFilter = _PlaceFilter.vets;
+
+  /// All places returned for the current filter
+  List<Place> _places = [];
 
   @override
   void initState() {
     super.initState();
-    _selectedPlaceType = widget.placeType ?? 'vets';
-    _getUserLocation();
+    _placeService = PlaceService(apiKey: _googleApiKey);
+    _activeFilter = _PlaceFilter.fromKey(widget.placeType ?? 'vets');
+    _initLocation();
   }
 
-  Future<void> _getUserLocation() async {
-    _currentPosition = const LatLng(22.719568, 75.857727); // Indore, MP, India
+  Future<void> _initLocation() async {
+    // In production, replace with geolocator / permission_handler logic.
+    // For now we use a fixed location so the demo works without GPS permission.
     setState(() {
-      _isLoading = false;
-      _markers
-        ..clear()
-        ..add(
-          _buildMarker(
-            position: _currentPosition!,
-            label: 'Your Location',
-            isCurrentLocation: true,
-          ),
-        );
+      _isLocating = false;
     });
-    await _ensureHereAuth();
-    _searchNearbyPlaces();
+    await _search(_activeFilter);
   }
 
-  Future<void> _ensureHereAuth() async {
-    if (_hereApiKey.isNotEmpty) return;
-    if (_hereBearerToken != null &&
-        _hereBearerTokenExpiry != null &&
-        DateTime.now().isBefore(
-          _hereBearerTokenExpiry!.subtract(const Duration(minutes: 2)),
-        )) {
+  // ── Search ─────────────────────────────────────────────────────────────────
+
+  Future<void> _search(_PlaceFilter filter) async {
+    if (_googleApiKey.isEmpty) {
+      setState(() {
+        _errorMessage =
+            'GOOGLE_PLACES_API_KEY is not set.\n\n'
+            'Add it to your .env file:\n'
+            'GOOGLE_PLACES_API_KEY=YOUR_KEY_HERE\n\n'
+            'or pass via dart-define:\n'
+            '--dart-define=GOOGLE_PLACES_API_KEY=YOUR_KEY';
+        _isSearching = false;
+      });
       return;
     }
-    if (_hereAccessKeyId.isEmpty || _hereAccessKeySecret.isEmpty) {
-      return;
-    }
+
+    setState(() {
+      _isSearching = true;
+      _errorMessage = null;
+      _places = [];
+    });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://account.api.here.com/oauth2/token'),
-        headers: const {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'grant_type': 'client_credentials',
-          'client_id': _hereAccessKeyId,
-          'client_secret': _hereAccessKeySecret,
-        },
-      );
-      if (response.statusCode != 200) return;
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      final accessToken = data['access_token'] as String?;
-      final expiresIn = data['expires_in'];
-      if (accessToken == null || expiresIn == null) return;
+      final lat = _currentPosition.latitude;
+      final lng = _currentPosition.longitude;
 
-      final expiresSeconds = (expiresIn as num).toInt();
-      _hereBearerToken = accessToken;
-      _hereBearerTokenExpiry = DateTime.now().add(
-        Duration(seconds: expiresSeconds),
-      );
-    } finally {
-      _hereAuthInitAttempted = true;
-      if (mounted) setState(() {});
+      List<Place> results;
+      switch (filter) {
+        case _PlaceFilter.vets:
+          results = await _placeService.searchVets(lat: lat, lng: lng);
+        case _PlaceFilter.petShops:
+          results = await _placeService.searchPetShops(lat: lat, lng: lng);
+        case _PlaceFilter.shelters:
+          results =
+              await _placeService.searchSheltersAndNGOs(lat: lat, lng: lng);
+        case _PlaceFilter.all:
+          results = await _placeService.searchAll(lat: lat, lng: lng);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _places = results;
+        _isSearching = false;
+        if (results.isEmpty) {
+          _errorMessage = 'No results found nearby. Try expanding your area.';
+        }
+      });
+    } on PlaceServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _errorMessage = e.userMessage;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _errorMessage = 'Unexpected error: $e';
+      });
     }
   }
 
-  Map<String, String>? get _hereAuthHeaders {
-    if (_hereBearerToken == null) return null;
-    return {'Authorization': 'Bearer $_hereBearerToken'};
+  // ── Markers ────────────────────────────────────────────────────────────────
+
+  List<Marker> get _markers {
+    final markers = <Marker>[
+      // Current location pin
+      Marker(
+        point: _currentPosition,
+        width: 48,
+        height: 48,
+        child: _Pin(
+          color: Colors.red,
+          icon: Icons.my_location,
+          label: 'You',
+          onTap: () {},
+        ),
+      ),
+    ];
+
+    for (final place in _places) {
+      final point = LatLng(place.latitude, place.longitude);
+      markers.add(
+        Marker(
+          point: point,
+          width: 44,
+          height: 44,
+          child: _Pin(
+            color: _markerColor(_activeFilter),
+            icon: _iconForFilter(_activeFilter),
+            label: place.displayName,
+            onTap: () => _showPlaceSheet(place),
+          ),
+        ),
+      );
+    }
+
+    return markers;
   }
 
-  Marker _buildMarker({
-    required LatLng position,
-    required String label,
-    bool isCurrentLocation = false,
-  }) {
-    return Marker(
-      point: position,
-      width: 44,
-      height: 44,
-      child: GestureDetector(
-        onTap: () async {
-          if (!mounted) return;
-          await showDialog<void>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(label),
-              content: const Text(
-                'Do you want to open this location in HERE WeGo?',
+  IconData _iconForFilter(_PlaceFilter f) {
+    switch (f) {
+      case _PlaceFilter.vets:
+        return Icons.local_hospital_outlined;
+      case _PlaceFilter.petShops:
+        return Icons.storefront_outlined;
+      case _PlaceFilter.shelters:
+        return Icons.pets;
+      case _PlaceFilter.all:
+        return Icons.place;
+    }
+  }
+
+  // ── Bottom sheet ───────────────────────────────────────────────────────────
+
+  void _showPlaceSheet(Place place) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    _launchHereMaps(
-                      position.latitude,
-                      position.longitude,
-                      label,
-                    );
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Open'),
-                ),
-              ],
             ),
-          );
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: isCurrentLocation ? Colors.red : Colors.blue,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 6,
-                offset: Offset(0, 2),
+            const SizedBox(height: 12),
+            Text(place.displayName,
+                style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w700)),
+            if (place.primaryType != null) ...[
+              const SizedBox(height: 4),
+              Text(place.primaryType!,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+            ],
+            if (place.formattedAddress != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(place.formattedAddress!,
+                        style: const TextStyle(fontSize: 13)),
+                  ),
+                ],
               ),
             ],
-          ),
-          child: const Icon(Icons.place, color: Colors.white, size: 22),
+            if (place.rating != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.star, size: 14, color: Colors.amber),
+                  const SizedBox(width: 4),
+                  Text('${place.rating!.toStringAsFixed(1)} / 5.0',
+                      style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _openInMaps(place),
+                icon: const Icon(Icons.directions),
+                label: const Text('Get Directions'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _searchNearbyPlaces({String? type, String? keyword}) async {
-    if (_currentPosition == null) return;
-    await _ensureHereAuth();
-
-    setState(() {
-      _markers.removeWhere((m) => m.point != _currentPosition);
-    });
-
-    final lat = _currentPosition!.latitude;
-    final lng = _currentPosition!.longitude;
-    final query = keyword ?? _queryForType(type ?? _selectedPlaceType);
-    final url = _hereApiKey.isNotEmpty
-        ? 'https://discover.search.hereapi.com/v1/discover?at=$lat,$lng&q=${Uri.encodeComponent(query)}&limit=20&apiKey=$_hereApiKey'
-        : 'https://discover.search.hereapi.com/v1/discover?at=$lat,$lng&q=${Uri.encodeComponent(query)}&limit=20';
-
-    final response = await http.get(
-      Uri.parse(url),
-      headers: _hereApiKey.isNotEmpty ? null : _hereAuthHeaders,
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final items = (data['items'] as List?) ?? const [];
-      for (final item in items) {
-        final position = item['position'];
-        if (position == null) continue;
-        final itemLat = position['lat'];
-        final itemLng = position['lng'];
-        if (itemLat == null || itemLng == null) continue;
-
-        final title = (item['title'] as String?) ?? 'Place';
-        setState(() {
-          _markers.add(
-            _buildMarker(
-              position: LatLng(
-                (itemLat as num).toDouble(),
-                (itemLng as num).toDouble(),
-              ),
-              label: title,
-            ),
-          );
-        });
-      }
-    }
-  }
-
-  String _queryForType(String type) {
-    switch (type) {
-      case 'veterinary_care':
-      case 'vets':
-        return 'veterinary clinic animal hospital';
-      case 'pet_store':
-      case 'petShops':
-        return 'pet store pet shop';
-      case 'shelter':
-        return 'animal shelter dog shelter cat rescue humane society';
-      case 'ngo':
-        return 'animal ngo animal welfare animal rescue animal protection';
-      default:
-        return type;
-    }
-  }
-
-  Future<void> _launchHereMaps(double lat, double lng, String label) async {
+  Future<void> _openInMaps(Place place) async {
     final url =
-        'https://share.here.com/l/$lat,$lng,${Uri.encodeComponent(label)}?z=16&t=normal';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
-      throw 'Could not launch $url';
+        'https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
-  void _onFilterChanged(String filter) async {
-    setState(() {
-      _selectedPlaceType = filter;
-      _markers.removeWhere((m) => m.point != _currentPosition);
-    });
-
-    if (filter == 'all') {
-      // Search for all service types
-      await _searchNearbyPlaces(type: 'vets');
-      await Future.delayed(const Duration(milliseconds: 200));
-      await _searchNearbyPlaces(type: 'pet_store');
-      await Future.delayed(const Duration(milliseconds: 200));
-      await _searchNearbyPlaces(type: 'shelter');
-      await Future.delayed(const Duration(milliseconds: 200));
-      await _searchNearbyPlaces(type: 'ngo');
-    } else if (filter == 'shelter') {
-      // Multiple keywords for shelters
-      final keywords = [
-        'animal shelter',
-        'pet adoption center',
-        'dog shelter',
-        'cat rescue',
-        'humane society',
-        'SPCA',
-        'animal welfare',
-      ];
-      for (String keyword in keywords) {
-        await _searchNearbyPlaces(keyword: keyword);
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-    } else if (filter == 'ngo') {
-      // Multiple keywords for NGOs
-      final keywords = [
-        'animal ngo',
-        'animal welfare',
-        'animal rescue',
-        'animal protection',
-        'wildlife sanctuary',
-        'pet foundation',
-      ];
-      for (String keyword in keywords) {
-        await _searchNearbyPlaces(keyword: keyword);
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-    } else {
-      _searchNearbyPlaces(type: filter);
-    }
-  }
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final hasSomeAuthInput =
-        _hereApiKey.isNotEmpty ||
-        (_hereAccessKeyId.isNotEmpty && _hereAccessKeySecret.isNotEmpty);
-    final authReady = _hereApiKey.isNotEmpty || _hereBearerToken != null;
-    final missingHereAuth = !hasSomeAuthInput;
     return Scaffold(
-      appBar: AppBar(title: const Text('Nearby Pet Services')),
-      body: _isLoading || _currentPosition == null
-          ? const Center(child: CircularProgressIndicator())
-          : missingHereAuth
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Missing HERE auth.\n\nSet HERE_API_KEY in your .env file or run with:\n--dart-define=HERE_API_KEY=<YOUR_KEY>\n\nor:\n--dart-define=HERE_ACCESS_KEY_ID=<YOUR_ID> --dart-define=HERE_ACCESS_KEY_SECRET=<YOUR_SECRET>',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          : !authReady
+      appBar: AppBar(
+        title: const Text('Nearby Pet Services'),
+        elevation: 0,
+      ),
+      body: _isLocating
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
+                // ── Map ───────────────────────────────────────────────────
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    initialCenter: _currentPosition!,
-                    initialZoom: 14,
+                    initialCenter: _currentPosition,
+                    initialZoom: 13,
                     interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                      flags:
+                          InteractiveFlag.all & ~InteractiveFlag.rotate,
                     ),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: _hereApiKey.isNotEmpty
-                          ? 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png?style=explore.day&apiKey=$_hereApiKey'
-                          : 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png?style=explore.day',
+                      // OpenStreetMap tiles — free, no key required.
+                      // Swap for Google Maps tiles if you have a Maps SDK key.
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'pet_connect_app',
-                      tileProvider: NetworkTileProvider(
-                        headers: _hereApiKey.isNotEmpty
-                            ? null
-                            : _hereAuthHeaders,
-                      ),
                     ),
                     MarkerLayer(markers: _markers),
                   ],
                 ),
+
+                // ── Filter chips ──────────────────────────────────────────
                 Positioned(
                   top: 10,
                   left: 10,
                   right: 10,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                  child: _FilterBar(
+                    active: _activeFilter,
+                    onChanged: (f) {
+                      setState(() => _activeFilter = f);
+                      _search(f);
+                    },
+                  ),
+                ),
+
+                // ── Loading indicator ─────────────────────────────────────
+                if (_isSearching)
+                  const Positioned(
+                    bottom: 100,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: _SearchingBadge(),
                     ),
-                    child: Padding(
+                  ),
+
+                // ── Error banner ──────────────────────────────────────────
+                if (_errorMessage != null && !_isSearching)
+                  Positioned(
+                    bottom: 90,
+                    left: 16,
+                    right: 16,
+                    child: _ErrorBanner(
+                      message: _errorMessage!,
+                      onRetry: () => _search(_activeFilter),
+                    ),
+                  ),
+
+                // ── Results count badge ───────────────────────────────────
+                if (!_isSearching && _errorMessage == null && _places.isNotEmpty)
+                  Positioned(
+                    bottom: 90,
+                    right: 16,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: SizedBox(
-                        height: 50.0,
-                        child: IntrinsicWidth(
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              FilterChip(
-                                label: const Text('🏥 Veterinary'),
-                                selected: _selectedPlaceType == 'vets',
-                                onSelected: (_) => _onFilterChanged('vets'),
-                                backgroundColor: Colors.grey[200],
-                                selectedColor: AppColors.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                                side: _selectedPlaceType == 'vets'
-                                    ? BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      )
-                                    : BorderSide(color: Colors.grey[300]!),
-                              ),
-                              const SizedBox(width: 8),
-                              FilterChip(
-                                label: const Text('🛍️ Pet Shops'),
-                                selected: _selectedPlaceType == 'pet_store',
-                                onSelected: (_) =>
-                                    _onFilterChanged('pet_store'),
-                                backgroundColor: Colors.grey[200],
-                                selectedColor: AppColors.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                                side: _selectedPlaceType == 'pet_store'
-                                    ? BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      )
-                                    : BorderSide(color: Colors.grey[300]!),
-                              ),
-                              const SizedBox(width: 8),
-                              FilterChip(
-                                label: const Text('🏠 Shelters'),
-                                selected: _selectedPlaceType == 'shelter',
-                                onSelected: (_) => _onFilterChanged('shelter'),
-                                backgroundColor: Colors.grey[200],
-                                selectedColor: AppColors.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                                side: _selectedPlaceType == 'pet_store'
-                                    ? BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      )
-                                    : BorderSide(color: Colors.grey[300]!),
-                              ),
-                              const SizedBox(width: 8),
-                              FilterChip(
-                                label: const Text('❤️ NGOs'),
-                                selected: _selectedPlaceType == 'ngo',
-                                onSelected: (_) => _onFilterChanged('ngo'),
-                                backgroundColor: Colors.grey[200],
-                                selectedColor: AppColors.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                                side: _selectedPlaceType == 'ngo'
-                                    ? BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      )
-                                    : BorderSide(color: Colors.grey[300]!),
-                              ),
-                              const SizedBox(width: 8),
-                              FilterChip(
-                                label: const Text('🐾 All Services'),
-                                selected: _selectedPlaceType == 'all',
-                                onSelected: (_) => _onFilterChanged('all'),
-                                backgroundColor: Colors.grey[200],
-                                selectedColor: AppColors.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                                side: _selectedPlaceType == 'all'
-                                    ? BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      )
-                                    : BorderSide(color: Colors.grey[300]!),
-                              ),
-                            ],
-                          ),
-                        ),
+                      child: Text(
+                        '${_places.length} found',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
+
+      // ── FABs ────────────────────────────────────────────────────────────
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          FloatingActionButton(
-            onPressed: () => _mapController.move(
-              _currentPosition!,
-              _mapController.camera.zoom,
-            ),
-            heroTag: "centerLocation",
-            child: const Icon(Icons.my_location),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton(
+          FloatingActionButton.small(
+            heroTag: 'zoomIn',
             onPressed: () => _mapController.move(
               _mapController.camera.center,
               _mapController.camera.zoom + 1,
             ),
-            heroTag: "zoomIn",
             child: const Icon(Icons.add),
           ),
-          const SizedBox(height: 10),
-          FloatingActionButton(
+          const SizedBox(height: 8),
+          FloatingActionButton.small(
+            heroTag: 'zoomOut',
             onPressed: () => _mapController.move(
               _mapController.camera.center,
               _mapController.camera.zoom - 1,
             ),
             child: const Icon(Icons.remove),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'centerLocation',
+            onPressed: () =>
+                _mapController.move(_currentPosition, _mapController.camera.zoom),
+            child: const Icon(Icons.my_location),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Small reusable widgets ────────────────────────────────────────────────────
+
+class _Pin extends StatelessWidget {
+  const _Pin({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final Color color;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2.5),
+          boxShadow: const [
+            BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({required this.active, required this.onChanged});
+  final _PlaceFilter active;
+  final void Function(_PlaceFilter) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final filter in _PlaceFilter.values) ...[
+              if (filter != _PlaceFilter.values.first) const SizedBox(width: 6),
+              FilterChip(
+                label: Text(filter.label,
+                    style: const TextStyle(fontSize: 12)),
+                selected: active == filter,
+                onSelected: (_) => onChanged(filter),
+                backgroundColor: Colors.grey[200],
+                selectedColor: AppColors.primary.withOpacity(0.15),
+                side: active == filter
+                    ? BorderSide(color: AppColors.primary, width: 1.5)
+                    : BorderSide(color: Colors.grey[300]!),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchingBadge extends StatelessWidget {
+  const _SearchingBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Text('Searching nearby…',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message,
+                style: TextStyle(fontSize: 12, color: Colors.red.shade900)),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+                minimumSize: const Size(0, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+            child: const Text('Retry', style: TextStyle(fontSize: 12)),
           ),
         ],
       ),
