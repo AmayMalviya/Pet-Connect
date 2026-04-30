@@ -1,7 +1,18 @@
-// process-kyc/index.ts  –  Deno / Supabase Edge Function
+// process-kyc/index.ts  – Deno / Supabase Edge Function
 // Triggered by Flutter KycScreen after file uploads.
 // Input  JSON: { userId, zipPath, selfiePath, pan, shareCode, gstin?, darpanId? }
-// Output JSON: { status, trustScore, notes, reason? }
+// Output JSON: { status, trustScore, notes }
+//
+// UIDAI Offline E-Aadhaar XML structure reference:
+// <OfflinePaperlessKyc referenceId="..." uid="XXXX-XXXX-1234">
+//   <UidData>
+//     <Poi name="JOHN DOE" dob="01-01-1990" gender="M" phone="..."/>
+//     <Poa dist="..." state="..." pc="..."/>
+//     <Pht>base64photo</Pht>
+//   </UidData>
+//   <Signature xmlns:ds="..."><ds:SignedInfo>...</ds:SignedInfo>
+//     <ds:SignatureValue>...</ds:SignatureValue></Signature>
+// </OfflinePaperlessKyc>
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -18,18 +29,63 @@ const json = (body: unknown, status = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// ── XML helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Extract a named attribute from a specific XML element.
+ * Looks for <ElementName ... attrName="VALUE" ...> patterns.
+ * More reliable than a global attribute search.
+ */
+function extractAttrFromElement(
+  xml: string,
+  elementName: string,
+  attrName: string,
+): string | null {
+  // Match the opening tag of the element (case-insensitive)
+  const tagRegex = new RegExp(
+    `<${elementName}[^>]+\\s${attrName}\\s*=\\s*"([^"]*)"`,
+    "i",
+  );
+  const m = xml.match(tagRegex);
+  return m ? m[1].trim() : null;
+}
+
+/**
+ * Fallback: search entire document for the attribute.
+ * Avoids matching xmlns:xx type attributes by requiring a word boundary.
+ */
+function extractAttrGlobal(xml: string, attrName: string): string | null {
+  // \b ensures we don't match "someOtherAttrname="
+  const regex = new RegExp(`\\b${attrName}\\s*=\\s*"([^"]+)"`, "i");
+  const m = xml.match(regex);
+  return m ? m[1].trim() : null;
+}
+
+/**
+ * Check if a UIDAI XML signature block is present.
+ * Handles both namespaced (ds:SignatureValue) and plain (SignatureValue) forms.
+ */
+function hasUidaiSignature(xml: string): boolean {
+  return (
+    xml.includes("SignatureValue") &&
+    (xml.includes("SignedInfo") || xml.includes("Signature"))
+  );
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────────
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   try {
-    // ── 1. Parse input ──────────────────────────────────────────────────────
+    // ── 1. Parse input ─────────────────────────────────────────────────────
     const { userId, zipPath, selfiePath, pan, shareCode, gstin, darpanId } =
       (await req.json()) as {
         userId: string;
         zipPath: string;
         selfiePath: string;
         pan: string;
-        shareCode?: string;   // 4-digit UIDAI share code (password for the ZIP)
+        shareCode?: string; // 4-digit UIDAI share code (AES-256 ZIP password)
         gstin?: string;
         darpanId?: string;
       };
@@ -38,7 +94,7 @@ serve(async (req) => {
       return json({ error: "Missing required fields." }, 400);
     }
 
-    // ── 2. Supabase admin client ────────────────────────────────────────────
+    // ── 2. Supabase admin client ───────────────────────────────────────────
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -47,90 +103,130 @@ serve(async (req) => {
     let trustScore = 0;
     const notes: string[] = [];
 
-    // ── 3. Aadhaar ZIP validation ───────────────────────────────────────────
+    // ── 3. Aadhaar ZIP validation ──────────────────────────────────────────
     let aadhaarName: string | null = null;
     let aadhaarDob: string | null = null;
     let aadhaarValid = false;
 
     try {
-      // Download ZIP from storage
+      // Download ZIP from storage (bucket: kyc_bucket)
       const { data: zipBlob, error: zipErr } = await supabase.storage
-        .from("kyc-documents")
+        .from("kyc_bucket")          // ← correct bucket name
         .download(zipPath);
-      if (zipErr) throw zipErr;
+      if (zipErr) throw new Error(`Storage download failed: ${zipErr.message}`);
+      if (!zipBlob) throw new Error("ZIP blob is empty");
 
-      // Read ZIP entries — pass shareCode as the password if provided
-      // The UIDAI offline XML ZIP is AES-256 encrypted with the share code.
+      notes.push(`ZIP downloaded, size=${zipBlob.size} bytes`);
+
+      // ── Open the ZIP with the share code as password ───────────────────
+      // UIDAI offline XMLs are AES-256 encrypted using the share code.
       const reader = new ZipReader(new BlobReader(zipBlob), {
-        password: shareCode ?? undefined,
+        password: shareCode || undefined,
       });
 
       let entries;
       try {
         entries = await reader.getEntries();
+        notes.push(`ZIP opened, entries=${entries.length}`);
       } catch (pwErr) {
-        notes.push("Aadhaar ZIP could not be opened — wrong or missing share code");
+        notes.push(
+          `ZIP could not be opened (${pwErr}) — check share code`,
+        );
         await reader.close();
         throw pwErr;
       }
 
+      // ── Scan entries for the UIDAI XML ────────────────────────────────
       for (const entry of entries) {
-        const name = entry.filename.toLowerCase();
+        const entryName = entry.filename.toLowerCase();
+        notes.push(`Found ZIP entry: ${entry.filename}`);
 
-        // Look for XML (UIDAI offline XML)
-        if (name.endsWith(".xml")) {
-          let xmlText: string;
-          try {
-            xmlText = await entry.getData!(new TextWriter(), {
-              password: shareCode ?? undefined,
-            });
-          } catch (_decryptErr) {
-            notes.push("Aadhaar XML decryption failed — share code may be incorrect");
-            continue;
-          }
+        if (!entryName.endsWith(".xml")) continue;
 
-          // Verify UIDAI signature presence (production: use WebCrypto to verify RSA-SHA256)
-          if (xmlText.includes("Signature") && xmlText.includes("ds:SignatureValue")) {
-            aadhaarValid = true;
-            notes.push("Aadhaar UIDAI signature found");
-          }
-
-          // Extract Name & DOB via simple regex (real: use XML parser)
-          const nameMatch = xmlText.match(/name="([^"]+)"/i);
-          const dobMatch  = xmlText.match(/dob="([^"]+)"/i);
-          if (nameMatch) aadhaarName = nameMatch[1];
-          if (dobMatch)  aadhaarDob  = dobMatch[1];
+        let xmlText: string;
+        try {
+          xmlText = await entry.getData!(new TextWriter(), {
+            password: shareCode || undefined,
+          });
+        } catch (decryptErr) {
+          notes.push(
+            `XML decryption failed for ${entry.filename}: ${decryptErr}`,
+          );
+          continue;
         }
+
+        notes.push(`XML length: ${xmlText.length} chars`);
+
+        // ── Signature check ───────────────────────────────────────────
+        if (hasUidaiSignature(xmlText)) {
+          aadhaarValid = true;
+          notes.push("UIDAI digital signature block found");
+        } else {
+          notes.push("No UIDAI signature block detected in XML");
+        }
+
+        // ── Extract Name from <Poi name="..."> ────────────────────────
+        // Primary: look specifically inside <Poi> element
+        aadhaarName =
+          extractAttrFromElement(xmlText, "Poi", "name") ??
+          extractAttrFromElement(xmlText, "UidData", "name") ??
+          extractAttrGlobal(xmlText, "name");
+
+        // ── Extract DOB from <Poi dob="..."> ──────────────────────────
+        // UIDAI format: DD-MM-YYYY or YYYY-MM-DD
+        aadhaarDob =
+          extractAttrFromElement(xmlText, "Poi", "dob") ??
+          extractAttrFromElement(xmlText, "UidData", "dob") ??
+          extractAttrGlobal(xmlText, "dob");
+
+        notes.push(
+          `Extracted — name: ${aadhaarName ?? "NOT FOUND"}, dob: ${aadhaarDob ?? "NOT FOUND"}`,
+        );
+
+        // Log first 300 chars of XML for debugging (redacted in production)
+        if (!aadhaarName || !aadhaarDob) {
+          const preview = xmlText.substring(0, 300).replace(/\n/g, " ");
+          notes.push(`XML preview (first 300 chars): ${preview}`);
+        }
+
+        break; // Stop after first XML file
       }
 
       await reader.close();
 
       if (aadhaarValid) {
         trustScore += 40;
-        notes.push("Aadhaar XML signature verified (+40)");
+        notes.push("Aadhaar signature verified (+40)");
       } else {
-        notes.push("Aadhaar signature missing or invalid");
+        notes.push("Aadhaar signature missing — manual review needed");
+      }
+
+      // Partial credit if name/dob extracted even without signature
+      if (aadhaarName && aadhaarDob && !aadhaarValid) {
+        trustScore += 15;
+        notes.push("Aadhaar name/DOB extracted without signature (+15)");
       }
     } catch (e) {
-      notes.push(`Aadhaar ZIP error: ${e}`);
+      notes.push(`Aadhaar ZIP processing error: ${e}`);
     }
 
-    // ── 4. PAN validation ───────────────────────────────────────────────────
+    // ── 4. PAN validation ──────────────────────────────────────────────────
     const panUpper = pan.trim().toUpperCase();
     const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-    const panFourthChar = panUpper[3]; // 'P' = individual, 'C' = company
+    const panFourthChar = panUpper[3]; // P = individual, C = company/trust
 
     if (panRegex.test(panUpper) && (panFourthChar === "P" || panFourthChar === "C")) {
       trustScore += 30;
       notes.push(`PAN valid, type=${panFourthChar === "P" ? "Individual" : "Company"} (+30)`);
     } else {
-      notes.push("PAN failed regex or 4th-char check");
+      notes.push(
+        `PAN failed — value="${panUpper}", 4th char="${panFourthChar ?? "?"}"`,
+      );
     }
 
-    // ── 5. GST verification (optional) ─────────────────────────────────────
+    // ── 5. GST verification (optional) ────────────────────────────────────
     if (gstin) {
       try {
-        // Public GST search API (no auth needed for basic check)
         const gstRes = await fetch(
           `https://sheet.gstincheck.co.in/check/${Deno.env.get("GST_API_KEY")}/${gstin}`,
           { signal: AbortSignal.timeout(5000) },
@@ -139,17 +235,19 @@ serve(async (req) => {
           const gstData = await gstRes.json();
           if (gstData?.flag === true) {
             trustScore += 15;
-            notes.push("GSTIN verified via public API (+15)");
+            notes.push("GSTIN verified (+15)");
           } else {
             notes.push("GSTIN not found in GST registry");
           }
+        } else {
+          notes.push(`GST API returned ${gstRes.status}`);
         }
       } catch (e) {
         notes.push(`GST API error (non-fatal): ${e}`);
       }
     }
 
-    // ── 6. Darpan ID verification (optional) ───────────────────────────────
+    // ── 6. Darpan ID verification (optional) ──────────────────────────────
     if (darpanId) {
       try {
         const darpanRes = await fetch(
@@ -170,7 +268,7 @@ serve(async (req) => {
       }
     }
 
-    // ── 7. Trust-score decision engine ─────────────────────────────────────
+    // ── 7. Trust-score decision ────────────────────────────────────────────
     let status: "completed" | "pending_review" | "rejected";
 
     if (trustScore >= 90) {
@@ -181,7 +279,9 @@ serve(async (req) => {
       status = "rejected";
     }
 
-    // ── 8. Update shelter_kyc ───────────────────────────────────────────────
+    notes.push(`Final trust score: ${trustScore} → status: ${status}`);
+
+    // ── 8. Upsert shelter_kyc ──────────────────────────────────────────────
     const { error: upsertErr } = await supabase.from("shelter_kyc").upsert(
       {
         user_id: userId,
@@ -201,7 +301,7 @@ serve(async (req) => {
 
     if (upsertErr) throw new Error(`DB upsert failed: ${upsertErr.message}`);
 
-    // Also mark profile
+    // ── 9. Update profile ──────────────────────────────────────────────────
     await supabase
       .from("profiles")
       .update({
@@ -213,7 +313,7 @@ serve(async (req) => {
 
     return json({ status, trustScore, notes });
   } catch (err) {
-    console.error(err);
+    console.error("process-kyc fatal error:", err);
     return json({ error: String(err) }, 500);
   }
 });
