@@ -5,6 +5,7 @@ class PetTextField extends StatefulWidget {
   final String hintText;
   final bool isPassword;
   final Widget? suffixIcon;
+  final TextInputType? keyboardType;
 
   const PetTextField({
     super.key,
@@ -12,6 +13,7 @@ class PetTextField extends StatefulWidget {
     required this.hintText,
     this.isPassword = false,
     this.suffixIcon,
+    this.keyboardType,
   });
 
   @override
@@ -26,6 +28,7 @@ class _PetTextFieldState extends State<PetTextField> {
     return TextField(
       controller: widget.controller,
       obscureText: widget.isPassword ? _obscureText : false,
+      keyboardType: widget.keyboardType,
       decoration: InputDecoration(
         hintText: widget.hintText,
         suffixIcon: widget.isPassword

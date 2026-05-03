@@ -11,6 +11,7 @@ import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
 import 'package:pet_connect_app/screens/profile_details_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
+import 'package:pet_connect_app/screens/otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -107,57 +108,17 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (!mounted) return;
       
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Password Reset Email Sent ✓'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('A password reset link has been sent to:'),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  email.text,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Instructions:'),
-              const SizedBox(height: 8),
-              const Text('1. Check your email (including spam folder)'),
-              const SizedBox(height: 8),
-              const Text('2. Click the "Reset Password" link in the email'),
-              const SizedBox(height: 8),
-              const Text('3. Enter your new password'),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: const Text(
-                  'Note: The reset link expires in 24 hours',
-                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                ),
-              ),
-            ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset OTP sent! Please check your email.')),
+      );
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpScreen(
+            email: email.text.trim(),
+            isPasswordReset: true,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
         ),
       );
     } on AuthException catch (e) {

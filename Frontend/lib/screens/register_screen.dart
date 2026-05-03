@@ -5,6 +5,7 @@ import '../widgets/pet_text_field.dart';
 import '../widgets/primary_button.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
+import 'otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -74,9 +75,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please login.')),
+          const SnackBar(content: Text('Registration successful! Please verify your email.')),
         );
-        Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpScreen(email: email.text.trim()),
+          ),
+        );
       }
     } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
