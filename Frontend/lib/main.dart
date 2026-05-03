@@ -56,29 +56,37 @@ final notificationService = NotificationService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   try {
     await dotenv.load(fileName: '.env');
-  } catch (_) {
-    // `.env` is optional for local dev; keep app runnable without it.
-  }
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await notificationService.init(); // Initialize notification service
+  } catch (_) {}
+
+  // We MUST initialize Supabase before runApp because the UI needs it immediately
   await Supabase.initialize(
     url: 'https://goegjrqmyshnzzonfjav.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvZWdqcnFteXNobnp6b25mamF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0OTMyOTAsImV4cCI6MjA3MzA2OTI5MH0.i4KPxTg_d85Pd8vXMdOYxvoHdrVDZNmGaz30x1ZBglU',
   );
 
-  final supabase = Supabase.instance.client;
-  supabase.auth.onAuthStateChange.listen((data) {
-    final session = data.session;
-
-    if (session != null) {
-      print('User logged in via email link');
-    }
-  });
-
   runApp(const PetConnectApp());
+
+  // Initialize heavy services (like Firebase/Notifications) in the background so they don't block startup
+  _initializeServices();
+}
+
+Future<void> _initializeServices() async {
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await notificationService.init();
+    
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.session != null) {
+        debugPrint('User logged in');
+      }
+    });
+  } catch (e) {
+    debugPrint('Error during background initialization: \$e');
+  }
 }
 
 class PetConnectApp extends StatefulWidget {
@@ -105,28 +113,22 @@ class _PetConnectAppState extends State<PetConnectApp> {
   }
 
   void _initDeepLinks() async {
-    // Handle deep links when app is already running
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       _handleDeepLink(uri);
     });
 
-    // Check for initial deep link when app starts
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null && initialUri.scheme == 'io.supabase.petconnect') {
-        // Delay navigation to ensure context is ready
         Future.delayed(const Duration(milliseconds: 100), () {
           _handleDeepLink(initialUri);
         });
       }
-    } catch (e) {
-      // Ignore errors during initial link check
-    }
+    } catch (e) {}
   }
 
   void _handleDeepLink(Uri uri) {
     if (uri.scheme == 'io.supabase.petconnect') {
-      // Navigate to auth callback screen
       Navigator.of(
         context,
       ).pushNamed(AuthCallbackScreen.routeName, arguments: uri);
@@ -137,7 +139,7 @@ class _PetConnectAppState extends State<PetConnectApp> {
     final supabase = Supabase.instance.client;
     final profileResponse = await supabase
         .from('profiles')
-        .select() // Select all profile fields
+        .select()
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -226,7 +228,6 @@ class _PetConnectAppState extends State<PetConnectApp> {
                     return const MainScreen();
                   } else if (userRole == 'Shelter' ||
                       userRole == 'Shelter Owner') {
-                    // Only send to shelter home if KYC is verified
                     final kycVerified = profile['kyc_verified'] == true;
                     if (kycVerified) {
                       return const ShelterHomeScreen();
@@ -255,17 +256,11 @@ class _PetConnectAppState extends State<PetConnectApp> {
         },
         ProfileScreen.routeName: (context) => const ProfileScreen(),
         MainScreen.routeName: (context) => const MainScreen(),
-
-        SelfCareOptionsScreen.routeName: (context) =>
-            const SelfCareOptionsScreen(),
-
+        SelfCareOptionsScreen.routeName: (context) => const SelfCareOptionsScreen(),
         ServicesScreen.routeName: (context) => const ServicesScreen(),
-        GroomingDetailsScreen.routeName: (context) =>
-            const GroomingDetailsScreen(),
-        TrainingDetailsScreen.routeName: (context) =>
-            const TrainingDetailsScreen(),
-        NutritionAdviceScreen.routeName: (context) =>
-            const NutritionAdviceScreen(),
+        GroomingDetailsScreen.routeName: (context) => const GroomingDetailsScreen(),
+        TrainingDetailsScreen.routeName: (context) => const TrainingDetailsScreen(),
+        NutritionAdviceScreen.routeName: (context) => const NutritionAdviceScreen(),
         RoleSelectionScreen.routeName: (context) => const RoleSelectionScreen(),
         KycDocumentScreen.routeName: (context) => const KycDocumentScreen(),
         KycPendingScreen.routeName: (context) => const KycPendingScreen(),
@@ -273,54 +268,36 @@ class _PetConnectAppState extends State<PetConnectApp> {
         KycScreen.routeName: (context) => const KycScreen(),
         VerificationSuccessScreen.routeName: (context) => const VerificationSuccessScreen(),
         UnderReviewScreen.routeName: (context) => const UnderReviewScreen(),
-        ShelterHomeScreen.routeName: (context) =>
-            _guardShelterRoute(const ShelterHomeScreen()),
-        AppointmentsScreen.routeName: (context) =>
-            _guardShelterRoute(const AppointmentsScreen()),
-        ManagePetsScreen.routeName: (context) =>
-            _guardShelterRoute(const ManagePetsScreen()),
-        AdoptionRequestsScreen.routeName: (context) =>
-            _guardShelterRoute(const AdoptionRequestsScreen()),
-        ShelterProfileScreen.routeName: (context) =>
-            _guardShelterRoute(const ShelterProfileScreen()),
+        ShelterHomeScreen.routeName: (context) => _guardShelterRoute(const ShelterHomeScreen()),
+        AppointmentsScreen.routeName: (context) => _guardShelterRoute(const AppointmentsScreen()),
+        ManagePetsScreen.routeName: (context) => _guardShelterRoute(const ManagePetsScreen()),
+        AdoptionRequestsScreen.routeName: (context) => _guardShelterRoute(const AdoptionRequestsScreen()),
+        ShelterProfileScreen.routeName: (context) => _guardShelterRoute(const ShelterProfileScreen()),
         EditProfileScreen.routeName: (context) => const EditProfileScreen(),
-        SocialProfileSetupScreen.routeName: (context) =>
-            const SocialProfileSetupScreen(),
+        SocialProfileSetupScreen.routeName: (context) => const SocialProfileSetupScreen(),
         AdminDashboardScreen.routeName: (_) => const AdminDashboardScreen(),
         AdminKycApprovalScreen.routeName: (_) => const AdminKycApprovalScreen(),
         MapScreen.routeName: (context) => const MapScreen(),
-        ProfileDetailsScreen.routeName: (context) =>
-            const ProfileDetailsScreen(),
+        ProfileDetailsScreen.routeName: (context) => const ProfileDetailsScreen(),
         AdoptionScreen.routeName: (context) => const AdoptionScreen(),
         HealthDetailsScreen.routeName: (context) {
-          final args =
-              ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>?;
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
           final petId = args?['petId'] as String?;
           return HealthDetailsScreen(petId: petId);
         },
         AddEditMedicalNoteScreen.routeName: (context) {
-          final args =
-              ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>?;
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
           final petId = args?['petId'] as String;
           final note = args?['note'] as MedicalNote?;
           return AddEditMedicalNoteScreen(petId: petId, note: note);
         },
-        ManageAppointmentsScreen.routeName: (context) =>
-            _guardShelterRoute(const ManageAppointmentsScreen()),
-        ShelterAnalyticsScreen.routeName: (context) =>
-            _guardShelterRoute(const ShelterAnalyticsScreen()),
-        ShelterAdoptionRequestsScreen.routeName: (_) =>
-            _guardShelterRoute(const ShelterAdoptionRequestsScreen()),
-        ManageProfilesScreen.routeName: (context) =>
-            const ManageProfilesScreen(),
-        ManageCommunityScreen.routeName: (context) =>
-            const ManageCommunityScreen(),
-        ApproveVerificationsScreen.routeName: (context) =>
-            const ApproveVerificationsScreen(),
-        AdminAnalyticsScreen.routeName: (context) =>
-            const AdminAnalyticsScreen(),
+        ManageAppointmentsScreen.routeName: (context) => _guardShelterRoute(const ManageAppointmentsScreen()),
+        ShelterAnalyticsScreen.routeName: (context) => _guardShelterRoute(const ShelterAnalyticsScreen()),
+        ShelterAdoptionRequestsScreen.routeName: (_) => _guardShelterRoute(const ShelterAdoptionRequestsScreen()),
+        ManageProfilesScreen.routeName: (context) => const ManageProfilesScreen(),
+        ManageCommunityScreen.routeName: (context) => const ManageCommunityScreen(),
+        ApproveVerificationsScreen.routeName: (context) => const ApproveVerificationsScreen(),
+        AdminAnalyticsScreen.routeName: (context) => const AdminAnalyticsScreen(),
         NotificationsScreen.routeName: (context) => const NotificationsScreen(),
       },
     );
