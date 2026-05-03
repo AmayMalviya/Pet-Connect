@@ -15,8 +15,6 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   final SupabaseService _supabaseService = SupabaseService();
-
-class _ShopScreenState extends State<ShopScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
