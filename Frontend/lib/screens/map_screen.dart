@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pet_connect_app/models/place.dart';
 import 'package:pet_connect_app/services/place_service.dart';
-import 'package:pet_connect_app/theme/app_theme.dart' show AppColors;
+import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/widgets/place_bottom_sheet.dart';
 
 class MapScreen extends StatefulWidget {
   static const routeName = '/map';
@@ -82,12 +85,59 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _initLocation() async {
-    // In production, replace with geolocator / permission_handler logic.
-    // For now we use a fixed location so the demo works without GPS permission.
-    setState(() {
-      _isLocating = false;
-    });
-    await _search(_activeFilter);
+    try {
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _errorMessage = 'Location services are disabled.';
+          _isLocating = false;
+        });
+        return;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _errorMessage = 'Location permissions are denied';
+            _isLocating = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _errorMessage = 'Location permissions are permanently denied';
+          _isLocating = false;
+        });
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      
+      final lat = position.latitude.isNaN ? 22.719568 : position.latitude;
+      final lng = position.longitude.isNaN ? 75.857727 : position.longitude;
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = LatLng(lat, lng);
+          _isLocating = false;
+        });
+      }
+      await _search(_activeFilter);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Could not get location';
+          _isLocating = false;
+        });
+      }
+    }
   }
 
   // ── Search ─────────────────────────────────────────────────────────────────
@@ -171,6 +221,7 @@ class _MapScreenState extends State<MapScreen> {
     ];
 
     for (final place in _places) {
+      if (place.latitude.isNaN || place.longitude.isNaN) continue;
       final point = LatLng(place.latitude, place.longitude);
       markers.add(
         Marker(
@@ -206,79 +257,10 @@ class _MapScreenState extends State<MapScreen> {
   // ── Bottom sheet ───────────────────────────────────────────────────────────
 
   void _showPlaceSheet(Place place) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(place.displayName,
-                style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w700)),
-            if (place.primaryType != null) ...[
-              const SizedBox(height: 4),
-              Text(place.primaryType!,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-            ],
-            if (place.formattedAddress != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(place.formattedAddress!,
-                        style: const TextStyle(fontSize: 13)),
-                  ),
-                ],
-              ),
-            ],
-            if (place.rating != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.star, size: 14, color: Colors.amber),
-                  const SizedBox(width: 4),
-                  Text('${place.rating!.toStringAsFixed(1)} / 5.0',
-                      style: const TextStyle(fontSize: 13)),
-                ],
-              ),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _openInMaps(place),
-                icon: const Icon(Icons.directions),
-                label: const Text('Get Directions'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    final photoUrl = place.photoName != null 
+        ? _placeService.getPhotoUrl(place.photoName!) 
+        : null;
+    PlaceBottomSheet.show(context, place, photoUrl: photoUrl);
   }
 
   Future<void> _openInMaps(Place place) async {

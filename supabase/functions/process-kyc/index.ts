@@ -14,13 +14,13 @@
 //     <ds:SignatureValue>...</ds:SignatureValue></Signature>
 // </OfflinePaperlessKyc>
 
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ZipReader, BlobReader, TextWriter } from "https://deno.land/x/zipjs@v2.7.52/index.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const json = (body: unknown, status = 200) =>
@@ -74,7 +74,7 @@ function hasUidaiSignature(xml: string): boolean {
 
 // ── Main handler ───────────────────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   try {
@@ -128,7 +128,7 @@ serve(async (req) => {
       try {
         entries = await reader.getEntries();
         notes.push(`ZIP opened, entries=${entries.length}`);
-      } catch (pwErr) {
+      } catch (pwErr: any) {
         notes.push(
           `ZIP could not be opened (${pwErr}) — check share code`,
         );
@@ -148,7 +148,7 @@ serve(async (req) => {
           xmlText = await entry.getData!(new TextWriter(), {
             password: shareCode || undefined,
           });
-        } catch (decryptErr) {
+        } catch (decryptErr: any) {
           notes.push(
             `XML decryption failed for ${entry.filename}: ${decryptErr}`,
           );
@@ -206,7 +206,7 @@ serve(async (req) => {
         trustScore += 15;
         notes.push("Aadhaar name/DOB extracted without signature (+15)");
       }
-    } catch (e) {
+    } catch (e: any) {
       notes.push(`Aadhaar ZIP processing error: ${e}`);
     }
 
@@ -242,7 +242,7 @@ serve(async (req) => {
         } else {
           notes.push(`GST API returned ${gstRes.status}`);
         }
-      } catch (e) {
+      } catch (e: any) {
         notes.push(`GST API error (non-fatal): ${e}`);
       }
     }
@@ -263,7 +263,7 @@ serve(async (req) => {
             notes.push("Darpan ID not found or inactive");
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         notes.push(`Darpan API error (non-fatal): ${e}`);
       }
     }
@@ -312,7 +312,7 @@ serve(async (req) => {
       .eq("user_id", userId);
 
     return json({ status, trustScore, notes });
-  } catch (err) {
+  } catch (err: any) {
     console.error("process-kyc fatal error:", err);
     return json({ error: String(err) }, 500);
   }

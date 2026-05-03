@@ -268,6 +268,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             value: _selectedCountry,
+                            isExpanded: true,
                             decoration: _buildInputDecoration('Country', 'Select your country', Icons.public),
                             items: _countries.map((String country) {
                               return DropdownMenuItem<String>(
@@ -295,6 +296,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             value: _selectedState,
+                            isExpanded: true,
                             decoration: _buildInputDecoration('State', 'Select your state', Icons.map),
                             items: _states.map((String state) {
                               return DropdownMenuItem<String>(
@@ -325,6 +327,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             value: _selectedCity,
+                            isExpanded: true,
                             decoration: _buildInputDecoration('City', 'Select your city', Icons.location_city),
                             items: _cities.map((String city) {
                               return DropdownMenuItem<String>(

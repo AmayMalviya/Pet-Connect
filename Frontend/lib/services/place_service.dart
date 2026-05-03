@@ -24,16 +24,23 @@ class PlaceService {
   static const _nearbyFieldMask =
       'places.id,places.displayName,places.location,'
       'places.formattedAddress,places.primaryType,'
-      'places.primaryTypeDisplayName,places.rating,'
-      'places.currentOpeningHours';
+      'places.primaryTypeDisplayName,places.rating,places.userRatingCount,'
+      'places.nationalPhoneNumber,places.websiteUri,'
+      'places.currentOpeningHours,places.regularOpeningHours,places.photos';
 
   static const _textFieldMask =
       'places.id,places.displayName,places.location,'
       'places.formattedAddress,places.primaryType,'
-      'places.primaryTypeDisplayName,places.rating,'
-      'places.currentOpeningHours';
+      'places.primaryTypeDisplayName,places.rating,places.userRatingCount,'
+      'places.nationalPhoneNumber,places.websiteUri,'
+      'places.currentOpeningHours,places.regularOpeningHours,places.photos';
 
   // ── Public API ─────────────────────────────────────────────────────────────
+
+  /// Helper to construct photo URL
+  String getPhotoUrl(String photoName, {int maxWidthPx = 400}) {
+    return 'https://places.googleapis.com/v1/$photoName/media?maxWidthPx=$maxWidthPx&key=$apiKey';
+  }
 
   /// Fetch nearby **vets & pet shops** using `searchNearby` with typed filters.
   ///

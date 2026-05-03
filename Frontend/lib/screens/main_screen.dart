@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pet_connect_app/screens/community_screen.dart';
@@ -36,11 +37,30 @@ class _MainScreenState extends State<MainScreen> {
   String _userRole = 'Pet Owner';
   bool _kycVerified = false;
   bool _isLoadingRole = true;
+  bool _isFabExtended = true;
+  Timer? _fabTimer;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _startFabTimer();
+  }
+
+  void _startFabTimer() {
+    _fabTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _isFabExtended = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fabTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -208,6 +228,7 @@ class _MainScreenState extends State<MainScreen> {
               },
               icon: const Icon(Icons.auto_awesome),
               label: const Text('Pet AI'),
+              isExtended: _isFabExtended,
               backgroundColor: AppColors.primary,
               tooltip: 'Chat with Pet AI Assistant',
             )

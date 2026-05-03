@@ -179,13 +179,13 @@ class _ServicesScreenState extends State<ServicesScreen> {
               ],
             ),
           ),
-          // Vets Near Me (Wide Card)
+          // Nearby Services (Wide Card)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: _PremiumServiceCard(
-                title: 'Vets Near Me',
-                subtitle: 'Find professional care instantly on the map',
+                title: 'Nearby Services',
+                subtitle: 'Find clinics, shops, and shelters in your area',
                 icon: Icons.pin_drop_outlined,
                 color: Colors.lightBlueAccent.shade100,
                 isWide: true,
