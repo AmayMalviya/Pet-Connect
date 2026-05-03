@@ -5,12 +5,36 @@ import 'package:pet_connect_app/screens/community_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/profile_screen.dart';
 import 'package:pet_connect_app/screens/services_screen.dart';
+import 'package:pet_connect_app/screens/shop_screen.dart';
 import 'package:pet_connect_app/screens/login_screen.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Shelter Screens
+import 'package:pet_connect_app/screens/shelter_home_screen.dart';
+import 'package:pet_connect_app/screens/shelter/manage_pets_screen.dart';
+import 'package:pet_connect_app/screens/shelter_adoption_requests_screen.dart';
+import 'package:pet_connect_app/screens/shelter/shelter_analytics_screen.dart';
+import 'package:pet_connect_app/screens/shelter_profile_screen.dart';
+
+// Admin Screens
+import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
+import 'package:pet_connect_app/screens/admin/manage_profiles_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_kyc_approval_screen.dart';
+import 'package:pet_connect_app/screens/admin/manage_community_screen.dart';
+import 'package:pet_connect_app/screens/admin/admin_analytics_screen.dart';
+
+// Vet Screens
+import 'package:pet_connect_app/screens/vet_home_screen.dart';
+import 'package:pet_connect_app/screens/my_patients_screen.dart';
+import 'package:pet_connect_app/screens/appointments_screen.dart';
+import 'package:pet_connect_app/screens/vet_profile_screen.dart';
+
 class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+  /// Called with the tab index to switch to in MainScreen.
+  /// Pass null-safe — drawer items that open a new screen use pushNamed directly.
+  final void Function(int index)? onTabSwitch;
+  const AppDrawer({super.key, this.onTabSwitch});
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -21,54 +45,11 @@ class _AppDrawerState extends State<AppDrawer> {
   String _firstName = 'User';
   String _userEmail = '';
   String? _photoUrl;
-  
-  List<String> _petNames = [];
-  String _currentGreeting = "Welcome back! 🐾";
-
-  final List<String> _baseGreetings = [
-    // General Welcome
-    "Welcome back! Your pets are happy to see you. 🐾",
-    "Hello again! Ready to check on your pets?",
-    "Good to see you! Let’s care for some happy pets.",
-    "Welcome back to Pet Connect!",
-    "Your pet world is waiting for you.",
-    // Playful
-    "A wagging tail is waiting somewhere! 🐶",
-    "Your furry friends say hello!",
-    "Someone just wagged their tail thinking about you.",
-    "Time to spread some pawsitive vibes. 🐾",
-    "Your pets’ happiness starts here.",
-    // Care & Health
-    "Let’s keep your pets happy and healthy today.",
-    "Your pets’ care journey continues.",
-    "A happy pet is a healthy pet. Let’s begin.",
-    "Check in on your pets today.",
-    "Small care today, big happiness tomorrow.",
-    // Community
-    "Let’s see what the pet community is sharing today.",
-    "Pet lovers are connecting right now.",
-    "Your pet community is waiting.",
-    "Discover stories from fellow pet parents.",
-    "Let’s connect with the pet world.",
-    // Adoption
-    "Some pets are waiting for a loving home today.",
-    "Maybe today you meet your new best friend. 🐕",
-    "Every pet deserves love.",
-    "Let’s help more pets find homes.",
-    "Adoption stories start here.",
-    // Short Minimal
-    "Hello, pet parent!",
-    "Welcome back. 🐾",
-    "Ready for some pawsitive moments?",
-    "Your pets await.",
-    "Let’s begin the pet journey."
-  ];
+  String _userRole = 'Pet Owner';
 
   @override
   void initState() {
     super.initState();
-    // Set an initial random normal greeting in case network takes long
-    _currentGreeting = _baseGreetings[Random().nextInt(_baseGreetings.length)];
     _loadUserData();
   }
 
@@ -79,17 +60,9 @@ class _AppDrawerState extends State<AppDrawer> {
         // Fetch profile
         final profile = await Supabase.instance.client
             .from('profiles')
-            .select('first_name, last_name, email, photo_url')
+            .select('first_name, last_name, email, photo_url, role')
             .eq('user_id', user.id)
             .maybeSingle();
-
-        // Fetch user's pets
-        final petsResponse = await Supabase.instance.client
-            .from('pets')
-            .select('name')
-            .eq('owner_id', user.id);
-            
-        final fetchedPetNames = (petsResponse as List).map((p) => p['name'] as String).toList();
 
         if (mounted) {
           setState(() {
@@ -97,33 +70,13 @@ class _AppDrawerState extends State<AppDrawer> {
             _userName = '${profile?['first_name'] ?? ''} ${profile?['last_name'] ?? ''}'.trim();
             _userEmail = profile?['email'] ?? user.email ?? '';
             _photoUrl = profile?['photo_url'];
-            _petNames = fetchedPetNames;
-            
-            _generateGreeting();
+            _userRole = profile?['role'] ?? 'Pet Owner';
           });
         }
+
       } catch (e) {
         debugPrint('Error loading drawer data: $e');
       }
-    }
-  }
-
-  void _generateGreeting() {
-    final random = Random();
-    
-    // Sometimes we want to use the completely dynamic ones if they have a pet
-    if (_petNames.isNotEmpty && random.nextDouble() > 0.6) {
-      final String randomPetName = _petNames[random.nextInt(_petNames.length)];
-      final List<String> dynamicPetGreetings = [
-        "Welcome back, $_firstName! How is $randomPetName doing today?",
-        "$randomPetName hasn’t had a check-in today 🐾",
-        "Ready for some playtime with $randomPetName?",
-        "$randomPetName says hello! 🐶",
-      ];
-      _currentGreeting = dynamicPetGreetings[random.nextInt(dynamicPetGreetings.length)];
-    } else {
-      // Pick randomly from the base user-provided list
-      _currentGreeting = _baseGreetings[random.nextInt(_baseGreetings.length)];
     }
   }
 
@@ -172,6 +125,22 @@ class _AppDrawerState extends State<AppDrawer> {
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _userRole.toUpperCase(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -182,38 +151,16 @@ class _AppDrawerState extends State<AppDrawer> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.home_outlined),
-                  title: Text('Home', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                  onTap: () {
-                    Navigator.pushReplacementNamed(context, MainScreen.routeName);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.people_outline),
-                  title: Text('Community', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                  onTap: () {
-                    Navigator.pushReplacementNamed(context, CommunityScreen.routeName);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.miscellaneous_services_outlined),
-                  title: Text('Services', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                  onTap: () {
-                    Navigator.pushReplacementNamed(context, ServicesScreen.routeName);
-                  },
-                ),
+                if (_userRole == 'Admin') ..._buildAdminItems()
+                else if (_userRole == 'Shelter' || _userRole == 'Shelter Owner') ..._buildShelterItems()
+                else if (_userRole == 'Vet') ..._buildVetItems()
+                else ..._buildPetOwnerItems(),
+                
                 const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.person_outline),
-                  title: Text('Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                  onTap: () {
-                    Navigator.pushNamed(context, ProfileScreen.routeName);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: Text('Logout', style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.redAccent)),
+                _buildDrawerItem(
+                  icon: Icons.logout,
+                  title: 'Logout',
+                  color: Colors.redAccent,
                   onTap: () async {
                     await Supabase.instance.client.auth.signOut();
                     if (context.mounted) {
@@ -226,6 +173,145 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
         ],
       ),
+    );
+  }  // end of build()
+
+  List<Widget> _buildPetOwnerItems() {
+    return [
+      _buildDrawerItem(
+        icon: Icons.home_outlined,
+        title: 'Home',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(0); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.miscellaneous_services_outlined,
+        title: 'Services',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(1); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.shopping_bag_outlined,
+        title: 'Shop',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(2); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.people_outline,
+        title: 'Community',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(3); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.person_outline,
+        title: 'Profile',
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, ProfileScreen.routeName); },
+      ),
+    ];
+  }
+
+  List<Widget> _buildShelterItems() {
+    return [
+      _buildDrawerItem(
+        icon: Icons.dashboard_outlined,
+        title: 'Shelter Hub',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(0); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.pets_outlined,
+        title: 'Manage Pets',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(1); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.volunteer_activism_outlined,
+        title: 'Adoption Requests',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(2); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.analytics_outlined,
+        title: 'Analytics',
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, ShelterAnalyticsScreen.routeName); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.person_outline,
+        title: 'Shelter Profile',
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, ShelterProfileScreen.routeName); },
+      ),
+    ];
+  }
+
+  List<Widget> _buildAdminItems() {
+    return [
+      _buildDrawerItem(
+        icon: Icons.admin_panel_settings_outlined,
+        title: 'Admin Dashboard',
+        onTap: () => Navigator.pushReplacementNamed(context, AdminDashboardScreen.routeName),
+      ),
+      _buildDrawerItem(
+        icon: Icons.people_alt_outlined,
+        title: 'Manage Profiles',
+        onTap: () => Navigator.pushNamed(context, ManageProfilesScreen.routeName),
+      ),
+      _buildDrawerItem(
+        icon: Icons.verified_user_outlined,
+        title: 'KYC Approvals',
+        onTap: () => Navigator.pushNamed(context, AdminKycApprovalScreen.routeName),
+      ),
+      _buildDrawerItem(
+        icon: Icons.groups_outlined,
+        title: 'Manage Community',
+        onTap: () => Navigator.pushNamed(context, ManageCommunityScreen.routeName),
+      ),
+      _buildDrawerItem(
+        icon: Icons.bar_chart_outlined,
+        title: 'App Analytics',
+        onTap: () => Navigator.pushNamed(context, AdminAnalyticsScreen.routeName),
+      ),
+    ];
+  }
+
+  List<Widget> _buildVetItems() {
+    return [
+      _buildDrawerItem(
+        icon: Icons.medical_services_outlined,
+        title: 'Vet Dashboard',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(0); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.assignment_ind_outlined,
+        title: 'My Patients',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(1); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.calendar_today_outlined,
+        title: 'Appointments',
+        onTap: () { Navigator.pop(context); widget.onTabSwitch?.call(2); },
+      ),
+      _buildDrawerItem(
+        icon: Icons.person_outline,
+        title: 'Vet Profile',
+        onTap: () { Navigator.pop(context); Navigator.pushNamed(context, VetProfileScreen.routeName); },
+      ),
+    ];
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? AppColors.textDark, size: 24),
+      title: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontWeight: FontWeight.w500,
+          fontSize: 15,
+          color: color ?? AppColors.textDark,
+        ),
+      ),
+      onTap: onTap,
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
     );
   }
 }

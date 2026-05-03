@@ -17,17 +17,58 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
   @override
   void initState() {
     super.initState();
-    _authStateSubscription =
-        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      final event = data.event;
-      if (event == AuthChangeEvent.passwordRecovery) {
-        // Handle password recovery
-        Navigator.of(context).pushNamed(
-          ResetPasswordScreen.routeName,
-          arguments: data.session,
-        );
-      }
-    });
+    _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange
+        .listen((data) {
+          final event = data.event;
+          final session = data.session;
+
+          switch (event) {
+            case AuthChangeEvent.passwordRecovery:
+              // Handle password recovery - navigate to reset password screen
+              if (session != null) {
+                Navigator.of(context).pushReplacementNamed(
+                  ResetPasswordScreen.routeName,
+                  arguments: session,
+                );
+              }
+              break;
+
+            case AuthChangeEvent.signedIn:
+              // Handle password recovery and other specific flows
+              if (session != null) {
+                final uri = Uri.tryParse(session.accessToken);
+                if (uri != null && uri.fragment.contains('type=recovery')) {
+                  Navigator.of(context).pushReplacementNamed(
+                    ResetPasswordScreen.routeName,
+                    arguments: session,
+                  );
+                }
+                // Do NOT navigate to '/' here, StreamBuilder in main.dart handles it
+              }
+              break;
+
+            case AuthChangeEvent.signedOut:
+              // Do NOT navigate to '/' here, StreamBuilder in main.dart handles it
+              break;
+
+            case AuthChangeEvent.tokenRefreshed:
+              // Token refreshed - no navigation needed
+              break;
+
+            case AuthChangeEvent.userUpdated:
+              // User updated - no navigation needed
+              break;
+
+            case AuthChangeEvent.userDeleted:
+              // User deleted - navigate to auth screen
+              Navigator.of(context).pushReplacementNamed('/');
+              break;
+
+            default:
+              // Handle any other auth events
+              break;
+          }
+        });
   }
 
   @override

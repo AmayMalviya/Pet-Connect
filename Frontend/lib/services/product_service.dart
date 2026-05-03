@@ -48,6 +48,13 @@ class ProductService {
     double? minPrice,
     double? maxPrice,
     double? minRating,
+    List<String>? species,
+    List<String>? breedCompatibility,
+    String? ageRange,
+    String? weightRange,
+    List<String>? medicalRestrictions,
+    List<String>? allergyWarnings,
+    List<String>? tags,
   }) {
     var filtered = products;
 
@@ -78,7 +85,65 @@ class ProductService {
           .toList();
     }
 
+    // Filter by species
+    if (species != null && species.isNotEmpty) {
+      filtered = filtered.where((product) {
+        return product.species?.any((s) => species.contains(s)) ?? false;
+      }).toList();
+    }
+
+    // Filter by breed compatibility
+    if (breedCompatibility != null && breedCompatibility.isNotEmpty) {
+      filtered = filtered.where((product) {
+        return product.breedCompatibility?.any((b) => breedCompatibility.contains(b)) ?? false;
+      }).toList();
+    }
+
+    // Filter by age range
+    if (ageRange != null && ageRange.isNotEmpty) {
+      filtered = filtered.where((product) {
+        return _isAgeInRange(product.ageRange, ageRange);
+      }).toList();
+    }
+
+    // Filter by weight range
+    if (weightRange != null && weightRange.isNotEmpty) {
+      filtered = filtered.where((product) {
+        // This is a simplified example. You might need a more robust implementation
+        // to handle different weight units and ranges.
+        return product.weightRange?.toLowerCase().contains(weightRange.toLowerCase()) ?? false;
+      }).toList();
+    }
+
+    // Filter by medical restrictions
+    if (medicalRestrictions != null && medicalRestrictions.isNotEmpty) {
+      filtered = filtered.where((product) {
+        return !(product.medicalRestrictions?.any((r) => medicalRestrictions.contains(r)) ?? false);
+      }).toList();
+    }
+
+    // Filter by allergy warnings
+    if (allergyWarnings != null && allergyWarnings.isNotEmpty) {
+      filtered = filtered.where((product) {
+        return !(product.allergyWarnings?.any((w) => allergyWarnings.contains(w)) ?? false);
+      }).toList();
+    }
+
+    // Filter by tags
+    if (tags != null && tags.isNotEmpty) {
+      filtered = filtered.where((product) {
+        return product.tags?.any((t) => tags.contains(t)) ?? false;
+      }).toList();
+    }
+
     return filtered;
+  }
+
+  bool _isAgeInRange(String? productAgeRange, String petAgeRange) {
+    if (productAgeRange == null) return true;
+    // This is a simplified example. You might need a more robust implementation
+    // to handle different age range formats.
+    return productAgeRange.toLowerCase() == petAgeRange.toLowerCase();
   }
 
   /// Extract numeric price from price string

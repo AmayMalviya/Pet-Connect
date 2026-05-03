@@ -4,6 +4,7 @@ import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/models/user.dart' as pet_connect_user;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/models/adoption_request.dart';
+import 'package:pet_connect_app/screens/chat_screen.dart';
 
 class AdoptionRequestsScreen extends StatefulWidget {
   static const routeName = '/adoption-requests';
@@ -119,7 +120,8 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
                       'Status: ${request.status}',
                       style: GoogleFonts.poppins(),
                     ),
-                    trailing: Row(
+                    trailing: request.status == 'Pending'
+                    ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
@@ -131,7 +133,23 @@ class _AdoptionRequestsScreenState extends State<AdoptionRequestsScreen> {
                           onPressed: () => _updateRequestStatus(request.id, 'Rejected'),
                         ),
                       ],
-                    ),
+                    )
+                    : request.status == 'Approved'
+                        ? IconButton(
+                            icon: Icon(Icons.chat, color: Theme.of(context).primaryColor),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    requestId: request.id.toString(),
+                                    otherUserName: request.requester.displayName ?? 'Adopter',
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : null,
                   ),
                 );
               },

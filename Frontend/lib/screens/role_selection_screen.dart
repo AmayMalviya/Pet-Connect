@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_connect_app/screens/shelter_verification_screen.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
-import 'package:pet_connect_app/screens/kyc_document_screen.dart';
+import 'package:pet_connect_app/screens/kyc_screen.dart';
 import 'package:pet_connect_app/screens/profile_setup_screen.dart';
 import 'package:pet_connect_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -108,8 +108,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             ),
           );
         } else if (canonicalRole == 'Shelter') {
-          // For shelters, immediately start KYC flow and require verification before access
-          Navigator.pushReplacementNamed(context, KycDocumentScreen.routeName);
+          // Shelter: profile setup first, KYC is triggered after setup
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileSetupScreen(role: canonicalRole),
+            ),
+          );
         } else {
           // Default fallback: profile setup
           Navigator.pushReplacement(

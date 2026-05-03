@@ -304,15 +304,15 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     }
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, String hint, {TextInputType? type}) {
+  Widget _buildTextField(TextEditingController controller, String label, String hint, {TextInputType? type, bool isOptional = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
         controller: controller,
         keyboardType: type,
-        validator: label == 'Name' ? (v) => v!.isEmpty ? 'Please enter a name' : null : null,
+        validator: (!isOptional && label == 'Name') ? (v) => v!.isEmpty ? 'Please enter a name' : null : null,
         decoration: InputDecoration(
-          labelText: label,
+          labelText: isOptional ? '$label (Optional)' : label,
           hintText: hint,
           fillColor: Colors.grey[50], // Soft fill
           filled: true,
@@ -565,10 +565,10 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
               _buildCard(
                 children: [
                   _buildSectionHead('Health & Medical'),
-                  _buildTextField(_weightController, 'Weight (kg)', 'e.g. 15', type: TextInputType.number),
-                  _buildTextField(_heightController, 'Height (cm)', 'e.g. 40', type: TextInputType.number),
-                  _buildTextField(_allergiesController, 'Allergies', 'e.g. pollen, chicken (comma-separated)'),
-                  _buildTextField(_medicalConditionsController, 'Medical Conditions', 'e.g. arthritis (comma-separated)'),
+                  _buildTextField(_weightController, 'Weight (kg)', 'e.g. 15', type: TextInputType.number, isOptional: true),
+                  _buildTextField(_heightController, 'Height (cm)', 'e.g. 40', type: TextInputType.number, isOptional: true),
+                  _buildTextField(_allergiesController, 'Allergies', 'e.g. pollen, chicken (comma-separated)', isOptional: true),
+                  _buildTextField(_medicalConditionsController, 'Medical Conditions', 'e.g. arthritis (comma-separated)', isOptional: true),
                 ],
               ),
 
@@ -576,12 +576,12 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
               _buildCard(
                 children: [
                   _buildSectionHead('Daily Needs'),
-                  _buildTextField(_activityLevelController, 'Activity Level', 'e.g. High, Moderate'),
-                  _buildTextField(_dietTypeController, 'Diet Type', 'e.g. Dry kibble, Raw'),
-                  _buildTextField(_feedingFrequencyController, 'Feeding Frequency (per day)', 'e.g. 2', type: TextInputType.number),
-                  _buildTextField(_preferredFoodTypeController, 'Preferred Food', 'e.g. Chicken based'),
-                  _buildTextField(_coatTypeController, 'Coat Type', 'e.g. Short, Curly'),
-                  _buildTextField(_groomingNeedsController, 'Grooming Needs', 'e.g. Weekly brushing'),
+                  _buildTextField(_activityLevelController, 'Activity Level', 'e.g. High, Moderate', isOptional: true),
+                  _buildTextField(_dietTypeController, 'Diet Type', 'e.g. Dry kibble, Raw', isOptional: true),
+                  _buildTextField(_feedingFrequencyController, 'Feeding Frequency (per day)', 'e.g. 2', type: TextInputType.number, isOptional: true),
+                  _buildTextField(_preferredFoodTypeController, 'Preferred Food', 'e.g. Chicken based', isOptional: true),
+                  _buildTextField(_coatTypeController, 'Coat Type', 'e.g. Short, Curly', isOptional: true),
+                  _buildTextField(_groomingNeedsController, 'Grooming Needs', 'e.g. Weekly brushing', isOptional: true),
                 ],
               ),
 

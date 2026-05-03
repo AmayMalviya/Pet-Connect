@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class EditProfileScreen extends StatefulWidget {
   static const routeName = '/edit-profile';
@@ -158,272 +159,240 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  InputDecoration _buildInputDecoration(String label, String hint, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: Icon(icon, color: AppColors.primary),
+      fillColor: Colors.grey[50],
+      filled: true,
+      labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
+      hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey[200]!, width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('Edit Profile',
+        title: Text(widget.isShelter ? 'Edit Shelter Profile' : 'Edit Profile',
             style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        leading: const BackButton(),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Personal Information',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
+                            child: Text(
+                              'Shelter Information',
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _firstNameController,
+                            decoration: _buildInputDecoration('Shelter Name', 'Enter shelter name', Icons.store),
+                            validator: (value) => value == null ||
+                                    value.trim().isEmpty
+                                ? 'Please enter your shelter name'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _lastNameController,
+                            decoration: _buildInputDecoration('Last Name (optional)', 'Enter your last name', Icons.person_outline),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: _buildInputDecoration('Email', 'Enter your email', Icons.email),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your email';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Please enter a valid email';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _phoneController,
+                            decoration: _buildInputDecoration('Phone Number', 'Enter your phone number', Icons.phone),
+                            keyboardType: TextInputType.phone,
+                            validator: (value) => value == null ||
+                                    value.trim().isEmpty
+                                ? 'Please enter your phone number'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _addressController,
+                            decoration: _buildInputDecoration('Address (optional)', 'Enter your address', Icons.location_on),
+                          ),
+                          const SizedBox(height: 16),
+                          if (widget.isShelter)
                             TextFormField(
-                              controller: _firstNameController,
-                              decoration: InputDecoration(
-                                labelText: 'First Name',
-                                hintText: 'Enter your first name',
-                                prefixIcon: const Icon(Icons.person),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              validator: (value) => value == null ||
-                                      value.trim().isEmpty
-                                  ? 'Please enter your first name'
-                                  : null,
+                              controller: _websiteController,
+                              decoration: _buildInputDecoration('Website (optional)', 'Enter your shelter website', Icons.web),
+                              keyboardType: TextInputType.url,
                             ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _lastNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Last Name (optional)',
-                                hintText: 'Enter your last name',
-                                prefixIcon: const Icon(Icons.person_outline),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              // Optional — no validation
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                hintText: 'Enter your email',
-                                prefixIcon: const Icon(Icons.email),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!value.contains('@')) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _phoneController,
-                              decoration: InputDecoration(
-                                labelText: 'Phone Number',
-                                hintText: 'Enter your phone number',
-                                prefixIcon: const Icon(Icons.phone),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              keyboardType: TextInputType.phone,
-                              validator: (value) => value == null ||
-                                      value.trim().isEmpty
-                                  ? 'Please enter your phone number'
-                                  : null,
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _addressController,
-                              decoration: InputDecoration(
-                                labelText: 'Address (optional)',
-                                hintText: 'Enter your address',
-                                prefixIcon: const Icon(Icons.location_on),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              // Optional — no validation
-                            ),
-                            const SizedBox(height: 16),
-                            if (widget.isShelter)
-                              TextFormField(
-                                controller: _websiteController,
-                                decoration: InputDecoration(
-                                  labelText: 'Website (optional)',
-                                  hintText: 'Enter your shelter website',
-                                  prefixIcon: const Icon(Icons.web),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[200],
-                                ),
-                                keyboardType: TextInputType.url,
-                                // Optional — no validation
-                              ),
-                            if (widget.isShelter) const SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedCountry,
-                              decoration: InputDecoration(
-                                labelText: 'Country',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              items: _countries.map((String country) {
-                                return DropdownMenuItem<String>(
-                                  value: country,
-                                  child: Text(country),
-                                );
-                              }).toList(),
-                              onChanged: (newValue) {
-                                setState(() {
-                                  _selectedCountry = newValue;
-                                  _selectedState = null;
-                                  _selectedCity = null;
-                                  _states = _allLocations
-                                      .where((e) =>
-                                          e['country'] == newValue &&
-                                          e['State'] != null)
-                                      .map((e) => e['State'] as String)
-                                      .toSet()
-                                      .toList()
-                                    ..sort();
-                                  _cities = [];
-                                });
-                              },
-                              validator: (value) => value == null
-                                  ? 'Please select a country'
-                                  : null,
-                            ),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedState,
-                              decoration: InputDecoration(
-                                labelText: 'State',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              items: _states.map((String state) {
-                                return DropdownMenuItem<String>(
-                                  value: state,
-                                  child: Text(state),
-                                );
-                              }).toList(),
-                              onChanged: _selectedCountry == null
-                                  ? null
-                                  : (newValue) {
-                                      setState(() {
-                                        _selectedState = newValue;
-                                        _selectedCity = null;
-                                        _cities = _allLocations
-                                            .where((e) =>
-                                                e['country'] ==
-                                                    _selectedCountry &&
-                                                e['State'] == newValue &&
-                                                e['City'] != null)
-                                            .map((e) => e['City'] as String)
-                                            .toSet()
-                                            .toList()
-                                          ..sort();
-                                      });
-                                    },
-                              validator: (value) => value == null
-                                  ? 'Please select a state'
-                                  : null,
-                            ),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedCity,
-                              decoration: InputDecoration(
-                                labelText: 'City',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                              ),
-                              items: _cities.map((String city) {
-                                return DropdownMenuItem<String>(
-                                  value: city,
-                                  child: Text(city),
-                                );
-                              }).toList(),
-                              onChanged: _selectedState == null
-                                  ? null
-                                  : (newValue) {
-                                      setState(() {
-                                        _selectedCity = newValue;
-                                      });
-                                    },
-                              validator: (value) =>
-                                  value == null ? 'Please select a city' : null,
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
+                          if (widget.isShelter) const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _selectedCountry,
+                            isExpanded: true,
+                            decoration: _buildInputDecoration('Country', 'Select your country', Icons.public),
+                            items: _countries.map((String country) {
+                              return DropdownMenuItem<String>(
+                                value: country,
+                                child: Text(country, style: GoogleFonts.poppins()),
+                              );
+                            }).toList(),
+                            onChanged: (newValue) {
+                              setState(() {
+                                _selectedCountry = newValue;
+                                _selectedState = null;
+                                _selectedCity = null;
+                                _states = _allLocations
+                                    .where((e) =>
+                                        e['country'] == newValue &&
+                                        e['State'] != null)
+                                    .map((e) => e['State'] as String)
+                                    .toSet()
+                                    .toList()
+                                  ..sort();
+                                _cities = [];
+                              });
+                            },
+                            validator: (value) => value == null
+                                ? 'Please select a country'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _selectedState,
+                            isExpanded: true,
+                            decoration: _buildInputDecoration('State', 'Select your state', Icons.map),
+                            items: _states.map((String state) {
+                              return DropdownMenuItem<String>(
+                                value: state,
+                                child: Text(state, style: GoogleFonts.poppins()),
+                              );
+                            }).toList(),
+                            onChanged: _selectedCountry == null
+                                ? null
+                                : (newValue) {
+                                    setState(() {
+                                      _selectedState = newValue;
+                                      _selectedCity = null;
+                                      _cities = _allLocations
+                                          .where((e) =>
+                                              e['country'] ==
+                                                  _selectedCountry &&
+                                              e['State'] == newValue &&
+                                              e['City'] != null)
+                                          .map((e) => e['City'] as String)
+                                          .toSet()
+                                          .toList()
+                                        ..sort();
+                                    });
+                                  },
+                            validator: (value) => value == null
+                                ? 'Please select a state'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _selectedCity,
+                            isExpanded: true,
+                            decoration: _buildInputDecoration('City', 'Select your city', Icons.location_city),
+                            items: _cities.map((String city) {
+                              return DropdownMenuItem<String>(
+                                value: city,
+                                child: Text(city, style: GoogleFonts.poppins()),
+                              );
+                            }).toList(),
+                            onChanged: _selectedState == null
+                                ? null
+                                : (newValue) {
+                                    setState(() {
+                                      _selectedCity = newValue;
+                                    });
+                                  },
+                            validator: (value) =>
+                                value == null ? 'Please select a city' : null,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: _saveProfile,
                       style: ElevatedButton.styleFrom(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       child: Text(
                         widget.isShelter
                             ? 'Save Shelter Profile'
                             : 'Save Profile',
-                        style: const TextStyle(fontSize: 16),
+                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),

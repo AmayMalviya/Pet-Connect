@@ -8,6 +8,12 @@ import 'package:pet_connect_app/models/pet.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/pet_profile_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:pet_connect_app/services/place_service.dart';
+import 'package:pet_connect_app/models/place.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:pet_connect_app/widgets/place_bottom_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _firstName;
   String? _error;
   List<Pet> _myPets = [];
+  List<Place> _nearbyVets = [];
+  bool _isVetsLoading = false;
+  String? _vetsError;
   String _currentGreeting = 'Welcome back! 🐾';
 
   final List<String> _baseGreetings = [
@@ -40,19 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
     'Ready for some pawsitive moments?',
   ];
 
-  final List<String> _vetNames = [
-    'Dr. Aarav Sharma',
-    'Dr. Vivaan Gupta',
-    'Dr. Aditya Singh',
-    'Dr. Ishaan Patel',
-    'Dr. Reyansh Kumar',
-  ];
 
   @override
   void initState() {
     super.initState();
     _currentGreeting = _baseGreetings[Random().nextInt(_baseGreetings.length)];
     _loadUserData();
+    _loadNearbyVets();
   }
 
   Future<void> _loadUserData() async {
@@ -105,6 +108,65 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentGreeting = dynamicOptions[random.nextInt(dynamicOptions.length)];
     } else {
       _currentGreeting = _baseGreetings[random.nextInt(_baseGreetings.length)];
+    }
+  }
+
+  Future<void> _loadNearbyVets() async {
+    if (mounted) setState(() => _isVetsLoading = true);
+    try {
+      // 1. Get position
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) setState(() => _vetsError = 'Location services are disabled.');
+        return;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) setState(() => _vetsError = 'Location permissions are denied');
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _vetsError = 'Location permissions are permanently denied');
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+
+      // 2. Fetch vets
+      final apiKey = dotenv.env['GOOGLE_PLACES_API_KEY'] ?? 
+                     const String.fromEnvironment('GOOGLE_PLACES_API_KEY');
+      
+      if (apiKey.isEmpty) {
+        if (mounted) setState(() => _vetsError = 'API Key not found');
+        return;
+      }
+
+      final placeService = PlaceService(apiKey: apiKey);
+      final results = await placeService.searchVets(
+        lat: position.latitude,
+        lng: position.longitude,
+        radiusMeters: 5000,
+        maxResults: 5,
+      );
+
+      if (mounted) {
+        setState(() {
+          _nearbyVets = results;
+          _vetsError = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _vetsError = 'Could not load vets');
+    } finally {
+      if (mounted) setState(() => _isVetsLoading = false);
     }
   }
 
@@ -265,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _firstName != null ? 'Hi, $_firstName 👋' : 'Hi there 👋',
+                  _firstName != null ? 'Hi, $_firstName.' : 'Hi there !',
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -472,16 +534,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Vet List ──────────────────────────────────────────────────────────────
   Widget _buildVetList() {
-    final random = Random();
+    if (_isVetsLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_vetsError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Center(
+          child: Text(
+            _vetsError!,
+            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+      );
+    }
+
+    if (_nearbyVets.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: Text(
+            'No vets found nearby.',
+            style: GoogleFonts.poppins(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return Column(
-      children: List.generate(3, (index) {
+      children: _nearbyVets.map((place) {
+        final apiKey = dotenv.env['GOOGLE_PLACES_API_KEY'] ?? const String.fromEnvironment('GOOGLE_PLACES_API_KEY');
+        final placeService = PlaceService(apiKey: apiKey);
+        final photoUrl = place.photoName != null 
+            ? placeService.getPhotoUrl(place.photoName!) 
+            : null;
+
         return VetCard(
-          name: _vetNames[random.nextInt(_vetNames.length)],
-          address: '123 Main Street, Anytown, USA',
-          rating: 4.5,
+          name: place.displayName,
+          address: place.formattedAddress ?? 'Address unavailable',
+          rating: place.rating ?? 0.0,
+          isOpen: place.isOpen,
+          photoUrl: photoUrl,
+          onTap: () => PlaceBottomSheet.show(context, place, photoUrl: photoUrl),
+          onTapDirections: () => _openInMaps(place.latitude, place.longitude),
         );
-      }),
+      }).toList(),
     );
+  }
+
+  Future<void> _openInMaps(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
 
@@ -491,47 +601,65 @@ class VetCard extends StatelessWidget {
   final String name;
   final String address;
   final double rating;
+  final bool isOpen;
+  final String? photoUrl;
+  final VoidCallback? onTap;
+  final VoidCallback? onTapDirections;
 
   const VetCard({
     super.key,
     required this.name,
     required this.address,
     required this.rating,
+    this.isOpen = false,
+    this.photoUrl,
+    this.onTap,
+    this.onTapDirections,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
-            child: Icon(
-              Icons.local_hospital_outlined,
-              color: AppColors.primary,
-              size: 26,
+          ],
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+                image: photoUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(photoUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: photoUrl == null
+                  ? Icon(
+                      Icons.local_hospital_outlined,
+                      color: AppColors.primary,
+                      size: 26,
+                    )
+                  : null,
             ),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
           // Info
           Expanded(
             child: Column(
@@ -544,14 +672,18 @@ class VetCard extends StatelessWidget {
                     fontSize: 16,
                     color: AppColors.textDark,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   address,
                   style: GoogleFonts.poppins(
-                    color: AppColors.textDark,
-                    fontSize: 14,
+                    color: AppColors.textDark.withOpacity(0.7),
+                    fontSize: 12,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Container(
@@ -560,15 +692,15 @@ class VetCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: (isOpen ? Colors.green : Colors.red).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Open Now',
+                    isOpen ? 'Open Now' : 'Closed',
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.green[700],
+                      color: isOpen ? Colors.green[700] : Colors.red[700],
                     ),
                   ),
                 ),
@@ -581,36 +713,31 @@ class VetCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.star, color: AppColors.primary, size: 18),
+                  Icon(Icons.star, color: Colors.amber, size: 18),
+                  const SizedBox(width: 4),
                   Text(
-                    rating.toString(),
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                    rating > 0 ? rating.toStringAsFixed(1) : 'N/A',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'Book',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+              GestureDetector(
+                onTap: onTapDirections,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
+                  child: Icon(Icons.directions, color: AppColors.primary, size: 20),
                 ),
               ),
             ],
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -53,7 +53,7 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen> with Sing
       return list;
     } catch (e) {
       // If the 'media' table doesn't exist in the DB, return empty list silently.
-      debugPrint('Error fetching media (returning empty): $e');
+      // debugPrint('Error fetching media (returning empty): $e'); // Disabled to stop spamming console
       return [];
     }
   }
@@ -75,22 +75,25 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen> with Sing
       await Supabase.instance.client.from('comments').delete().eq('post_id', postId);
       await Supabase.instance.client.from('likes').delete().eq('post_id', postId);
 
-      // Fetch media rows for this post so we can remove files from storage
-      final mediaRes = await Supabase.instance.client.from('media').select().eq('post_id', postId) as List<dynamic>?;
-      if (mediaRes != null) {
-        for (final m in mediaRes) {
-          try {
-            final map = Map<String, dynamic>.from(m as Map);
-            final url = map['url'] as String? ?? map['file_path'] as String?;
-            await _deleteStorageFile(url);
-          } catch (err) {
-            debugPrint('Error deleting media file for post: $err');
+      try {
+        // Fetch media rows for this post so we can remove files from storage
+        final mediaRes = await Supabase.instance.client.from('media').select().eq('post_id', postId) as List<dynamic>?;
+        if (mediaRes != null) {
+          for (final m in mediaRes) {
+            try {
+              final map = Map<String, dynamic>.from(m as Map);
+              final url = map['url'] as String? ?? map['file_path'] as String?;
+              await _deleteStorageFile(url);
+            } catch (err) {
+              debugPrint('Error deleting media file for post: $err');
+            }
           }
         }
+        // Delete media rows
+        await Supabase.instance.client.from('media').delete().eq('post_id', postId);
+      } catch (_) {
+        // If 'media' table is missing, skip
       }
-
-      // Delete media rows
-      await Supabase.instance.client.from('media').delete().eq('post_id', postId);
 
       // Finally delete the post itself
       await Supabase.instance.client.from('posts').delete().eq('id', postId);

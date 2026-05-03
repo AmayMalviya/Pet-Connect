@@ -4,6 +4,7 @@ import 'package:pet_connect_app/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/main_screen.dart';
 import 'package:pet_connect_app/screens/shelter_home_screen.dart';
+import 'package:pet_connect_app/screens/kyc_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   static const routeName = '/profile-setup';
@@ -47,6 +48,29 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _websiteController = TextEditingController();
     _capacityController = TextEditingController();
     _experienceController = TextEditingController();
+    _loadExistingProfile(); // pre-fill from registration
+  }
+
+  Future<void> _loadExistingProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final data = await Supabase.instance.client
+          .from('profiles')
+          .select('first_name, last_name, email, phone, city, state, country')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      if (data != null && mounted) {
+        _firstNameController.text = data['first_name'] ?? '';
+        _lastNameController.text = data['last_name'] ?? '';
+        _phoneController.text = data['phone'] ?? '';
+        _cityController.text = data['city'] ?? '';
+        _stateController.text = data['state'] ?? '';
+        _countryController.text = data['country'] ?? '';
+      }
+    } catch (e) {
+      debugPrint('Could not pre-fill profile: $e');
+    }
   }
 
   @override
@@ -106,7 +130,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
       // Navigate based on role
       if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') {
-        Navigator.pushReplacementNamed(context, ShelterHomeScreen.routeName);
+        // Shelter must complete KYC after profile setup
+        Navigator.pushReplacementNamed(context, KycScreen.routeName);
       } else {
         Navigator.pushReplacementNamed(context, MainScreen.routeName);
       }

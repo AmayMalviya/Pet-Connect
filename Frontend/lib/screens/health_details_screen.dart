@@ -447,7 +447,7 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text('Add New Event', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+              title: Text('Add New Event', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22, color: AppColors.primary)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -455,9 +455,13 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
                     TextField(
                       controller: titleController,
                       decoration: InputDecoration(
-                        labelText: 'Title',
-                        labelStyle: GoogleFonts.poppins(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        labelText: 'Event Title',
+                        labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
+                        fillColor: Colors.grey[50],
+                        filled: true,
+                        prefixIcon: const Icon(Icons.title, color: AppColors.primary),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!, width: 2)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 2)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -465,16 +469,25 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
                       controller: descriptionController,
                       decoration: InputDecoration(
                         labelText: 'Description',
-                        labelStyle: GoogleFonts.poppins(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
+                        fillColor: Colors.grey[50],
+                        filled: true,
+                        prefixIcon: const Icon(Icons.description, color: AppColors.primary),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!, width: 2)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 2)),
                       ),
-                      maxLines: 2,
+                      maxLines: 3,
                     ),
                     const SizedBox(height: 24),
                     ListTile(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                      leading: const Icon(Icons.calendar_today, color: AppColors.primary),
-                      title: Text(selectedDate.toLocal().toString().split(' ')[0], style: GoogleFonts.poppins()),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey[200]!, width: 2)),
+                      tileColor: Colors.grey[50],
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.calendar_today, color: AppColors.primary),
+                      ),
+                      title: Text(selectedDate.toLocal().toString().split(' ')[0], style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                       onTap: () async {
                         final pickedDate = await showDatePicker(
                           context: context,
@@ -491,9 +504,14 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
                     ),
                     const SizedBox(height: 12),
                     ListTile(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                      leading: const Icon(Icons.access_time, color: AppColors.primary),
-                      title: Text(selectedTime.format(context), style: GoogleFonts.poppins()),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey[200]!, width: 2)),
+                      tileColor: Colors.grey[50],
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.access_time, color: AppColors.primary),
+                      ),
+                      title: Text(selectedTime.format(context), style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                       onTap: () async {
                         final pickedTime = await showTimePicker(
                           context: context,
@@ -509,15 +527,17 @@ class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
                   ],
                 ),
               ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+                  child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[600], fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: () async {
                     if (titleController.text.isEmpty) return;

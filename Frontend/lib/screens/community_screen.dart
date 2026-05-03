@@ -109,21 +109,25 @@ class _CommunityScreenState extends State<CommunityScreen> {
     try {
       await supabase.from('comments').delete().eq('post_id', postId);
       await supabase.from('likes').delete().eq('post_id', postId);
-      final mediaRes =
-          await supabase.from('media').select().eq('post_id', postId)
-              as List<dynamic>?;
-      if (mediaRes != null) {
-        for (final m in mediaRes) {
-          try {
-            final map = Map<String, dynamic>.from(m as Map);
-            final url = map['url'] as String? ?? map['file_path'] as String?;
-            await _deleteStorageFile(url);
-          } catch (err) {
-            debugPrint('Error deleting media file: $err');
+      try {
+        final mediaRes =
+            await supabase.from('media').select().eq('post_id', postId)
+                as List<dynamic>?;
+        if (mediaRes != null) {
+          for (final m in mediaRes) {
+            try {
+              final map = Map<String, dynamic>.from(m as Map);
+              final url = map['url'] as String? ?? map['file_path'] as String?;
+              await _deleteStorageFile(url);
+            } catch (err) {
+              debugPrint('Error deleting media file: $err');
+            }
           }
         }
+        await supabase.from('media').delete().eq('post_id', postId);
+      } catch (_) {
+        // Media table missing, ignore
       }
-      await supabase.from('media').delete().eq('post_id', postId);
       await supabase.from('posts').delete().eq('id', postId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

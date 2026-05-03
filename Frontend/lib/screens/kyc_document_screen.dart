@@ -4,9 +4,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pet_connect_app/screens/kyc_personal_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import '../../firebase_options.dart';
+import 'package:pet_connect_app/screens/kyc_pending_screen.dart';
+import 'dart:async';
 import 'package:pet_connect_app/services/storage_service.dart';
 import 'package:pet_connect_app/theme/app_theme.dart';
+import 'package:pet_connect_app/utils/aadhaar_validator.dart';
+import 'package:file_picker/file_picker.dart';
 
 class KycDocumentScreen extends StatefulWidget {
   static const routeName = '/kyc-document';
@@ -23,8 +29,164 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
 
   File? _aadhaarImage;
   File? _selfieImage;
-  String _aadhaarNumber = '';
+  File? _aadhaarZip;
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _aadhaarController = TextEditingController();
+  final _shareCodeController = TextEditingController();
   bool _isSubmitting = false;
+  bool _useZip = false;
+  String? _rejectionReason;
+
+  // OTP Verification State
+  final _auth = FirebaseAuth.instance;
+  bool _otpSent = false;
+  bool _phoneVerified = false;
+  String _verificationId = '';
+  int? _forceResendingToken;
+  bool _isSendingOtp = false;
+  bool _isVerifyingOtp = false;
+  int _resendCountdown = 0;
+  Timer? _resendTimer;
+  final _otpController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPreviousSubmission();
+    _initFirebase();
+  }
+
+  @override
+  void dispose() {
+    _resendTimer?.cancel();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _aadhaarController.dispose();
+    _shareCodeController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkPreviousSubmission() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      final response = await Supabase.instance.client
+          .from('shelter_kyc')
+          .select()
+          .eq('user_id', userId)
+          .eq('status', 'rejected')
+          .order('created_at', ascending: false)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _rejectionReason = response['reviewer_note'];
+          _firstNameController.text = response['first_name'] ?? '';
+          _lastNameController.text = response['last_name'] ?? '';
+          _phoneController.text = response['phone'] ?? '';
+          _aadhaarController.text = response['aadhaar_number'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking previous submission: $e');
+    }
+  }
+
+  Future<void> _initFirebase() async {
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    } catch (_) {}
+  }
+
+  void _startResendTimer() {
+    setState(() => _resendCountdown = 30);
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (_resendCountdown > 0) {
+            _resendCountdown--;
+          } else {
+            _resendTimer?.cancel();
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _sendOtp({bool isResend = false}) async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enter phone number first")));
+      return;
+    }
+
+    setState(() => _isSendingOtp = true);
+    String formattedPhone = phone;
+    if (!formattedPhone.startsWith('+')) formattedPhone = '+91$formattedPhone';
+
+    await _auth.verifyPhoneNumber(
+      phoneNumber: formattedPhone,
+      forceResendingToken: isResend ? _forceResendingToken : null,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await _auth.signInWithCredential(credential);
+        if (mounted) {
+          setState(() => _phoneVerified = true);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Phone auto-verified ✅')));
+        }
+      },
+      verificationFailed: (e) {
+        if (mounted) {
+          setState(() => _isSendingOtp = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.message}')));
+        }
+      },
+      codeSent: (String vid, int? resendToken) {
+        if (mounted) {
+          setState(() {
+            _otpSent = true;
+            _verificationId = vid;
+            _forceResendingToken = resendToken;
+            _isSendingOtp = false;
+          });
+          _startResendTimer();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Sent!')));
+        }
+      },
+      codeAutoRetrievalTimeout: (vid) {
+        if (mounted) setState(() => _verificationId = vid);
+      },
+    );
+  }
+
+  Future<void> _verifyOtp() async {
+    if (_otpController.text.length != 6) return;
+    setState(() => _isVerifyingOtp = true);
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId,
+        smsCode: _otpController.text.trim(),
+      );
+      await _auth.signInWithCredential(credential);
+      if (mounted) {
+        setState(() {
+          _phoneVerified = true;
+          _isVerifyingOtp = false;
+        });
+        _resendTimer?.cancel();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isVerifyingOtp = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid OTP ❌")));
+      }
+    }
+  }
 
   /// Flip selfie image horizontally to remove mirror effect
   Future<File> _fixSelfieImage(File imageFile) async {
@@ -282,6 +444,28 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
     }
   }
 
+  Future<void> _pickZipFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+      
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _aadhaarZip = File(result.files.single.path!);
+          _useZip = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking ZIP: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _submitKyc() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -289,58 +473,85 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    if (_aadhaarImage == null || _selfieImage == null) {
+    if (_aadhaarImage == null || _selfieImage == null || !_phoneVerified) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please upload all images.")));
+          SnackBar(content: Text(_phoneVerified ? "Aadhaar image and selfie are required." : "Please verify your phone number via OTP first.")));
+      return;
+    }
+
+    if (_useZip && (_aadhaarZip == null || _shareCodeController.text.length != 4)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Aadhaar ZIP and 4-digit share code are required for offline verification.")));
       return;
     }
 
     setState(() => _isSubmitting = true);
 
     try {
-      // Upload both images in parallel to reduce wall-clock time
+      // 1. Upload files
       final uploadFutures = [
-        _storage.uploadKycFile(user.id, _aadhaarImage!, purpose: 'aadhaar'),
+        _storage.uploadKycFile(user.id, _aadhaarImage!, purpose: 'aadhaar_image'),
         _storage.uploadKycFile(user.id, _selfieImage!, purpose: 'selfie'),
       ];
-
-      final results = await Future.wait(uploadFutures);
-      final aadhaarUrl = results[0];
-      final selfieUrl = results[1];
-
-      if (aadhaarUrl == null || selfieUrl == null) {
-        throw Exception('One or more uploads failed.');
+      
+      if (_useZip && _aadhaarZip != null) {
+        uploadFutures.add(_storage.uploadKycFile(user.id, _aadhaarZip!, purpose: 'aadhaar_offline', customFileName: 'aadhaar_offline.zip'));
       }
 
-      await Supabase.instance.client.from('kyc_documents').insert({
+      final results = await Future.wait(uploadFutures);
+      final aadhaarPath = results[0];
+      final selfiePath = results[1];
+      final zipPath = results.length > 2 ? results[2] : null;
+
+      if (aadhaarPath == null || selfiePath == null || (_useZip && zipPath == null)) {
+        throw Exception('File upload failed.');
+      }
+
+      // 2. Insert into shelter_kyc (new entry to maintain history)
+      final maskedAadhaar = AadhaarValidator.mask(_aadhaarController.text);
+      
+      await Supabase.instance.client.from('shelter_kyc').insert({
         'user_id': user.id,
-        'aadhaar_number': _aadhaarNumber,
-        'aadhaar_image_url': aadhaarUrl,
-        'selfie_image_url': selfieUrl,
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'aadhaar_number': maskedAadhaar,
+        'aadhaar_image_url': aadhaarPath,
+        'selfie_image_url': selfiePath,
         'status': 'pending',
       });
 
+      // 3. Update profile
+      await Supabase.instance.client.from('profiles').update({
+        'kyc_submitted': true,
+        'kyc_status': 'pending',
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+      }).eq('user_id', user.id);
+
+      // 4. Call Edge Function if ZIP provided
+      if (_useZip) {
+        try {
+          await Supabase.instance.client.functions.invoke(
+            'verify-aadhaar-kyc',
+            body: {
+              'userId': user.id,
+              'shareCode': _shareCodeController.text,
+              'zipPath': zipPath,
+            },
+          );
+        } catch (e) {
+          debugPrint('Edge function error (continuing anyway): $e');
+        }
+      }
+
       if (mounted) _showSuccessDialog();
     } catch (e) {
-      final err = e.toString();
       if (mounted) {
-        // If the error looks like a Supabase policy/permission issue, show helpful guidance
-        if (err.contains('Supabase policy error') || err.contains('row-level security') || err.contains('403')) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Upload Permission Error'),
-              content: const Text('Upload failed due to Supabase permission/policy settings.\n\nCheck that the storage bucket `kyc_bucket` exists and allows authenticated uploads, or adjust row-level security policies for `kyc_documents`. If you are running locally, ensure the user is signed in.'),
-              actions: [
-                TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK')),
-              ],
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Error: $e')));
-        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -350,19 +561,19 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
   void _showSuccessDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Documents Submitted"),
+        title: const Text("KYC Submitted"),
         content: const Text(
-            "Your KYC documents have been submitted for review. Please continue with your personal verification."),
+            "Your verification details have been submitted. An admin will review them soon."),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              Navigator.pushReplacementNamed(
-                  context, KycPersonalScreen.routeName);
+              Navigator.pushReplacementNamed(context, KycPendingScreen.routeName);
             },
-            child: const Text("Continue"),
+            child: const Text("Finish"),
           ),
         ],
       ),
@@ -387,29 +598,131 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!, width: 1),
+              if (_rejectionReason != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Previous KYC Rejected",
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[900],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Reason: $_rejectionReason",
+                        style: GoogleFonts.poppins(
+                          color: Colors.red[800],
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Please correct the information below and resubmit.",
+                        style: GoogleFonts.poppins(
+                          color: Colors.red[800],
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 24),
+              ],
+              
+              // Personal Information Section
+              Text(
+                "Personal Information",
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _firstNameController,
+                decoration: InputDecoration(
+                  labelText: "First Name",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+                validator: (v) => (v == null || v.isEmpty) ? "First name is required" : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: InputDecoration(
+                  labelText: "Last Name",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+                validator: (v) => (v == null || v.isEmpty) ? "Last name is required" : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  labelText: "Phone Number",
+                  hintText: "e.g., 9876543210",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  suffixIcon: _phoneVerified 
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : (!_otpSent && !_isSendingOtp) 
+                        ? TextButton(onPressed: _sendOtp, child: const Text("Verify"))
+                        : null,
+                ),
+                keyboardType: TextInputType.phone,
+                readOnly: _otpSent || _phoneVerified,
+                validator: (v) => (v == null || v.isEmpty) ? "Phone number is required" : null,
+              ),
+              if (_otpSent && !_phoneVerified) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _otpController,
+                  decoration: InputDecoration(
+                    labelText: "Enter 6-digit OTP",
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    suffixIcon: _isVerifyingOtp 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton(onPressed: _verifyOtp, child: const Text("Confirm")),
+                  ),
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  onChanged: (v) {
+                    if (v.length == 6) _verifyOtp();
+                  },
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      "Why we need this:",
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "We verify your identity to ensure a safe and trustworthy community. Your documents are encrypted and securely stored.",
-                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700]),
+                    if (_resendCountdown > 0)
+                      Text('Resend in $_resendCountdown s  ', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    TextButton(
+                      onPressed: _resendCountdown > 0 ? null : () => _sendOtp(isResend: true),
+                      child: const Text("Resend OTP", style: TextStyle(fontSize: 12)),
                     ),
                   ],
                 ),
-              ),
+              ],
               const SizedBox(height: 24),
 
               // Aadhaar Section
@@ -443,20 +756,24 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
 
               // Aadhaar Number Field
               TextFormField(
+                controller: _aadhaarController,
                 decoration: InputDecoration(
                   labelText: "Aadhaar Number (12 digits)",
                   hintText: "e.g., 1234 5678 9012",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   filled: true,
                   fillColor: Colors.grey[50],
+                  suffixIcon: _aadhaarController.text.length == 12 && AadhaarValidator.validate(_aadhaarController.text) 
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
                 ),
                 keyboardType: TextInputType.number,
+                onChanged: (v) => setState(() {}),
                 validator: (v) {
                   if (v == null || v.isEmpty) return "Aadhaar number is required";
-                  final digits = v.replaceAll(' ', '');
-                  return digits.length != 12 ? "Enter valid 12-digit Aadhaar" : null;
+                  if (!AadhaarValidator.validate(v)) return "Invalid Aadhaar number (checksum failed)";
+                  return null;
                 },
-                onSaved: (v) => _aadhaarNumber = v!.replaceAll(' ', ''),
               ),
               const SizedBox(height: 16),
 
@@ -585,6 +902,75 @@ class _KycDocumentScreenState extends State<KycDocumentScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 32),
+
+              // Offline verification Section
+              Row(
+                children: [
+                  Text(
+                    "Optional: Offline Verification (E-Aadhaar ZIP)",
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const Spacer(),
+                  Switch(
+                    value: _useZip,
+                    onChanged: (v) => setState(() => _useZip = v),
+                    activeColor: Colors.purple,
+                  ),
+                ],
+              ),
+              if (_useZip) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.purple[100]!),
+                  ),
+                  child: Column(
+                    children: [
+                      if (_aadhaarZip != null)
+                        ListTile(
+                          leading: const Icon(Icons.folder_zip, color: Colors.purple),
+                          title: Text(_aadhaarZip!.path.split('/').last, style: const TextStyle(fontSize: 12)),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () => setState(() => _aadhaarZip = null),
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _pickZipFile,
+                            icon: const Icon(Icons.file_upload),
+                            label: const Text("Select .zip file"),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.purple,
+                              side: const BorderSide(color: Colors.purple),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _shareCodeController,
+                        decoration: const InputDecoration(
+                          labelText: "4-digit Share Code",
+                          hintText: "e.g., 1234",
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 4,
+                        validator: (v) {
+                          if (_useZip && (v == null || v.length != 4)) return "Enter 4-digit code";
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 32),
 
               // Submit Button

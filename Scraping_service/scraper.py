@@ -4,10 +4,9 @@ from bs4 import BeautifulSoup
 import json
 from supabase import create_client, Client
 
-# --- Your Supabase Credentials ---
+# Supabase Credentials
 SUPABASE_URL = "https://goegjrqmyshnzzonfjav.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvZWdqcnFteXNobnp6b25mamF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzQ5MzI5MCwiZXhwIjoyMDczMDY5MjkwfQ.OYzKVNDtsauoX-GAk68bZUJdNSN0gb20VYpOKtj1atI"
-# ---------------------------------
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
