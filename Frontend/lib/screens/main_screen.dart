@@ -66,16 +66,77 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadUserData() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
-      final profile = await Supabase.instance.client
-          .from('profiles')
-          .select('photo_url, role, kyc_verified')
-          .eq('user_id', user.id)
-          .maybeSingle();
-      if (profile != null) {
+      try {
+        var profile = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (profile == null) {
+          // Profile doesn't exist, let's create it from userMetadata
+          final meta = user.userMetadata ?? {};
+          final fullName = meta['full_name']?.toString() ?? meta['name']?.toString() ?? '';
+          final parts = fullName.trim().split(' ');
+          final fName = parts.isNotEmpty ? parts.first : '';
+          final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+          final role = meta['role']?.toString() ?? 'Pet Owner';
+          
+          final newProfile = {
+            'user_id': user.id,
+            'first_name': fName,
+            'last_name': lName,
+            'role': role,
+            'email': user.email,
+            'updated_at': DateTime.now().toIso8601String(),
+          };
+          
+          await Supabase.instance.client.from('profiles').upsert(newProfile);
+          profile = newProfile;
+        } else if (profile['first_name'] == null || profile['first_name'].toString().isEmpty) {
+          // Profile exists but missing name, update it
+          final meta = user.userMetadata ?? {};
+          final fullName = meta['full_name']?.toString() ?? meta['name']?.toString() ?? '';
+          if (fullName.trim().isNotEmpty) {
+            final parts = fullName.trim().split(' ');
+            final fName = parts.isNotEmpty ? parts.first : '';
+            final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+            await Supabase.instance.client.from('profiles').update({
+              'first_name': fName,
+              'last_name': lName,
+            }).eq('user_id', user.id);
+            profile['first_name'] = fName;
+            profile['last_name'] = lName;
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _photoUrl = profile?['photo_url'];
+            
+            // Normalize role to title case for internal switch statements
+            String rawRole = (profile?['role']?.toString() ?? 'Pet Owner').trim();
+            if (rawRole.toLowerCase() == 'shelter') rawRole = 'Shelter';
+            if (rawRole.toLowerCase() == 'shelter owner') rawRole = 'Shelter Owner';
+            if (rawRole.toLowerCase() == 'vet' || rawRole.toLowerCase() == 'veterinarian') rawRole = 'Vet';
+            if (rawRole.toLowerCase() == 'admin') rawRole = 'Admin';
+            
+            _userRole = rawRole;
+            _kycVerified = profile?['kyc_verified'] == true;
+            _isLoadingRole = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error loading user data: $e');
+        if (mounted) {
+          setState(() {
+            _isLoadingRole = false;
+          });
+        }
+      }
+    } else {
+      if (mounted) {
         setState(() {
-          _photoUrl = profile['photo_url'];
-          _userRole = profile['role'] ?? 'Pet Owner';
-          _kycVerified = profile['kyc_verified'] == true;
           _isLoadingRole = false;
         });
       }

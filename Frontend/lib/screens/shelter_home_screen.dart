@@ -56,7 +56,7 @@ class _ShelterHomeBody extends StatelessWidget {
         final profile = (snapshot.hasData && snapshot.data!.isNotEmpty)
             ? snapshot.data!.first
             : null;
-        final kycStatus = profile?['kyc_status'] as String? ?? '';
+        final kycStatus = (profile?['kyc_status'] as String? ?? '').toLowerCase();
         final kycVerified = profile?['kyc_verified'] == true ||
             kycStatus == 'completed' ||
             kycStatus == 'verified' ||

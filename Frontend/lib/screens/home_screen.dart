@@ -76,7 +76,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (mounted) {
           setState(() {
-            _firstName = profile?['first_name'] ?? 'there';
+            String fName = profile?['first_name']?.toString() ?? '';
+            if (fName.isEmpty) {
+              final meta = user.userMetadata ?? {};
+              final fullName = meta['full_name']?.toString() ?? meta['name']?.toString() ?? '';
+              final parts = fullName.trim().split(' ');
+              if (parts.isNotEmpty && parts.first.isNotEmpty) {
+                fName = parts.first;
+              }
+            }
+            
+            _firstName = fName.isNotEmpty ? fName : 'there';
             _hasPet = (petsResponse as List).isNotEmpty;
             if (_hasPet) {
               _myPets = petsResponse.map((p) => Pet.fromJson(p)).toList();
