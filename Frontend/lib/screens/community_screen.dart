@@ -4,6 +4,7 @@ import 'package:pet_connect_app/models/post.dart';
 import 'package:pet_connect_app/screens/create_post_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pet_connect_app/screens/comments_screen.dart';
+import 'package:pet_connect_app/theme/app_theme.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -14,11 +15,15 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-  late final Stream<List<Post>> _postsStream;
+  late Stream<List<Post>> _postsStream;
 
   @override
   void initState() {
     super.initState();
+    _initStream();
+  }
+
+  void _initStream() {
     _postsStream = Supabase.instance.client
         .from('posts_with_profiles')
         .stream(primaryKey: ['id'])
@@ -26,80 +31,98 @@ class _CommunityScreenState extends State<CommunityScreen> {
         .map((maps) => maps.map((map) => Post.fromMap(map)).toList());
   }
 
+  Future<void> _refresh() async {
+    setState(() {
+      _initStream();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: StreamBuilder<List<Post>>(
-        stream: _postsStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: GoogleFonts.poppins(),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.primary,
+        child: StreamBuilder<List<Post>>(
+          stream: _postsStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: GoogleFonts.poppins(),
+                ),
+              );
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final posts = snapshot.data!;
+            if (posts.isEmpty) {
+              return Center(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.dynamic_feed_rounded,
+                          size: 36,
+                          color: Colors.grey[300],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'No posts yet',
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey[600],
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Be the first to share!',
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: posts.length,
+              itemBuilder: (context, index) => _PostCard(
+                post: posts[index],
+                onDelete: _deletePostWithDependencies,
               ),
             );
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final posts = snapshot.data!;
-          if (posts.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.dynamic_feed_rounded,
-                      size: 36,
-                      color: Colors.grey[300],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'No posts yet',
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey[600],
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    'Be the first to share!',
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey[400],
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            itemCount: posts.length,
-            itemBuilder: (context, index) => _PostCard(
-              post: posts[index],
-              onDelete: _deletePostWithDependencies,
-            ),
-          );
-        },
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CreatePostScreen()),
-        ),
-        backgroundColor: Theme.of(context).primaryColor,
-        child: const Icon(Icons.add),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+          );
+          // Refresh the stream when returning from create post screen
+          _refresh();
+        },
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

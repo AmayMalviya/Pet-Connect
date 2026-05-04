@@ -149,72 +149,77 @@ class _OtpScreenState extends State<OtpScreen> {
       ),
       extendBodyBehindAppBar: true,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              Icon(Icons.mark_email_read_rounded, size: 80, color: AppColors.primary),
-              const SizedBox(height: 24),
-              Text(
-                'Verify your email',
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+                Icon(Icons.mark_email_read_rounded, size: 80, color: AppColors.primary),
+                const SizedBox(height: 24),
+                Text(
+                  'Verify your email',
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'We sent a 6-digit code to\n${widget.email}',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  color: Colors.black54,
-                  height: 1.5,
+                const SizedBox(height: 12),
+                Text(
+                  'We sent a 6-digit code to\n${widget.email}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
-              PetTextField(
-                controller: otpController,
-                hintText: 'Enter 6-digit OTP',
-                keyboardType: TextInputType.number,
-              ),
-              if (widget.isPasswordReset) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 48),
                 PetTextField(
-                  controller: newPasswordController,
-                  hintText: 'Enter new password',
-                  isPassword: true,
+                  controller: otpController,
+                  hintText: 'Enter 6-digit OTP',
+                  keyboardType: TextInputType.number,
                 ),
-              ],
-              const SizedBox(height: 24),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : PrimaryButton(
-                      onPressed: _verifyOtp,
-                      child: Text(
-                        widget.isPasswordReset ? 'Reset Password' : 'Verify Account',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Didn't receive code?", style: GoogleFonts.poppins()),
-                  TextButton(
-                    onPressed: _isLoading ? null : _resendOtp,
-                    child: Text(
-                      'Resend',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-                    ),
+                if (widget.isPasswordReset) ...[
+                  const SizedBox(height: 16),
+                  PetTextField(
+                    controller: newPasswordController,
+                    hintText: 'Enter new password',
+                    isPassword: true,
                   ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 24),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : PrimaryButton(
+                        onPressed: _verifyOtp,
+                        child: Text(
+                          widget.isPasswordReset ? 'Reset Password' : 'Verify Account',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Didn't receive code?", style: GoogleFonts.poppins()),
+                    TextButton(
+                      onPressed: _isLoading ? null : _resendOtp,
+                      child: Text(
+                        'Resend',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

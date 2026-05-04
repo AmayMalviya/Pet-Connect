@@ -281,25 +281,21 @@ Deno.serve(async (req) => {
 
     notes.push(`Final trust score: ${trustScore} → status: ${status}`);
 
-    // ── 8. Upsert shelter_kyc ──────────────────────────────────────────────
-    const { error: upsertErr } = await supabase.from("shelter_kyc").upsert(
+    // ── 8. Update shelter_kyc ──────────────────────────────────────────────
+    const { error: upsertErr } = await supabase.from("shelter_kyc").update(
       {
-        user_id: userId,
         pan_number: panUpper,
         gstin: gstin ?? null,
         darpan_id: darpanId ?? null,
-        aadhaar_name: aadhaarName,
-        aadhaar_dob: aadhaarDob,
         selfie_image_url: selfiePath,
         status,
         trust_score: trustScore,
         reviewer_note: notes.join(" | "),
         updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+      }
+    ).eq("user_id", userId);
 
-    if (upsertErr) throw new Error(`DB upsert failed: ${upsertErr.message}`);
+    if (upsertErr) throw new Error(`DB update failed: ${upsertErr.message}`);
 
     // ── 9. Update profile ──────────────────────────────────────────────────
     await supabase

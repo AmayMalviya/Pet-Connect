@@ -25,15 +25,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
-  late TextEditingController _cityController;
-  late TextEditingController _stateController;
-  late TextEditingController _countryController;
+  
+  String? _countryValue;
+  String? _stateValue;
+  String? _cityValue;
+
+  List<Map<String, dynamic>> _allLocations = [];
+  List<String> _countries = [];
+  List<String> _states = [];
+  List<String> _cities = [];
 
   // Shelter-specific fields
   late TextEditingController _shelterNameController;
   late TextEditingController _websiteController;
-  late TextEditingController _capacityController;
-  late TextEditingController _experienceController;
 
   @override
   void initState() {
@@ -41,14 +45,33 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _phoneController = TextEditingController();
-    _cityController = TextEditingController();
-    _stateController = TextEditingController();
-    _countryController = TextEditingController();
     _shelterNameController = TextEditingController();
     _websiteController = TextEditingController();
-    _capacityController = TextEditingController();
-    _experienceController = TextEditingController();
+    _fetchLocations();
     _loadExistingProfile(); // pre-fill from registration
+  }
+
+  Future<void> _fetchLocations() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('indian_cities')
+          .select();
+      _allLocations = (response as List)
+          .where((item) => item != null)
+          .map((item) => item as Map<String, dynamic>)
+          .toList();
+      setState(() {
+        _countries =
+            _allLocations
+                .where((e) => e['country'] != null)
+                .map((e) => e['country'] as String)
+                .toSet()
+                .toList()
+              ..sort();
+      });
+    } catch (e) {
+      debugPrint('Error fetching locations: $e');
+    }
   }
 
   Future<void> _loadExistingProfile() async {
@@ -64,9 +87,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         _firstNameController.text = data['first_name'] ?? '';
         _lastNameController.text = data['last_name'] ?? '';
         _phoneController.text = data['phone'] ?? '';
-        _cityController.text = data['city'] ?? '';
-        _stateController.text = data['state'] ?? '';
-        _countryController.text = data['country'] ?? '';
+        setState(() {
+          _cityValue = data['city'];
+          _stateValue = data['state'];
+          _countryValue = data['country'];
+        });
       }
     } catch (e) {
       debugPrint('Could not pre-fill profile: $e');
@@ -78,18 +103,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    _countryController.dispose();
     _shelterNameController.dispose();
     _websiteController.dispose();
-    _capacityController.dispose();
-    _experienceController.dispose();
     super.dispose();
   }
 
   Future<void> _submitProfile() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
+    if (_countryValue == null || _stateValue == null || _cityValue == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select Country, State, and City.')),
+      );
       return;
     }
 
@@ -106,9 +133,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'city': _cityController.text.trim(),
-        'state': _stateController.text.trim(),
-        'country': _countryController.text.trim(),
+        'city': _cityValue,
+        'state': _stateValue,
+        'country': _countryValue,
         'role': widget.role,
       };
 
@@ -116,8 +143,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') {
         profileData['first_name'] = _shelterNameController.text.trim();
         profileData['website'] = _websiteController.text.trim();
-        profileData['capacity'] = _capacityController.text.trim();
-        profileData['experience'] = _experienceController.text.trim();
       }
 
       await Supabase.instance.client.from('profiles').upsert(profileData);
@@ -185,6 +210,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               const SizedBox(height: 32),
               if (widget.role == 'Pet Owner') _buildPetOwnerForm(),
               if (widget.role == 'Shelter' || widget.role == 'Shelter Owner') _buildShelterOwnerForm(),
+              const SizedBox(height: 16),
+              _buildLocationPicker(),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -220,6 +247,110 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _dropdownDecor(String label) => InputDecoration(
+    labelText: label,
+    labelStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[500]),
+    filled: true,
+    fillColor: Colors.grey[50],
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  );
+
+  Widget _buildLocationPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Location',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _countryValue,
+          isExpanded: true,
+          decoration: _dropdownDecor('Select Country'),
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+          items: _countries
+              .map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (newValue) {
+            setState(() {
+              _countryValue = newValue;
+              _stateValue = null;
+              _cityValue = null;
+              _states = _allLocations
+                  .where((e) => e['country'] == newValue && e['State'] != null)
+                  .map((e) => e['State'] as String)
+                  .toSet()
+                  .toList()
+                ..sort();
+              _cities = [];
+            });
+          },
+        ),
+        const SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          value: _stateValue,
+          isExpanded: true,
+          decoration: _dropdownDecor('Select State'),
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+          items: _states
+              .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: _countryValue == null
+              ? null
+              : (newValue) {
+                  setState(() {
+                    _stateValue = newValue;
+                    _cityValue = null;
+                    _cities = _allLocations
+                        .where((e) =>
+                            e['country'] == _countryValue &&
+                            e['State'] == newValue &&
+                            e['City'] != null)
+                        .map((e) => e['City'] as String)
+                        .toSet()
+                        .toList()
+                      ..sort();
+                  });
+                },
+        ),
+        const SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          value: _cityValue,
+          isExpanded: true,
+          decoration: _dropdownDecor('Select City'),
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+          items: _cities
+              .map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: _stateValue == null
+              ? null
+              : (newValue) => setState(() => _cityValue = newValue),
+        ),
+      ],
     );
   }
 
@@ -265,45 +396,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _cityController,
-          label: 'City',
-          hint: 'Enter your city',
-          icon: Icons.location_city,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'City is required';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _stateController,
-          label: 'State',
-          hint: 'Enter your state',
-          icon: Icons.map,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'State is required';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _countryController,
-          label: 'Country',
-          hint: 'Enter your country',
-          icon: Icons.public,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Country is required';
-            }
-            return null;
-          },
-        ),
       ],
     );
   }
@@ -339,81 +431,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         ),
         const SizedBox(height: 16),
         _buildTextField(
-          controller: _cityController,
-          label: 'City',
-          hint: 'Enter your city',
-          icon: Icons.location_city,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'City is required';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _stateController,
-          label: 'State',
-          hint: 'Enter your state',
-          icon: Icons.map,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'State is required';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _countryController,
-          label: 'Country',
-          hint: 'Enter your country',
-          icon: Icons.public,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Country is required';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
           controller: _websiteController,
           label: 'Website (Optional)',
           hint: 'Enter your website URL',
           icon: Icons.language,
           keyboardType: TextInputType.url,
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _capacityController,
-          label: 'Shelter Capacity',
-          hint: 'Enter number of animals',
-          icon: Icons.pets,
-          keyboardType: TextInputType.number,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Capacity is required';
-            }
-            if (int.tryParse(value) == null) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _experienceController,
-          label: 'Experience',
-          hint: 'Describe your shelter experience',
-          icon: Icons.info,
-          maxLines: 3,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Experience is required';
-            }
-            return null;
-          },
         ),
       ],
     );

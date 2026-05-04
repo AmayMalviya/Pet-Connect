@@ -20,12 +20,29 @@ class ProductService {
     List<Product> products,
     String petType,
   ) {
-    final categories = Product.getCategoriesForPet(petType);
     return products.where((product) {
-      final productCategory = product.category?.toLowerCase() ?? '';
-      return categories.any(
-        (cat) => productCategory.contains(cat.toLowerCase()),
-      );
+      // 1. Check if the product explicitly defines the petType
+      if (product.petType?.toLowerCase() == petType.toLowerCase()) {
+        return true;
+      }
+      
+      // 2. Check if the species list contains the petType
+      if (product.species != null && 
+          product.species!.any((s) => s.toLowerCase() == petType.toLowerCase())) {
+        return true;
+      }
+
+      // 3. Fallback: Check if category loosely matches a category for the pet
+      // (Only use fallback if product has no explicit pet_type assigned)
+      if (product.petType == null && (product.species == null || product.species!.isEmpty)) {
+        final categories = Product.getCategoriesForPet(petType);
+        final productCategory = product.category?.toLowerCase() ?? '';
+        return categories.any(
+          (cat) => productCategory.contains(cat.toLowerCase()),
+        );
+      }
+      
+      return false;
     }).toList();
   }
 

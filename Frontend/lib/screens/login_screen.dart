@@ -182,116 +182,120 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
       ),
       extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: _WaveBands()),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 60),
-                          Text(
-                            "Welcome!",
-                            style: GoogleFonts.poppins(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Login to continue",
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              color: Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 48),
-                          PetTextField(
-                            controller: email,
-                            hintText: "Email",
-                          ),
-                          const SizedBox(height: 16),
-                          PetTextField(
-                            controller: password,
-                            hintText: "Password",
-                            isPassword: true,
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: _resetPassword,
-                              child: Text(
-                                'Forgot Password?',
-                                style: GoogleFonts.poppins(),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _WaveBands()),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 60),
+                            Text(
+                              "Welcome!",
+                              style: GoogleFonts.poppins(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                          _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : PrimaryButton(
-                                  onPressed: _submit,
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.login_rounded),
-                                      SizedBox(width: 8),
-                                      Text("Login", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    ],
-                                  ),
-                                ),
-                          const SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Don't have an account?",
-                                style: GoogleFonts.poppins(),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Login to continue",
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                color: Colors.black54,
                               ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pushReplacementNamed(context, RegisterScreen.routeName);
-                                },
+                            ),
+                            const SizedBox(height: 48),
+                            PetTextField(
+                              controller: email,
+                              hintText: "Email",
+                            ),
+                            const SizedBox(height: 16),
+                            PetTextField(
+                              controller: password,
+                              hintText: "Password",
+                              isPassword: true,
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _resetPassword,
                                 child: Text(
-                                  'Register',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  'Forgot Password?',
+                                  style: GoogleFonts.poppins(),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _SocialIcon(
-                                onTap: _googleSignIn,
+                            ),
+                            const SizedBox(height: 24),
+                            _isLoading
+                                ? const Center(child: CircularProgressIndicator())
+                                : PrimaryButton(
+                                    onPressed: _submit,
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.login_rounded),
+                                        SizedBox(width: 8),
+                                        Text("Login", style: TextStyle(fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
+                                  ),
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Don't have an account?",
+                                  style: GoogleFonts.poppins(),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pushReplacementNamed(context, RegisterScreen.routeName);
+                                  },
+                                  child: Text(
+                                    'Register',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _SocialIcon(
+                                  onTap: _googleSignIn,
                                   child: Image.network(
                                     'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
                                     height: 24,
                                   ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

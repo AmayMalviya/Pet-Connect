@@ -7,6 +7,8 @@ import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'otp_screen.dart';
 
+import 'role_selection_screen.dart';
+
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
   const RegisterScreen({super.key});
@@ -75,12 +77,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please verify your email.')),
+          const SnackBar(content: Text('Registration successful!')),
         );
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => OtpScreen(email: email.text.trim()),
+            builder: (context) => const RoleSelectionScreen(),
           ),
         );
       }
@@ -114,82 +116,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, automaticallyImplyLeading: false),
       extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: _WaveBands()),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 12),
-                          Text('Create your account', style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                          const SizedBox(height: 6),
-                          Text('Sign up to get started', style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54)),
-                          const SizedBox(height: 18),
-
-                          PetTextField(controller: firstName, hintText: 'First name'),
-                          const SizedBox(height: 12),
-                          PetTextField(controller: lastName, hintText: 'Last name'),
-                          const SizedBox(height: 12),
-                          PetTextField(controller: email, hintText: 'Email'),
-                          const SizedBox(height: 12),
-                          PetTextField(controller: password, hintText: 'Create Password', isPassword: true),
-                          const SizedBox(height: 12),
-                          PetTextField(controller: confirmPassword, hintText: 'Confirm Password', isPassword: true),
-
-                          const SizedBox(height: 18),
-                          _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : PrimaryButton(
-                                  onPressed: _submit,
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.check_circle_rounded),
-                                      SizedBox(width: 8),
-                                      Text('Sign Up', style: TextStyle(fontWeight: FontWeight.w700)),
-                                    ],
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _WaveBands()),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 12),
+                            Text('Create your account',
+                                style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                            const SizedBox(height: 6),
+                            Text('Sign up to get started', style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54)),
+                            const SizedBox(height: 18),
+                            PetTextField(controller: firstName, hintText: 'First name'),
+                            const SizedBox(height: 12),
+                            PetTextField(controller: lastName, hintText: 'Last name'),
+                            const SizedBox(height: 12),
+                            PetTextField(controller: email, hintText: 'Email'),
+                            const SizedBox(height: 12),
+                            PetTextField(controller: password, hintText: 'Create Password', isPassword: true),
+                            const SizedBox(height: 12),
+                            PetTextField(controller: confirmPassword, hintText: 'Confirm Password', isPassword: true),
+                            const SizedBox(height: 18),
+                            _isLoading
+                                ? const Center(child: CircularProgressIndicator())
+                                : PrimaryButton(
+                                    onPressed: _submit,
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.check_circle_rounded),
+                                        SizedBox(width: 8),
+                                        Text('Sign Up', style: TextStyle(fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
+                                  ),
+                            const SizedBox(height: 12),
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Text('Already have an account?', style: GoogleFonts.poppins()),
+                              TextButton(
+                                  onPressed: () => Navigator.pushReplacementNamed(context, LoginScreen.routeName),
+                                  child: Text('Login', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)))
+                            ]),
+                            const SizedBox(height: 10),
+                            Center(child: Text('Or continue with', style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54))),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _SocialIcon(
+                                  onTap: _googleSignIn,
+                                  child: Image.network(
+                                    'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+                                    height: 24,
                                   ),
                                 ),
-
-                          const SizedBox(height: 12),
-                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Text('Already have an account?', style: GoogleFonts.poppins()),
-                            TextButton(onPressed: () => Navigator.pushReplacementNamed(context, LoginScreen.routeName), child: Text('Login', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)))
-                          ]),
-
-                          const SizedBox(height: 10),
-                          Center(child: Text('Or continue with', style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54))),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _SocialIcon(
-                                onTap: _googleSignIn,
-                                child: Image.network(
-                                  'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
-                                  height: 24,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
