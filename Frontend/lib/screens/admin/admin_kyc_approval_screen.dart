@@ -125,7 +125,9 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('KYC approved successfully!'), backgroundColor: Colors.green),
         );
-        setState(() => _pendingKycFuture = _fetchPendingKyc());
+        setState(() {
+          _pendingKycFuture = _fetchPendingKyc();
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -183,7 +185,9 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('KYC rejected.'), backgroundColor: Colors.orange),
         );
-        setState(() => _pendingKycFuture = _fetchPendingKyc());
+        setState(() {
+          _pendingKycFuture = _fetchPendingKyc();
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -193,77 +197,83 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
   }
 
   void _showKycDetails(Map<String, dynamic> kycData) {
-    final userId = kycData['profile']['user_id'];
+    final profile = kycData['profiles'] as Map<String, dynamic>;
     
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'KYC Details & Verification',
-                  style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w600),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Submission Detail',
+                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
                 ),
+                const Divider(),
                 const SizedBox(height: 16),
                 
-                // Profile Info
-                _buildDetailSection('Profile Information', {
-                  'Shelter Name': kycData['profile']['first_name'] ?? 'N/A',
-                  'Email': kycData['profile']['email'] ?? 'N/A',
-                  'Phone': kycData['profile']['phone'] ?? 'N/A',
-                  'City': kycData['profile']['city'] ?? 'N/A',
-                  'State': kycData['profile']['state'] ?? 'N/A',
-                  'Country': kycData['profile']['country'] ?? 'N/A',
+                _buildFormattedSection('Business Information', {
+                  'Shelter Name': profile['first_name'] ?? 'N/A',
+                  'Email': profile['email'] ?? 'N/A',
+                  'Phone': profile['phone'] ?? 'N/A',
+                  'Website': profile['website'] ?? 'N/A',
                 }),
-                const SizedBox(height: 16),
+                
+                const SizedBox(height: 20),
+                _buildFormattedSection('Location Details', {
+                  'Country': profile['country'] ?? 'N/A',
+                  'State': profile['state'] ?? 'N/A',
+                  'City': profile['city'] ?? 'N/A',
+                }),
 
-                // KYC Personal Verification
-                if (kycData['kyc_personal'] != null)
-                  _buildKycPersonalSection(kycData['kyc_personal']),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                _buildFormattedSection('Identity Verification', {
+                  'Aadhaar Number': kycData['aadhaar_number'] ?? 'N/A',
+                  'PAN Number': kycData['pan_number'] ?? 'N/A',
+                  'GSTIN': kycData['gstin'] ?? 'N/A',
+                  'Darpan ID': kycData['darpan_id'] ?? 'N/A',
+                }),
 
-                // KYC Documents with Images (use exact field names from KYC form)
-                if (kycData['kyc_documents'] != null)
-                  _buildKycDocumentsSection(kycData['kyc_documents']),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                _buildFormattedSection('Auto-Analysis', {
+                  'Trust Score': '${kycData['trust_score'] ?? '0'}%',
+                  'Signature Valid': kycData['signature_valid'] == true ? 'Yes' : 'No',
+                  'Extracted Name': kycData['extracted_name'] ?? 'N/A',
+                  'Extracted DOB': kycData['extracted_dob'] ?? 'N/A',
+                }),
 
-                // Shelter Pets List
-                FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _fetchShelterPets(userId),
-                  builder: (ctx, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      );
-                    }
-                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                      return _buildPetsSection(snapshot.data!);
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                const SizedBox(height: 24),
+                if (kycData['reviewer_note'] != null) ...[
+                  const SizedBox(height: 20),
+                  _buildFormattedSection('System Notes', {
+                    'Notes': kycData['reviewer_note'],
+                  }),
+                ],
 
-                // Action buttons - Fixed layout
+                const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Actions disabled in this view',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    ],
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Close Review', style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
@@ -274,112 +284,56 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
     );
   }
 
-  Widget _buildKycPersonalSection(Map<String, dynamic> personal) {
+  Widget _buildFormattedSection(String title, Map<String, dynamic> data) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Personal Verification',
-          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
+          title.toUpperCase(),
+          style: GoogleFonts.poppins(
+            fontSize: 12, 
+            fontWeight: FontWeight.bold, 
+            color: AppColors.primary,
+            letterSpacing: 1.1,
+          ),
         ),
         const SizedBox(height: 8),
-        _buildVerificationRow('Full Name', personal['full_name'] ?? 'N/A'),
-        _buildVerificationRow('Phone', personal['phone'] ?? 'N/A'),
-        _buildVerificationRow('OTP Verified', (personal['is_otp_verified'] == true) ? '✓ Yes' : '✗ No'),
-        _buildVerificationRow('Status', personal['status'] ?? 'Pending'),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            children: data.entries.map((e) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 100,
+                    child: Text(
+                      e.key, 
+                      style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      e.value?.toString() ?? 'N/A',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            )).toList(),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildKycDocumentsSection(Map<String, dynamic> docs) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'KYC Documents',
-          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
-        ),
-        const SizedBox(height: 8),
-        _buildVerificationRow('Document Status', docs['status'] ?? 'Pending'),
-        _buildVerificationRow('Submitted Date', docs['created_at'] ?? 'N/A'),
-        _buildVerificationRow('Aadhaar Number', docs['aadhaar_number'] ?? 'N/A'),
-        const SizedBox(height: 12),
 
-        // Aadhaar Image
-        if (docs['aadhaar_image_url'] != null) ...[
-          Text('Aadhaar Image:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
-          const SizedBox(height: 4),
-          FutureBuilder<String?>(
-            future: _storage.getKycSignedUrl(docs['aadhaar_image_url']),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Container(height: 120, width: double.infinity, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator()));
-              }
-              final signedUrl = snapshot.data;
-              if (signedUrl == null) return const Text('Image unavailable');
-              
-              return GestureDetector(
-                onTap: () => _showImagePreview(signedUrl, 'Aadhaar Image'),
-                child: Container(
-                  height: 120,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      signedUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(child: Text('Image unavailable')),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // Selfie Photo
-        if (docs['selfie_image_url'] != null) ...[
-          Text('Selfie Photo:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
-          const SizedBox(height: 4),
-          FutureBuilder<String?>(
-            future: _storage.getKycSignedUrl(docs['selfie_image_url']),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Container(height: 120, width: double.infinity, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator()));
-              }
-              final signedUrl = snapshot.data;
-              if (signedUrl == null) return const Text('Image unavailable');
-
-              return GestureDetector(
-                onTap: () => _showImagePreview(signedUrl, 'Selfie'),
-                child: Container(
-                  height: 120,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      signedUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(child: Text('Image unavailable')),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ],
-    );
-  }
 
   Widget _buildPetsSection(List<Map<String, dynamic>> pets) {
     return Column(
@@ -531,8 +485,6 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
               final userId = kyc['user_id'];
               final submissionId = kyc['id'];
               
-              // Always read display name from the profiles row, not the KYC record.
-              // KYC records may not have first_name for not_submitted users.
               final firstName = (profile['first_name'] as String? ?? '').trim();
               final lastName = (profile['last_name'] as String? ?? '').trim();
               final fullName = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
@@ -544,6 +496,10 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                 : 'N/A';
               
               final isSignatureValid = kyc['signature_valid'] == true;
+              final pan = kyc['pan_number'] ?? 'N/A';
+              final gstin = kyc['gstin'] ?? 'N/A';
+              final darpan = kyc['darpan_id'] ?? 'N/A';
+              final trustScore = kyc['trust_score']?.toString() ?? 'N/A';
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 20),
@@ -574,32 +530,48 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: isSignatureValid ? Colors.green[50] : Colors.red[50],
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: isSignatureValid ? Colors.green : Colors.red),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isSignatureValid ? Icons.check_circle : Icons.warning,
-                                  size: 14,
-                                  color: isSignatureValid ? Colors.green : Colors.red,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: isSignatureValid ? Colors.green[50] : Colors.red[50],
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: isSignatureValid ? Colors.green : Colors.red),
                                 ),
-                                const SizedBox(width: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isSignatureValid ? Icons.check_circle : Icons.warning,
+                                      size: 14,
+                                      color: isSignatureValid ? Colors.green : Colors.red,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isSignatureValid ? 'Sig Valid' : 'Sig Invalid',
+                                      style: TextStyle(
+                                        fontSize: 10, 
+                                        fontWeight: FontWeight.bold,
+                                        color: isSignatureValid ? Colors.green : Colors.red
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (trustScore != 'N/A') ...[
+                                const SizedBox(height: 4),
                                 Text(
-                                  isSignatureValid ? 'Sig Valid' : 'Sig Invalid',
-                                  style: TextStyle(
-                                    fontSize: 10, 
-                                    fontWeight: FontWeight.bold,
-                                    color: isSignatureValid ? Colors.green : Colors.red
+                                  "Trust Score: $trustScore%",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11, 
+                                    fontWeight: FontWeight.w600,
+                                    color: (double.tryParse(trustScore) ?? 0) >= 70 ? Colors.green : Colors.orange
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
                         ],
                       ),
@@ -608,6 +580,9 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                       // Details Rows
                       _buildInfoRow('Phone', phone),
                       _buildInfoRow('Aadhaar', maskedAadhaar),
+                      _buildInfoRow('PAN', pan),
+                      _buildInfoRow('GSTIN', gstin),
+                      _buildInfoRow('Darpan ID', darpan),
                       _buildInfoRow('Submitted', submittedDate),
                       const SizedBox(height: 16),
 
@@ -663,7 +638,6 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () {
-                                  // Call a manual verify function logic here, similar to the one in ManageProfiles
                                   _approveSubmission(userId, -1);
                                 },
                                 icon: const Icon(Icons.verified_user, size: 18),
@@ -704,6 +678,15 @@ class _AdminKycApprovalScreenState extends State<AdminKycApprovalScreen> {
                                 ),
                               ],
                             ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: () => _showKycDetails(kyc),
+                            icon: const Icon(Icons.visibility, size: 16),
+                            label: const Text("View All Raw Data", style: TextStyle(fontSize: 12)),
+                            style: TextButton.styleFrom(foregroundColor: Colors.blueGrey),
+                          ),
+                        ),
                     ],
                   ),
                 ),
