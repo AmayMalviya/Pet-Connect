@@ -99,6 +99,7 @@ class PetConnectApp extends StatefulWidget {
 class _PetConnectAppState extends State<PetConnectApp> {
   final _appLinks = AppLinks();
   late final StreamSubscription<Uri> _linkSubscription;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -120,7 +121,7 @@ class _PetConnectAppState extends State<PetConnectApp> {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null && initialUri.scheme == 'io.supabase.petconnect') {
-        Future.delayed(const Duration(milliseconds: 100), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _handleDeepLink(initialUri);
         });
       }
@@ -129,9 +130,7 @@ class _PetConnectAppState extends State<PetConnectApp> {
 
   void _handleDeepLink(Uri uri) {
     if (uri.scheme == 'io.supabase.petconnect') {
-      Navigator.of(
-        context,
-      ).pushNamed(AuthCallbackScreen.routeName, arguments: uri);
+      _navigatorKey.currentState?.pushNamed(AuthCallbackScreen.routeName, arguments: uri);
     }
   }
 
@@ -160,11 +159,9 @@ class _PetConnectAppState extends State<PetConnectApp> {
 
         if (userRole == null ||
             (userRole != 'Shelter' && userRole != 'Shelter Owner')) {
-          Future.microtask(
-            () => Navigator.of(
-              context,
-            ).pushReplacementNamed(RoleSelectionScreen.routeName),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigatorKey.currentState?.pushReplacementNamed(RoleSelectionScreen.routeName);
+          });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -178,6 +175,7 @@ class _PetConnectAppState extends State<PetConnectApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'Pet Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -185,13 +183,11 @@ class _PetConnectAppState extends State<PetConnectApp> {
         child: StreamBuilder<AuthState>(
           stream: Supabase.instance.client.auth.onAuthStateChange,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (snapshot.hasData && snapshot.data?.session != null) {
-              final user = snapshot.data!.session!.user;
+            final session = Supabase.instance.client.auth.currentSession;
+            
+            // If we have a session, we're logged in
+            if (session != null) {
+              final user = session.user;
 
               if (user.email == 'malviyaamay501@gmail.com') {
                 return const AdminDashboardScreen();
@@ -239,9 +235,16 @@ class _PetConnectAppState extends State<PetConnectApp> {
                   }
                 },
               );
-            } else {
-              return const AuthScreen();
             }
+            
+            // Fallback for loading state or no session
+            if (snapshot.connectionState == ConnectionState.waiting && session == null) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            return const AuthScreen();
           },
         ),
       ),

@@ -60,8 +60,8 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
               break;
 
             case AuthChangeEvent.userDeleted:
-              // User deleted - navigate to auth screen
-              Navigator.of(context).pushReplacementNamed('/');
+              // User deleted - the StreamBuilder in main.dart will pick this up
+              // as a signedOut event or null session and show AuthScreen automatically.
               break;
 
             default:
